@@ -1,0 +1,4 @@
+AnalysisFW/test/crab_projects/
+AnalysisFW/test/Legacy11/
+*.root
+*.pyc

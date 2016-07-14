@@ -1,0 +1,27 @@
+<use   name="RecoMET/METAlgorithms"/>
+<use   name="JetMETCorrections/Algorithms"/>
+<use   name="RecoJets/JetAlgorithms"/>
+<use   name="DataFormats/JetReco"/>
+<use   name="DataFormats/VertexReco"/>
+<use   name="DataFormats/Candidate"/>
+<use   name="DataFormats/Common"/>
+<use   name="DataFormats/HepMCCandidate"/>
+<use   name="DataFormats/TrackCandidate"/>
+<use   name="DataFormats/HLTReco"/>
+<use   name="PhysicsTools/UtilAlgos"/>
+<use   name="PhysicsTools/PatUtils"/>
+<use   name="PhysicsTools/PatAlgos"/>
+<use   name="JetMETCorrections/Objects"/>
+<use   name="FWCore/Framework"/>
+<use   name="FWCore/PluginManager"/>
+<use   name="FWCore/ServiceRegistry"/>
+<use   name="clhep"/>
+<use   name="root"/>
+<use   name="HLTrigger/HLTcore"/>
+<use   name="L1Trigger/GlobalTriggerAnalyzer"/>
+<use   name="CondFormats/L1TObjects"/>
+<use   name="CondFormats/DataRecord"/>
+<use   name="CondFormats/JetMETObjects"/>
+<export>
+  <lib   name="1"/>
+</export>
