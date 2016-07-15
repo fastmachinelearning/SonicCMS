@@ -2,7 +2,7 @@
 from PhysicsTools.PatAlgos.patTemplate_cfg import *
 import FWCore.Utilities.FileUtils as FileUtils
 
-runOnMC = True
+runOnVM = False
 
 
 # Local input
@@ -17,13 +17,20 @@ process.source.fileNames = cms.untracked.vstring(*fileList)
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
-# ONLY in VM!!
-#process.GlobalTag.connect = cms.string('sqlite_file:/cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA.db')
 
-if runOnMC:
-        process.GlobalTag.globaltag = cms.string('START53_LV6::All')
-else:
-        process.GlobalTag.globaltag = cms.string('FT_53_LV5_AN1::All')
+if runOnVM:
+    process.GlobalTag.connect = cms.string('sqlite_file:/cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db')
+    
+process.GlobalTag.globaltag = cms.string('START53_LV6::All')
+
+'''
+ln -sf /cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA FT_53_LV5_AN1
+ln -sf /cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA.db FT_53_LV5_AN1_RUNA.db
+
+ln -sf /cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1 START53_LV6
+ln -sf /cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db START53_LV6A1.db
+'''
+
 
 # JSON file
 #import FWCore.PythonUtilities.LumiList as LumiList 
@@ -98,12 +105,6 @@ process.kt6PFJets.doRhoFastjet = True
 # to use tau-cleaned jet collection uncomment the following:
 getattr(process,"pfNoTau"+postfix2).enable = True
 
-# Leave or remove??
-#------ removing the MC matching and let it run -------#
-if not runOnMC:
-        removeMCMatchingPF2PAT( process, '' )
-        runOnData(process)
-
 
 # ------------- Adding Ak7 jet collection to process ------------- #
 addPfMET(process, 'PF')
@@ -155,7 +156,7 @@ process.ak7 = cms.EDAnalyzer('OpenDataTreeProducer',
     minNPFJets      = cms.int32(1),
     minGenPt        = cms.untracked.double(30),
     minJJMass       = cms.double(-1),
-    isMCarlo        = cms.untracked.bool(runOnMC),
+    isMCarlo        = cms.untracked.bool(True),
     genjets         = cms.untracked.InputTag('ak7GenJets'),
     useGenInfo      = cms.untracked.bool(True),
     ## trigger ###################################
