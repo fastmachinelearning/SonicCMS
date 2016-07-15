@@ -1,4 +1,4 @@
-<library   file="*.cc" name="SMPJAnalysisFWPlugins">
+<library   file="*.cc" name="OpenDataTuples">
 <use   name="RecoMET/METAlgorithms"/>
 <use   name="JetMETCorrections/Algorithms"/>
 <use   name="RecoJets/JetAlgorithms"/>
@@ -23,7 +23,7 @@
 <use   name="CondFormats/L1TObjects"/>
 <use   name="CondFormats/DataRecord"/>
 <use   name="CondFormats/JetMETObjects"/>
-<use   name="SMPJ/AnalysisFW"/>
+<use   name="cms-opendata-2011-jets/AnalysisFW"/>
 <flags   EDM_PLUGIN="1"/>
 </library>
 

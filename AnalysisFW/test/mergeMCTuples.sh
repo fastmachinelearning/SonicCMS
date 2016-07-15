@@ -12,7 +12,7 @@ source /afs/cern.ch/project/eos/installation/cms/etc/setup.sh
 
 # Mount EOS
 echo "Mounting EOS"
-mkdir eos
+mkdir -p eos
 eosmount eos/
 
 # Top-level directory
@@ -52,5 +52,6 @@ wait
 
 cd $cwd
 eosumount eos/
+rmdir eos
 
 echo "Success!"
