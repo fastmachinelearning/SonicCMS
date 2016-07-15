@@ -21,13 +21,13 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 if runOnVM:
     process.GlobalTag.connect = cms.string('sqlite_file:/cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db')
     
-process.GlobalTag.globaltag = cms.string('START53_LV6::All')
+process.GlobalTag.globaltag = cms.string('START53_LV6A1::All')
 
 '''
 ln -sf /cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA FT_53_LV5_AN1
 ln -sf /cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA.db FT_53_LV5_AN1_RUNA.db
 
-ln -sf /cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1 START53_LV6
+ln -sf /cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1 START53_LV6A1
 ln -sf /cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db START53_LV6A1.db
 '''
 
