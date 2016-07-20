@@ -17,14 +17,13 @@ void mergeMC::Loop()
     if (fChain == 0) return;
 
     // File for merged trees
-    TFile *newfile = new TFile("small.root","RECREATE");
+    TFile *newfile = new TFile("MC_tuples.root","RECREATE");
     
     // Set branches addresses of the merged tree (same as the old tree)  
     TTree *newtree = fChain->CloneTree(0);
 
     // Total number of events (all files combined)
     Long64_t nentries = fChain->GetEntriesFast();
-
 
     // Event loop
     for (Long64_t jentry=0; jentry < nentries;jentry++) {

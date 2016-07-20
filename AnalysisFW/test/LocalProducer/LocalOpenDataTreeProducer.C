@@ -4,13 +4,17 @@
 #include <TStyle.h>
 #include <TCanvas.h>
 
+
+// These functions depend on the trigger names !!
 bool compareTrgNames(std::string left, std::string right) {
 
+    return left < right;
     return  std::stoi(left.substr(7, std::string::npos)) <
             std::stoi(right.substr(7, std::string::npos)); 
 }
 
 std::string transformName(std::string str) {
+    return str;
     return "jt" + str.substr(7, string::npos);
 }
 
@@ -55,7 +59,7 @@ void LocalOpenDataTreeProducer::Loop()
     currDir->cd();
 
     const UInt_t kMaxNjet = 100;
-    const UInt_t kMaxNtrg = 16;
+    const UInt_t kMaxNtrg = 64;
 
     UInt_t njet;
     Float_t jet_pt[kMaxNjet];
@@ -67,7 +71,7 @@ void LocalOpenDataTreeProducer::Loop()
     Float_t jet_jes[kMaxNjet];
 
     
-    Bool_t isMC = true;
+    Bool_t isMC = false;
 
     UInt_t ngen;
     Float_t gen_pt[kMaxNjet];
@@ -143,11 +147,11 @@ void LocalOpenDataTreeProducer::Loop()
     
     
     if (isMC) { // MC
-    fChain->SetBranchStatus("GenJets_",1); // ngen
-    fChain->SetBranchStatus("GenJets_.fCoordinates.fX",1);
-    fChain->SetBranchStatus("GenJets_.fCoordinates.fY",1);
-    fChain->SetBranchStatus("GenJets_.fCoordinates.fZ",1);
-    fChain->SetBranchStatus("GenJets_.fCoordinates.fT",1);
+        fChain->SetBranchStatus("GenJets_",1); // ngen
+        fChain->SetBranchStatus("GenJets_.fCoordinates.fX",1);
+        fChain->SetBranchStatus("GenJets_.fCoordinates.fY",1);
+        fChain->SetBranchStatus("GenJets_.fCoordinates.fZ",1);
+        fChain->SetBranchStatus("GenJets_.fCoordinates.fT",1);
     }
     
 
@@ -168,8 +172,13 @@ void LocalOpenDataTreeProducer::Loop()
 
     TLorentzVector p4, p4gen;
     Long64_t nentries = fChain->GetEntriesFast();
-    Long64_t nbytes = 0, nb = 0;
+    std::cout << "Total entries: " << nentries << std::endl;
+    nentries = 5000;
  
+
+    // Convert set into vector
+    std::vector<std::string> trg_vec;
+
     // Process triggers only for actual data
     if (!isMC) {    
         // Trigger names, common to all events
@@ -186,12 +195,10 @@ void LocalOpenDataTreeProducer::Loop()
             s.insert(removeTrgVersion(trg_name));
         }
 
-        // Convert set into vector
-        std::vector<std::string> trg_vec;
         trg_vec.assign( s.begin(), s.end() );
 
         // And sort the vector wrt. the trigger momentum 
-        sort(trg_vec.begin(), trg_vec.end(), compareTrgNames);
+        //sort(trg_vec.begin(), trg_vec.end(), compareTrgNames);
 
         // Number of triggers
         ntrg = trg_vec.size();
@@ -203,12 +210,12 @@ void LocalOpenDataTreeProducer::Loop()
     }
     
     // Iterating over the events
+
     for (Long64_t jentry = 0; jentry != nentries; ++jentry) {
         
         Long64_t ientry = LoadTree(jentry);
         if (ientry < 0) break;          
-        nb = fChain->GetEntry(jentry);   
-        nbytes += nb;
+        fChain->GetEntry(jentry);
 
         njet = PFJets__;
         for (int i = 0; i != njet; ++i) {
@@ -248,7 +255,6 @@ void LocalOpenDataTreeProducer::Loop()
 
         // Triggers and prescales
 
-        /*
         auto trg_list = TriggerNames->GetXaxis()->GetLabels();
         for (int itrg = 0; itrg != trg_list->GetSize(); ++itrg ) {
             
@@ -264,7 +270,8 @@ void LocalOpenDataTreeProducer::Loop()
                 prescales[pos] = HLTPrescale_[itrg]*L1Prescale_[itrg];
             }
         }
-        */
+        
+        
         
         // Event identification
         run = EvtHdr__mRun;

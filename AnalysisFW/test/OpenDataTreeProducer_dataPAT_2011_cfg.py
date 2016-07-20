@@ -20,13 +20,13 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 # ONLY in VM!!
 if runOnVM:
     process.GlobalTag.connect = cms.string('sqlite_file:/cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA.db')
-    
-    # JSON file
-    import FWCore.PythonUtilities.LumiList as LumiList 
-    goodJSON = './Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt' 
-    myLumis = LumiList.LumiList(filename = goodJSON).getCMSSWString().split(',') 
-    process.source.lumisToProcess = cms.untracked.VLuminosityBlockRange() 
-    process.source.lumisToProcess.extend(myLumis)
+
+# Select good luminosity section using a local JSON file
+import FWCore.PythonUtilities.LumiList as LumiList 
+goodJSON = './Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt' 
+myLumis = LumiList.LumiList(filename = goodJSON).getCMSSWString().split(',') 
+process.source.lumisToProcess = cms.untracked.VLuminosityBlockRange() 
+process.source.lumisToProcess.extend(myLumis)
 
 
 process.GlobalTag.globaltag = 'FT_53_LV5_AN1::All'

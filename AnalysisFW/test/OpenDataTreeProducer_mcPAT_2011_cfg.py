@@ -9,7 +9,6 @@ runOnVM = False
 fileList = FileUtils.loadListFromFile('CMS_MonteCarlo2011_Summer11LegDR_QCD_Pt-80to120_TuneZ2_7TeV_pythia6_AODSIM_PU_S13_START53_LV6-v1_00000_file_index.txt')
 process.source.fileNames = cms.untracked.vstring(*fileList)
 
-#process.source.fileNames = ["file://005D4394-1FB7-E311-91F4-002590593878.root"]
 
 # Grid: files in CRAB config
 #process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring())
@@ -20,24 +19,8 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 if runOnVM:
     process.GlobalTag.connect = cms.string('sqlite_file:/cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db')
-    
+
 process.GlobalTag.globaltag = cms.string('START53_LV6A1::All')
-
-'''
-ln -sf /cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA FT_53_LV5_AN1
-ln -sf /cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA.db FT_53_LV5_AN1_RUNA.db
-
-ln -sf /cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1 START53_LV6A1
-ln -sf /cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db START53_LV6A1.db
-'''
-
-
-# JSON file
-#import FWCore.PythonUtilities.LumiList as LumiList 
-#goodJSON = './Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt' 
-#myLumis = LumiList.LumiList(filename = goodJSON).getCMSSWString().split(',') 
-#process.source.lumisToProcess = cms.untracked.VLuminosityBlockRange() 
-#process.source.lumisToProcess.extend(myLumis)
 
 
 # load the PAT config

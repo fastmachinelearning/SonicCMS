@@ -11,9 +11,13 @@ A std::exception was thrown.
 Connection on "sqlite_file:./FT_53_LV5_AN1/AlCaRecoHLTpaths8e29_1e31_v13_offline.db" cannot be established ( CORAL : "ConnectionPool::getSessionFromNewConnection" from "CORAL/Services/ConnectionService" )
 ----- End Fatal Exception -------------------------------------------------
 ### Answer
-Add symbolic links to the condition database:
+Create symbolic links to the condition database:
+Data:
 	ln -sf /cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA FT_53_LV5_AN1 
 	ln -sf /cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA.db FT_53_LV5_AN1_RUNA.db
+Monte Carlo:
+	ln -sf /cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1 START53_LV6A1
+	ln -sf /cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db START53_LV6A1.db
 
 
 ### Problem
@@ -26,12 +30,17 @@ Valid site-local-config not found at /cvmfs/cms.cern.ch/SITECONF/local/JobConfig
 ----- End Fatal Exception -------------------------------------------------
 ### Answer
 Add to the Python configuration:
+Data:
 	process.GlobalTag.connect = cms.string('sqlite_file:/cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA.db')
 	process.GlobalTag.globaltag = 'FT_53_LV5_AN1::All'
+Monte Carlo:
+	process.GlobalTag.connect = cms.string('sqlite_file:/cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db')    
+	process.GlobalTag.globaltag = cms.string('START53_LV6A1::All')
 
 
 ### Problem
 bash: cmsRun: command not found
 ### Answer
-cmsenv
+Setup the environment by running:
+	cmsenv
 
