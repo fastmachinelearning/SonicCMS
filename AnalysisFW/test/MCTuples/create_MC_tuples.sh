@@ -13,7 +13,7 @@ cd -
 cd ~/work/public/CMSSW_5_3_32/src/cms-opendata-2011-jets/AnalysisFW/test/MCTuples
 
 # Executing script
-root root mergeMC.C
+root mergeMC.C
 
 cd $cwd
 

@@ -3,7 +3,7 @@ cwd=$(pwd)
 
 # Environment
 echo "CMSSW environment"
-cd /afs/cern.ch/user/m/mhaapale/work/public/CMSSW_5_3_20
+cd /afs/cern.ch/user/m/mhaapale/work/public/CMSSW_5_3_32
 eval `scramv1 runtime -sh`
 cd -
 
@@ -13,7 +13,8 @@ source /afs/cern.ch/project/eos/installation/cms/etc/setup.sh
 # Mount EOS
 mkdir eos
 eosmount eos/
-cd eos/cms/store/group/phys_smp/mhaapale/Jet/OpenDataTree_all/160705_145337/0000
+cd eos/cms/store/group/phys_smp/mhaapale/Jet/crab_OpenDataTree_all/160722_132928/0000
+
 
 # Merge files
 DATA=OpenDataTree_data_*.root

@@ -184,11 +184,13 @@ process.p = cms.Path(
     process.ak7
 )
 
-
+# Processing time on VM (2011 laptop)
+# DATA: 50000 events / 4 hours
+# MC:   50000 events / 5 hours
 process.maxEvents.input = 100
 process.MessageLogger.cerr.FwkReport.reportEvery = 5
 
-process.TFileService = cms.Service("TFileService",fileName = cms.string('OpenDataTree_data_7TeV.root'))
+process.TFileService = cms.Service("TFileService",fileName = cms.string('OpenDataTree_data.root'))
 
 process.options.wantSummary = False   ##  (to suppress the long output at the end of the job)
 

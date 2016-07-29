@@ -3,7 +3,7 @@ cwd=$(pwd)
 
 # Environment
 echo "CMSSW environment"
-cd /afs/cern.ch/user/m/mhaapale/work/public/CMSSW_5_3_20
+cd /afs/cern.ch/user/m/mhaapale/work/public/CMSSW_5_3_32
 eval `scramv1 runtime -sh`
 cd -
 
@@ -25,7 +25,7 @@ mkdir -p $OUTDIR
 # Input directories
 DIRS="QCD_Pt-*to*_TuneZ2_7TeV_pythia6/"
 REGEX="QCD_Pt-([[:digit:]]+to[[:digit:]]+)_TuneZ2_7TeV_pythia6/"
-DATE="160713"
+DATE="160728"
 PREFIX="OpenDataTree_mc_"
 
 

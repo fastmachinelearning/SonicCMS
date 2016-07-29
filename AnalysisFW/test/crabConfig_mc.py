@@ -4,7 +4,7 @@ from CRABClient.UserUtilities import config, getUsernameFromSiteDB
 config = config()
 
 config.General.requestName = 'OpenDataTree_all'
-config.General.workArea = 'crab_projects'
+config.General.workArea = 'crab_projects_retry'
 config.General.transferOutputs = True
 config.General.transferLogs = True
 
@@ -17,7 +17,7 @@ config.Data.splitting = 'EventAwareLumiBased' #'FileBased'
 config.Data.outLFNDirBase = '/store/group/phys_smp/mhaapale/'
 config.Data.publication = False
 
-config.Data.totalUnits = 500000 # appr. number of events
+config.Data.totalUnits = 1000000 # appr. number of events
 config.Data.unitsPerJob = 40000 # appr. events per job
 
 config.Site.storageSite = 'T2_CH_CERN'

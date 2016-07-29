@@ -123,9 +123,13 @@ void OpenDataTreeProducer::beginRun(edm::Run const &iRun,
             // Find the version of jet trigger that is active in this run 
             for (std::string name_candidate: name_list) {
 
-                // Match the prefix to the full name
-                if ( name_candidate.find(name_to_search) != std::string::npos ) {
+                
+                // Match the prefix to the full name (eg. HLT_Jet30 to HLT_Jet30_v10)
+                if ( name_candidate.find(name_to_search + "_v") != std::string::npos ) {
 
+                    // Debug
+                    std::cout << name_candidate << std::endl;
+        
                     // Save index corresponding to the trigger
                     triggerIndex_.push_back(hltConfig_.triggerIndex(name_candidate));
 
@@ -180,16 +184,17 @@ void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
     ntrg = triggerIndex_.size();
 
     // Iterate only over the selected jet triggers
-    for (unsigned itrig = 0; itrig < ntrg && !mIsMCarlo; itrig++) {
+    for (unsigned itrig = 0; itrig < ntrg; itrig++) {
 
         // Trigger bit
         Bool_t isAccepted = triggerResultsHandle_->accept(triggerIndex_[itrig]);
         triggers[itrig] = isAccepted;
 
-        // Trigger prescales, must be retrieved using the trigger name
+
+        // Trigger prescales must be retrieved using the trigger name
         std::string trgName = hltConfig_.triggerName(triggerIndex_[itrig]);
         const std::pair< int, int > prescalePair(hltConfig_.prescaleValues(event_obj, iSetup, trgName));
-        
+
         // Total prescale: PreL1*PreHLT 
         prescales[itrig] = prescalePair.first*prescalePair.second; // PreL1*PreHLT    
     }    

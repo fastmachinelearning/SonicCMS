@@ -175,8 +175,10 @@ process.p = cms.Path(
     process.ak7
 )
 
-
-process.maxEvents.input = 500
+# Processing time on VM (2011 laptop)
+# DATA: 50000 events / 4 hours
+# MC:   50000 events / 5 hours
+process.maxEvents.input = 5000
 process.MessageLogger.cerr.FwkReport.reportEvery = 25
 
 process.TFileService = cms.Service("TFileService", fileName = cms.string('OpenDataTree_mc.root'))
