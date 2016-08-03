@@ -72,11 +72,11 @@ patJets = cms.EDProducer("PATJetProducer",
     jetIDMap = cms.InputTag("ak5JetID"),
 
     # mc matching
-    addGenPartonMatch   = cms.bool(True),                           ## switch on/off matching to quarks from hard scatterin
-    embedGenPartonMatch = cms.bool(True),                           ## switch on/off embedding of the GenParticle parton for this jet
+    addGenPartonMatch   = cms.bool(False),                           ## switch on/off matching to quarks from hard scatterin
+    embedGenPartonMatch = cms.bool(False),                           ## switch on/off embedding of the GenParticle parton for this jet
     genPartonMatch      = cms.InputTag("patJetPartonMatch"),        ## particles source to be used for the matching
-    addGenJetMatch      = cms.bool(True),                           ## switch on/off matching to GenJet's
-    embedGenJetMatch    = cms.bool(True),                           ## switch on/off embedding of matched genJet's
+    addGenJetMatch      = cms.bool(False),                           ## switch on/off matching to GenJet's
+    embedGenJetMatch    = cms.bool(False),                           ## switch on/off embedding of matched genJet's
     genJetMatch         = cms.InputTag("patJetGenJetMatch"),        ## GenJet source to be used for the matching
     addPartonJetMatch   = cms.bool(False),                          ## switch on/off matching to PartonJet's (not implemented yet)
     partonJetSource     = cms.InputTag("NOT_IMPLEMENTED"),          ## ParticleJet source to be used for the matching

@@ -20,4 +20,4 @@ config.Data.runRange = '160404-173692'
 config.Data.outLFNDirBase = '/store/group/phys_smp/mhaapale/'
 config.Data.publication = False
 
-config.Site.storageSite = 'T2_CH_CERN'
+config.Site.storageSite = 'T2_CH_CERN' # or 'T2_FI_HIP'

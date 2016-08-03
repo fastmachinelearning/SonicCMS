@@ -1,3 +1,10 @@
+
+
+// Forked from SMPJ Analysis Framework
+// https://twiki.cern.ch/twiki/bin/viewauth/CMS/SMPJAnalysisFW
+// https://github.com/cms-smpj/SMPJ/tree/v1.0
+
+
 #include <iostream>
 #include <sstream>
 #include <istream>
@@ -60,11 +67,12 @@ OpenDataTreeProducer::OpenDataTreeProducer(edm::ParameterSet const &cfg) {
   triggerNames_      = cfg.getParameter<std::vector<std::string> > ("triggerNames");
   triggerResultsTag_ = cfg.getParameter<edm::InputTag>             ("triggerResults");
 }
-//////////////////////////////////////////////////////////////////////////////////////////
+
+
 void OpenDataTreeProducer::beginJob() {
     mTree = fs->make< TTree >("OpenDataTree", "OpenDataTree");
 
-    // Variables to be written for each event
+    // Variables of the flat tuple
     mTree->Branch("njet", &njet, "njet/i");
     mTree->Branch("jet_pt", jet_pt, "jet_pt[njet]/F");
     mTree->Branch("jet_eta", jet_eta, "jet_eta[njet]/F");
@@ -96,23 +104,19 @@ void OpenDataTreeProducer::beginJob() {
 
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
-
 void OpenDataTreeProducer::endJob() {
 }
-//////////////////////////////////////////////////////////////////////////////////////////
+
 
 void OpenDataTreeProducer::beginRun(edm::Run const &iRun,
                                      edm::EventSetup const &iSetup) {
 
-    //--------------------------------------------------------------
-    //-------------- Mapping trigger indexes -----------------------
-    
+    // Mapping trigger indices 
     bool changed(true);
-    if (hltConfig_.init(iRun, iSetup, processName_, changed) && changed){
+    if (hltConfig_.init(iRun, iSetup, processName_, changed) && changed) {
 
-        // List of trigger names and indices are not emptied between events, 
-        // must be done here
+        // List of trigger names and indices 
+        // are not emptied between events, must be done here
         triggerIndex_.clear();
         triggernames.clear();
 
@@ -123,19 +127,13 @@ void OpenDataTreeProducer::beginRun(edm::Run const &iRun,
             // Find the version of jet trigger that is active in this run 
             for (std::string name_candidate: name_list) {
 
-                
                 // Match the prefix to the full name (eg. HLT_Jet30 to HLT_Jet30_v10)
                 if ( name_candidate.find(name_to_search + "_v") != std::string::npos ) {
-
-                    // Debug
-                    std::cout << name_candidate << std::endl;
-        
                     // Save index corresponding to the trigger
                     triggerIndex_.push_back(hltConfig_.triggerIndex(name_candidate));
 
                     // Save the trigger name
                     triggernames.push_back("jt" + name_to_search.substr(7, string::npos));
-                    //triggernames.push_back(name_candidate);
                     break;            
                 }
             }
@@ -148,31 +146,24 @@ void OpenDataTreeProducer::beginRun(edm::Run const &iRun,
         edm::Handle<GenRunInfoProduct> genRunInfo;
         iRun.getByLabel("generator", genRunInfo );
 
-        // Save only the cross section, 
-        // since the number of events is not available in this context (afaik) 
+        // Save only the cross section, since the total number of 
+        // generated events is not available in this context (!!)
         mcweight = genRunInfo->crossSection();
         std::cout << "Cross section: " <<  mcweight << std::endl;
     }
     
-
 }
 
-
-//////////////////////////////////////////////////////////////////////////////////////////
 
 void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
                                     edm::EventSetup const &iSetup) {
 
-    //--------------------------------------------------------------
-    //-------------- Basic Event Info ------------------------------
+    // Event info
     run = event_obj.id().run();
     lumi = event_obj.luminosityBlock();
     event = event_obj.id().event();
 
-    //--------------------------------------------------------------
-    //-------------- Trigger Info ----------------------------------
-
-    // Retrieve information from the event
+    // Triggers
     edm::Handle<edm::TriggerResults>   triggerResultsHandle_;
     event_obj.getByLabel(triggerResultsTag_, triggerResultsHandle_);
 
@@ -190,48 +181,41 @@ void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
         Bool_t isAccepted = triggerResultsHandle_->accept(triggerIndex_[itrig]);
         triggers[itrig] = isAccepted;
 
-
-        // Trigger prescales must be retrieved using the trigger name
+        // Trigger prescales are retrieved using the trigger name
         std::string trgName = hltConfig_.triggerName(triggerIndex_[itrig]);
         const std::pair< int, int > prescalePair(hltConfig_.prescaleValues(event_obj, iSetup, trgName));
 
         // Total prescale: PreL1*PreHLT 
-        prescales[itrig] = prescalePair.first*prescalePair.second; // PreL1*PreHLT    
+        prescales[itrig] = prescalePair.first*prescalePair.second;   
     }    
 
 
-    //------------------------------------------------------------------
-    //-------------- Rho -----------------------------------------------
+    // Rho
     Handle< double > rho_handle;
     event_obj.getByLabel(mSrcPFRho, rho_handle);
     rho = *rho_handle;
 
 
-    //-------------- Generator Info -------------------------------------
+    // Generator Info
 
-    // Retrieve pthat and mcweight for MC datasets
+    // Retrieve pthat and mcweight (only MC)
     if (mIsMCarlo && mUseGenInfo) {
-        // Handle
         Handle< GenEventInfoProduct > hEventInfo;
         event_obj.getByLabel("generator", hEventInfo);
 
         // Monte Carlo weight (NOT AVAILABLE FOR 2011 MC!!)
         //mcweight = hEventInfo->weight();
         
-        // Pthat value
+        // Pthat 
         if (hEventInfo->hasBinningValues()) {
             pthat = hEventInfo->binningValues()[0];
         }
     }
 
+    // Generator-level jets
 
-    //-----------------------------------------------------------------
-    // ----------------- GenJets --------------------------------------
-
-    // Save generated jets
     if (mIsMCarlo) {
 
-        // Retrieve collection of simulated jets
         Handle< GenJetCollection > genjets;
         event_obj.getByLabel(mGenJetsName, genjets);
     
@@ -240,7 +224,7 @@ void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
 
         for (GenJetCollection::const_iterator i_gen = genjets->begin(); i_gen != genjets->end(); i_gen++)  {
 
-            // Jet selection
+            // pT and rapidity selection
             if (i_gen->pt() > mMinGenPt && fabs(i_gen->y()) < mMaxY) {
                 gen_pt[gen_index] = i_gen->pt();
                 gen_eta[gen_index] = i_gen->eta();
@@ -250,23 +234,18 @@ void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
             }
         }
 
-        // Total number of generated jet in this event
+        // Number of generated jets in this event
         ngen = gen_index;
     }
 
 
-    //------------------------------------------------------
-    //----------- PFJets (non-CHS) -------------------------
+    // PF Jets
 
-    // Retrieve jet information
     edm::Handle< std::vector< pat::Jet > > jet_handle;
     event_obj.getByLabel(mPFJetsName, jet_handle);
 
-    // Copy vector of jets to sort them wrt. pT
+    // Copy vector of jets (they are sorted wrt. pT)
     std::vector< pat::Jet > patjets(jet_handle->begin(), jet_handle->end());
-    
-    // Sort jets, does it need to be done ¿¿??
-    //std::sort(patjets.begin(), patjets.end(), cmp_patjets); 
 
     // Index of the selected jet 
     int jet_index = 0;
@@ -304,25 +283,25 @@ void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
                         (isLowEta || isHighEta);
 
 
-        // Variables to be saved
+        // Variables of the tuple
         jet_tightID[jet_index] = tightID;
         jet_area[jet_index] = i_pfjet->jetArea();
         jet_jes[jet_index] = 1./i_pfjet->jecFactor(0); // JEC energy scale
 
+        // pT and E are corrected in the tuple!
         double correction = i_pfjet->jecFactor(0);
-        jet_pt[jet_index] = i_pfjet->pt()*correction;  // Store corrected values
+        jet_pt[jet_index] = i_pfjet->pt()*correction;  
         jet_eta[jet_index] = i_pfjet->eta();
         jet_phi[jet_index] = i_pfjet->phi();
-        jet_E[jet_index] = i_pfjet->energy()*correction; // Store corrected values
+        jet_E[jet_index] = i_pfjet->energy()*correction; 
         
-
         // Matching a GenJet to this PFjet
         if (mIsMCarlo && ngen > 0) {
 
             // Index of the generated jet matching this PFjet
-            jet_igen[jet_index] = -1; // -1, if no matching jet
+            jet_igen[jet_index] = -1; // is -1 if no matching jet
 
-            // Search the generated jet with minimum distance to this PFjet   
+            // Search generated jet with minimum distance to this PFjet   
             float r2min(999);
             for (unsigned int gen_index = 0; gen_index != ngen; gen_index++) {
                 double deltaR2 = reco::deltaR2( jet_eta[jet_index], 
@@ -340,17 +319,15 @@ void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
     }  
     // Number of selected jets in the event
     njet = jet_index;    
-    
 
-    //------------------------------------------------------------------
-    //---------------- MET ---------------------------------------------
+    // MET
     Handle< PFMETCollection > met_handle;
     event_obj.getByLabel("pfMet", met_handle);
+
     met = (*met_handle)[0].et();
     sumet = (*met_handle)[0].sumEt();
 
-    //-----------------------------------------------------------------
-    //-------------- Fill the ree -------------------------------------
+    // Finally, fill the tree
     if (njet >= (unsigned)mMinNPFJets) {            
             mTree->Fill();
     }
@@ -361,11 +338,8 @@ void OpenDataTreeProducer::endRun(edm::Run const &iRun, edm::EventSetup const &i
 
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
 OpenDataTreeProducer::~OpenDataTreeProducer() {
 }
-
-
 
 
 DEFINE_FWK_MODULE(OpenDataTreeProducer);

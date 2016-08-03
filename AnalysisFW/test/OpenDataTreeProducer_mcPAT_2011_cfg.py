@@ -1,29 +1,32 @@
-## import skeleton process
+
+# Forked from SMPJ Analysis Framework
+# https://twiki.cern.ch/twiki/bin/viewauth/CMS/SMPJAnalysisFW
+# https://github.com/cms-smpj/SMPJ/tree/v1.0
+
+
+## Skeleton process
 from PhysicsTools.PatAlgos.patTemplate_cfg import *
 import FWCore.Utilities.FileUtils as FileUtils
 
-runOnVM = False
+process.load('Configuration.StandardSequences.Services_cff')
+process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
+# True : when running in OpenData virtual machine
+# False: when runing in lxplus 
+runOnVM = False
 
 # Local input
 fileList = FileUtils.loadListFromFile('CMS_MonteCarlo2011_Summer11LegDR_QCD_Pt-80to120_TuneZ2_7TeV_pythia6_AODSIM_PU_S13_START53_LV6-v1_00000_file_index.txt')
 process.source.fileNames = cms.untracked.vstring(*fileList)
 
-
-# Grid: files in CRAB config
-#process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring())
-
-process.load('Configuration.StandardSequences.Services_cff')
-process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
-
-
 if runOnVM:
     process.GlobalTag.connect = cms.string('sqlite_file:/cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db')
 
+# Global tag for Summer11LegDR-PU_S13_START53_LV6-v1
 process.GlobalTag.globaltag = cms.string('START53_LV6A1::All')
 
 
-# load the PAT config
+# Load PAT config
 process.load("RecoTauTag.Configuration.RecoPFTauTag_cff") # re-run tau discriminators (new version)
 process.load("PhysicsTools.PatAlgos.patSequences_cff")
 process.load('Configuration.StandardSequences.Reconstruction_cff')
@@ -31,7 +34,6 @@ process.load('RecoJets.Configuration.RecoPFJets_cff')
 process.load('RecoJets.Configuration.RecoJets_cff')
 process.load('RecoJets.JetProducers.TrackJetParameters_cfi')
 process.load('JetMETCorrections.Configuration.DefaultJEC_cff')
-process.load('CommonTools.RecoAlgos.HBHENoiseFilterResultProducer_cfi')
 
 
 # Configure PAT to use PF2PAT instead of AOD sources
@@ -51,21 +53,8 @@ process.goodOfflinePrimaryVertices = cms.EDFilter(
     cut = cms.string("!isFake && ndof > 4 && abs(z) <= 24 && position.rho < 2")
     )
 
-
-#process.ak5PFJets.doAreaFastjet = True
-process.ak7PFJets.doAreaFastjet = True
-process.kt6PFJets.doRhoFastjet = True
-
-
-# Configure PAT to use PF2PAT instead of AOD sources
-# this function will modify the PAT sequences.
-from PhysicsTools.PatAlgos.tools.pfTools import *
-
-
-#------------- Running a second PF2PAT for Ak7chs jets ----------------#
-postfix2 = "CHS7"
-jetAlgo2 = "AK7"
-usePF2PAT(process,runPF2PAT=True, jetAlgo=jetAlgo2, runOnMC=False, postfix=postfix2,
+postfix = "CHS7"
+usePF2PAT(process,runPF2PAT=True, jetAlgo="AK7", runOnMC=False, postfix=postfix,
          jetCorrections=('AK7PFchs', ['L1FastJet','L2Relative','L3Absolute','L2L3Residual']),
          pvCollection=cms.InputTag('goodOfflinePrimaryVertices'),
          typeIMetCorrections=True
@@ -73,7 +62,7 @@ usePF2PAT(process,runPF2PAT=True, jetAlgo=jetAlgo2, runOnMC=False, postfix=postf
 
 
 # Does this need to be modified??
-# --- modifying the pfpileup+postfix2 -------------------- #
+# --- modifying the pfpileup+postfix -------------------- #
 process.pfPileUpCHS7.checkClosestZVertex = False
 process.pfPileUpCHS7.Enable = True
 process.pfPileUpCHS7.Vertices = cms.InputTag('goodOfflinePrimaryVertices')
@@ -84,10 +73,8 @@ process.ak5PFJets.doAreaFastjet = True
 process.ak7PFJets.doAreaFastjet = True
 process.kt6PFJets.doRhoFastjet = True
 
-# What about this??
-# to use tau-cleaned jet collection uncomment the following:
-getattr(process,"pfNoTau"+postfix2).enable = True
-
+# Use tau-cleaned jet collection uncomment the following:
+getattr(process,"pfNoTau"+postfix).enable = True
 
 # ------------- Adding Ak7 jet collection to process ------------- #
 addPfMET(process, 'PF')
@@ -113,9 +100,7 @@ process.trackingFailureFilter = trackingFailureFilter.clone()
 process.trackingFailureFilter.VertexSource = cms.InputTag('goodOfflinePrimaryVertices')
 
 
-
-################### declaring the EDAnalyzer ##############################3
-
+################### EDAnalyzer ##############################3
 process.ak7 = cms.EDAnalyzer('OpenDataTreeProducer',
     ## jet collections ###########################
     pfjets          = cms.InputTag('selectedPatJetsAK7PFCorr'),
@@ -123,7 +108,6 @@ process.ak7 = cms.EDAnalyzer('OpenDataTreeProducer',
     pfmet           = cms.InputTag('pfMETCHS7'),
     ## database entry for the uncertainties ######
     PFPayloadName   = cms.string('AK7PF'),
-    PFPayloadNameCHS= cms.string('AK7PFchs'),
 
     ## set the conditions for good Vtx counting ##
     offlineVertices = cms.InputTag('goodOfflinePrimaryVertices'),
@@ -134,8 +118,6 @@ process.ak7 = cms.EDAnalyzer('OpenDataTreeProducer',
     ## preselection cuts #########################
     maxY            = cms.double(5.0), 
     minPFPt         = cms.double(30),
-    minPFFatPt      = cms.double(10),
-    maxPFFatEta     = cms.double(2.5),
     minNPFJets      = cms.int32(1),
     minGenPt        = cms.untracked.double(30),
     minJJMass       = cms.double(-1),
@@ -146,8 +128,8 @@ process.ak7 = cms.EDAnalyzer('OpenDataTreeProducer',
     printTriggerMenu = cms.untracked.bool(True),
     processName     = cms.string('HLT'),
     triggerNames    = cms.vstring(
-                                'HLT_Jet30', 'HLT_Jet60', 'HLT_Jet80', 'HLT_Jet110', 'HLT_Jet150', 
-                                'HLT_Jet190','HLT_Jet240','HLT_Jet370',
+                                'HLT_Jet30', 'HLT_Jet60', 'HLT_Jet80', 'HLT_Jet110', 
+                                'HLT_Jet150','HLT_Jet190','HLT_Jet240','HLT_Jet370',
                                 ),
     triggerResults  = cms.InputTag("TriggerResults","","HLT"),
     triggerEvent    = cms.InputTag("hltTriggerSummaryAOD","","HLT"),
@@ -171,17 +153,24 @@ process.p = cms.Path(
     process.hltFilter *
     process.trackingFailureFilter *
     process.patDefaultSequence *
-    getattr(process,"patPF2PATSequence"+postfix2) *
+    getattr(process,"patPF2PATSequence"+postfix) *
     process.ak7
 )
+
 
 # Processing time on VM (2011 laptop)
 # DATA: 50000 events / 4 hours
 # MC:   50000 events / 5 hours
-process.maxEvents.input = 5000
-process.MessageLogger.cerr.FwkReport.reportEvery = 25
 
+# Change number of events here:
+process.maxEvents.input = 100
+
+process.MessageLogger.cerr.FwkReport.reportEvery = 5
+
+# Output file
 process.TFileService = cms.Service("TFileService", fileName = cms.string('OpenDataTree_mc.root'))
 
-process.options.wantSummary = False   ##  (to suppress the long output at the end of the job)
+# To suppress long output at the end of the job
+process.options.wantSummary = False   
+
 del process.outpath
