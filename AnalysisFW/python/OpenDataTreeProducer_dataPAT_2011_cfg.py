@@ -13,7 +13,7 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 # True : when running in OpenData virtual machine
 # False: when runing in lxplus 
-runOnVM = False
+runOnVM = True
 
 # Index of data files
 files2011data = FileUtils.loadListFromFile('CMS_Run2011A_Jet_AOD_12Oct2013-v1_20000_file_index.txt')
