@@ -1,7 +1,8 @@
 ## Setup
 
+With `cms-opendata-2011-jets/AnalysisFW/python/` as the current folder, run the following commands:
 
-1. Download index files: 
+1. Download index files : 
     
     ```
     wget http://opendata.cern.ch/record/21/files/CMS_Run2011A_Jet_AOD_12Oct2013-v1_20000_file_index.txt
@@ -24,9 +25,15 @@
     ln -sf /cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db START53_LV6A1.db
     ```
     
-4. Finally,test the configuration files:
+4. Run the configuration files:
 
     ```
     cmsRun OpenDataTreeProducer_dataPAT_2011_cfg.py
     cmsRun OpenDataTreeProducer_mcPAT_2011_cfg.py
+    ```
+
+5. Open the tuples in ROOT
+ 
+    ```
+    root OpenDataTree_*
     ```
