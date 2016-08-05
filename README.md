@@ -19,7 +19,9 @@ cmsenv
 git cms-addpkg PhysicsTools/PatAlgos
 git clone https://github.com/tamshai/cms-opendata-2011-jets/
 cp cms-opendata-2011-jets/jetProducer_cfi.py PhysicsTools/PatAlgos/python/producersLayer1/
+scram b
 cd cms-opendata-2011-jets/AnalysisFW/python/
+
 ```
 
 ## Troubleshooting
