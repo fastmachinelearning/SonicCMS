@@ -32,7 +32,7 @@ With `cms-opendata-2011-jets/AnalysisFW/python/` as the current folder, run the 
     cmsRun OpenDataTreeProducer_mcPAT_2011_cfg.py
     ```
 
-5. Open the tuples in ROOT
+5. Open the tuples in ROOT:
  
     ```
     root OpenDataTree_*
