@@ -117,8 +117,8 @@ mergeMC::mergeMC(TTree *tree) : fChain(0)
    chain->Add("tuples_470to600.root/ak7/OpenDataTree");
    chain->Add("tuples_600to800.root/ak7/OpenDataTree");
    chain->Add("tuples_800to1000.root/ak7/OpenDataTree");
-   tree = chain;
 
+   tree = chain;
    Init(tree);
    Loop();
 }

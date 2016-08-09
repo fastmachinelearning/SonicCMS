@@ -13,7 +13,7 @@ source /afs/cern.ch/sw/lcg/contrib/gcc/4.9/x86_64-slc6/setup.sh
 
 
 # Changing directory
-cd /afs/cern.ch/user/m/mhaapale/work/public/CMSSW_5_3_32/src/cms-opendata-2011-jets/AnalysisFW/test/LocalProducer
+cd /afs/cern.ch/user/m/mhaapale/work/public/CMSSW_5_3_32/src/cms-opendata-2011-jets/AnalysisFW/python/LocalProducer
 
 
 #echo "EOS environment"

@@ -50,12 +50,15 @@
 #include "JetMETCorrections/Objects/interface/JetCorrectionsRecord.h"
 
 OpenDataTreeProducer::OpenDataTreeProducer(edm::ParameterSet const &cfg) {
-  mPFPayloadName     = cfg.getParameter<std::string>               ("PFPayloadName");
   mMinPFPt           = cfg.getParameter<double>                    ("minPFPt");
   mMinJJMass         = cfg.getParameter<double>                    ("minJJMass");
   mMaxY              = cfg.getParameter<double>                    ("maxY");
   mMinNPFJets        = cfg.getParameter<int>                       ("minNPFJets");
-  mPFJetsName        = cfg.getParameter<edm::InputTag>             ("pfjets");
+  mPFak5JetsName     = cfg.getParameter<edm::InputTag>             ("pfak5jets");
+  mPFak7JetsName     = cfg.getParameter<edm::InputTag>             ("pfak7jets");
+  mOfflineVertices   = cfg.getParameter<edm::InputTag>             ("offlineVertices");
+  mGoodVtxNdof       = cfg.getParameter<double>                    ("goodVtxNdof");
+  mGoodVtxZ          = cfg.getParameter<double>                    ("goodVtxZ");
   mSrcPFRho          = cfg.getParameter<edm::InputTag>             ("srcPFRho");
   mPFMET             = cfg.getParameter<edm::InputTag>             ("pfmet");
   mGenJetsName       = cfg.getUntrackedParameter<edm::InputTag>    ("genjets",edm::InputTag(""));
@@ -73,15 +76,26 @@ void OpenDataTreeProducer::beginJob() {
     mTree = fs->make< TTree >("OpenDataTree", "OpenDataTree");
 
     // Variables of the flat tuple
-    mTree->Branch("njet", &njet, "njet/i");
-    mTree->Branch("jet_pt", jet_pt, "jet_pt[njet]/F");
-    mTree->Branch("jet_eta", jet_eta, "jet_eta[njet]/F");
-    mTree->Branch("jet_phi", jet_phi, "jet_phi[njet]/F");
-    mTree->Branch("jet_E", jet_E, "jet_E[njet]/F");   
-    mTree->Branch("jet_tightID", jet_tightID, "jet_tightID[njet]/O");
-    mTree->Branch("jet_area", jet_area, "jet_area[njet]/F");
-    mTree->Branch("jet_jes", jet_jes, "jet_jes[njet]/F");
-    mTree->Branch("jet_igen", jet_igen, "jet_igen[njet]/I");
+    mTree->Branch("ak5_njet", &ak5_njet, "ak5_njet/i");
+    mTree->Branch("ak5_pt", ak5_pt, "ak5_pt[ak5_njet]/F");
+    mTree->Branch("ak5_eta", ak5_eta, "ak5_eta[ak5_njet]/F");
+    mTree->Branch("ak5_phi", ak5_phi, "ak5_phi[ak5_njet]/F");
+    mTree->Branch("ak5_E", ak5_E, "ak5_E[ak5_njet]/F");   
+    mTree->Branch("ak5_tightID", ak5_tightID, "ak5_tightID[ak5_njet]/O");
+    mTree->Branch("ak5_area", ak5_area, "ak5_area[ak5_njet]/F");
+    mTree->Branch("ak5_jes", ak5_jes, "ak5_jes[ak5_njet]/F");
+    mTree->Branch("ak5_igen", ak5_igen, "ak5_igen[ak5_njet]/I");
+
+    // AK7 variables
+    mTree->Branch("ak7_njet", &ak7_njet, "ak7_njet/i");
+    mTree->Branch("ak7_pt", ak7_pt, "ak7_pt[ak7_njet]/F");
+    mTree->Branch("ak7_eta", ak7_eta, "ak7_eta[ak7_njet]/F");
+    mTree->Branch("ak7_phi", ak7_phi, "ak7_phi[ak7_njet]/F");
+    mTree->Branch("ak7_E", ak7_E, "ak7_E[ak7_njet]/F");
+    mTree->Branch("ak7_area", ak7_area, "ak7_area[ak7_njet]/F");
+    mTree->Branch("ak7_jes", ak7_jes, "ak7_jes[ak7_njet]/F");
+    //mTree->Branch("ak7_igen", ak7_igen, "ak7_igen[ak7_njet]/I");
+    mTree->Branch("ak7_to_ak5", ak7_to_ak5, "ak7_to_ak5[ak7_njet]/I");
 
     mTree->Branch("ngen", &ngen, "ngen/i");
     mTree->Branch("gen_pt", gen_pt, "gen_pt[ngen]/F");
@@ -102,6 +116,23 @@ void OpenDataTreeProducer::beginJob() {
     mTree->Branch("pthat", &pthat, "pthat/F");
     mTree->Branch("mcweight", &mcweight, "mcweight/F");
 
+    mTree->Branch("chf", chf, "chf[ak5_njet]/F");   
+    mTree->Branch("nhf", nhf, "nhf[ak5_njet]/F");   
+    mTree->Branch("phf", phf, "phf[ak5_njet]/F");   
+    mTree->Branch("elf", elf, "elf[ak5_njet]/F");   
+    mTree->Branch("muf", muf, "muf[ak5_njet]/F");   
+    mTree->Branch("hf_hf", hf_hf, "hf_hf[ak5_njet]/F");   
+    mTree->Branch("hf_phf", hf_phf, "hf_phf[ak5_njet]/F");   
+    mTree->Branch("hf_hm", hf_hm, "hf_hm[ak5_njet]/i");    
+    mTree->Branch("hf_phm", hf_phm, "hf_phm[ak5_njet]/i");
+    mTree->Branch("chm", chm, "chm[ak5_njet]/i");   
+    mTree->Branch("nhm", nhm, "nhm[ak5_njet]/i");   
+    mTree->Branch("phm", phm, "phm[ak5_njet]/i");   
+    mTree->Branch("elm", elm, "elm[ak5_njet]/i");   
+    mTree->Branch("mum", mum, "mum[ak5_njet]/i");
+    mTree->Branch("beta", beta, "beta[ak5_njet]/F");   
+    mTree->Branch("bstar", bstar, "bstar[ak5_njet]/F");
+    
 }
 
 void OpenDataTreeProducer::endJob() {
@@ -213,7 +244,6 @@ void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
     }
 
     // Generator-level jets
-
     if (mIsMCarlo) {
 
         Handle< GenJetCollection > genjets;
@@ -239,39 +269,182 @@ void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
     }
 
 
-    // PF Jets
+    // PF AK5 Jets
 
-    edm::Handle< std::vector< pat::Jet > > jet_handle;
-    event_obj.getByLabel(mPFJetsName, jet_handle);
+    edm::Handle< std::vector< pat::Jet > > ak5_handle;
+    event_obj.getByLabel(mPFak5JetsName, ak5_handle);
 
     // Copy vector of jets (they are sorted wrt. pT)
-    std::vector< pat::Jet > patjets(jet_handle->begin(), jet_handle->end());
+    std::vector< pat::Jet > patjets(ak5_handle->begin(), ak5_handle->end());
 
     // Index of the selected jet 
-    int jet_index = 0;
+    int ak5_index = 0;
+
+    // Vertex Info
+    Handle<reco::VertexCollection> recVtxs;
+    event_obj.getByLabel(mOfflineVertices, recVtxs);
 
     // Iterate over the jets of the event
-    for (auto i_pfjet = patjets.begin(); i_pfjet != patjets.end(); ++i_pfjet) {
+    for (auto i_ak5jet = patjets.begin(); i_ak5jet != patjets.end(); ++i_ak5jet) {
 
         // Skip the current iteration if jet is not selected
-        if (!i_pfjet->isPFJet() || 
-            fabs(i_pfjet->y()) > mMaxY || 
-            (i_pfjet->pt()*i_pfjet->jecFactor(0)) < mMinPFPt) {
+        if (!i_ak5jet->isPFJet() || 
+            fabs(i_ak5jet->y()) > mMaxY || 
+            (i_ak5jet->pt()) < mMinPFPt) {
+            continue;
+        }
+
+        // Computing beta and beta*
+
+        // Get tracks
+        reco::TrackRefVector tracks(i_ak5jet->associatedTracks());
+
+        float sumTrkPt(0.0), sumTrkPtBeta(0.0),sumTrkPtBetaStar(0.0);
+        beta[ak5_index] = 0.0;
+        bstar[ak5_index] = 0.0;
+        
+        // Loop over tracks of the jet
+        for(auto i_trk = tracks.begin(); i_trk != tracks.end(); i_trk++) {
+
+            if (recVtxs->size() == 0) break;
+            
+            // Sum pT
+            sumTrkPt += (*i_trk)->pt();
+            
+            // Loop over vertices
+            for (unsigned ivtx = 0; ivtx < recVtxs->size(); ivtx++) {
+                reco::Vertex vertex = (*recVtxs)[ivtx];
+
+                // Loop over tracks associated with the vertex
+                if (!(vertex.isFake()) && 
+                    vertex.ndof() >= mGoodVtxNdof && 
+                    fabs(vertex.z()) <= mGoodVtxZ) {
+                    
+                    for(auto i_vtxTrk = vertex.tracks_begin(); i_vtxTrk != vertex.tracks_end(); ++i_vtxTrk) {
+                        
+                        // Match the jet track to the track from the vertex
+                        reco::TrackRef trkRef(i_vtxTrk->castTo<reco::TrackRef>());
+                        
+                        // Check for matching vertices
+                        if (trkRef == (*i_trk)) {
+                            if (ivtx == 0) {
+                                sumTrkPtBeta += (*i_trk)->pt();
+                            }
+                            else {
+                                sumTrkPtBetaStar += (*i_trk)->pt();
+                            } 
+                        } 
+                    } 
+                } 
+            } 
+        }
+        if (sumTrkPt > 0) {
+            beta[ak5_index]   = sumTrkPtBeta/sumTrkPt;
+            bstar[ak5_index]  = sumTrkPtBetaStar/sumTrkPt;
+        } 
+
+
+        // Jet composition
+        chf[ak5_index]     = i_ak5jet->chargedHadronEnergyFraction();
+        nhf[ak5_index]     = i_ak5jet->neutralHadronEnergyFraction() + i_ak5jet->HFHadronEnergyFraction();
+        phf[ak5_index]     = i_ak5jet->photonEnergyFraction();
+        elf[ak5_index]     = i_ak5jet->electronEnergyFraction();
+        muf[ak5_index]     = i_ak5jet->muonEnergyFraction();
+        hf_hf[ak5_index]   = i_ak5jet->HFHadronEnergyFraction();
+        hf_phf[ak5_index]  = i_ak5jet->HFEMEnergyFraction();
+        hf_hm[ak5_index]   = i_ak5jet->HFHadronMultiplicity();
+        hf_phm[ak5_index]  = i_ak5jet->HFEMMultiplicity();
+        chm[ak5_index]     = i_ak5jet->chargedHadronMultiplicity();
+        nhm[ak5_index]     = i_ak5jet->neutralHadronMultiplicity();
+        phm[ak5_index]     = i_ak5jet->photonMultiplicity();
+        elm[ak5_index]     = i_ak5jet->electronMultiplicity();
+        mum[ak5_index]     = i_ak5jet->muonMultiplicity();
+        
+        int npr      = i_ak5jet->chargedMultiplicity() + i_ak5jet->neutralMultiplicity();
+
+        bool isHighEta = fabs(i_ak5jet->eta()) > 2.4;
+        bool isLowEta = fabs(i_ak5jet->eta()) <= 2.4 && 
+                        nhf[ak5_index] < 0.9 &&
+                        phf[ak5_index] < 0.9 && 
+                        elf[ak5_index] < 0.99 && 
+                        chf[ak5_index] > 0 && 
+                        chm[ak5_index] > 0;
+        bool tightID =  npr > 1 && 
+                        phf[ak5_index] < 0.99 && 
+                        nhf[ak5_index] < 0.99 &&
+                        (isLowEta || isHighEta);
+
+
+        // Variables of the tuple
+        ak5_tightID[ak5_index] = tightID;
+        ak5_area[ak5_index] = i_ak5jet->jetArea();
+        ak5_jes[ak5_index] = 1/i_ak5jet->jecFactor(0); // JEC factor (pfjet is already corrected !!)
+
+        // p4 is already corrected!
+        auto p4 = i_ak5jet->p4();
+        ak5_pt[ak5_index]   = p4.Pt();
+        ak5_eta[ak5_index]  = p4.Eta();
+        ak5_phi[ak5_index]  = p4.Phi();
+        ak5_E[ak5_index]    = p4.E(); 
+        
+        // Matching a GenJet to this PFjet
+        if (mIsMCarlo && ngen > 0) {
+
+            // Index of the generated jet matching this PFjet
+            ak5_igen[ak5_index] = -1; // is -1 if no matching jet
+
+            // Search generated jet with minimum distance to this PFjet   
+            float r2min(999);
+            for (unsigned int gen_index = 0; gen_index != ngen; gen_index++) {
+                double deltaR2 = reco::deltaR2( ak5_eta[ak5_index], 
+                                                ak5_phi[ak5_index],
+                                                gen_eta[gen_index], 
+                                                gen_phi[gen_index]);
+                if (deltaR2 < r2min) {
+                    r2min = deltaR2;
+                    ak5_igen[ak5_index] = gen_index;
+                }
+            }
+        }
+        
+    ak5_index++;
+    }  
+    // Number of selected jets in the event
+    ak5_njet = ak5_index;    
+
+
+    // Four leading AK7 Jets
+    edm::Handle< std::vector< pat::Jet > > ak7_handle;
+    event_obj.getByLabel(mPFak7JetsName, ak7_handle);
+
+    // Copy vector of jets (they are sorted wrt. pT)
+    std::vector< pat::Jet > ak7_patjets(ak7_handle->begin(), ak7_handle->end());
+
+    // Index of the selected jet 
+    int ak7_index = 0;
+
+    // Iterate only over four leading jets
+    for (auto i_ak7jet = ak7_patjets.begin(); i_ak7jet != ak7_patjets.end() && i_ak7jet - ak7_patjets.begin() != 4; ++i_ak7jet) {
+
+        // Skip the current iteration if jet is not selected
+        if (!i_ak7jet->isPFJet() || 
+            fabs(i_ak7jet->y()) > mMaxY || 
+            (i_ak7jet->pt()) < mMinPFPt) {
             continue;
         }
 
         // Jet properties
-        int     npr     = i_pfjet->chargedMultiplicity() + 
-                            i_pfjet->neutralMultiplicity();
-        double  phf     = i_pfjet->photonEnergyFraction();
-        double  nhf     = i_pfjet->neutralHadronEnergyFraction() +
-                            i_pfjet->HFHadronEnergyFraction();
-        double  elf     = i_pfjet->electronEnergyFraction();
-        double  chf     = i_pfjet->chargedHadronEnergyFraction();
-        int     chm     = i_pfjet->chargedHadronMultiplicity();
+        int     npr     = i_ak7jet->chargedMultiplicity() + 
+                            i_ak7jet->neutralMultiplicity();
+        double  phf     = i_ak7jet->photonEnergyFraction();
+        double  nhf     = i_ak7jet->neutralHadronEnergyFraction() +
+                            i_ak7jet->HFHadronEnergyFraction();
+        double  elf     = i_ak7jet->electronEnergyFraction();
+        double  chf     = i_ak7jet->chargedHadronEnergyFraction();
+        int     chm     = i_ak7jet->chargedHadronMultiplicity();
 
-        bool isHighEta = fabs(i_pfjet->eta()) > 2.4;
-        bool isLowEta = fabs(i_pfjet->eta()) <= 2.4 && 
+        bool isHighEta = fabs(i_ak7jet->eta()) > 2.4;
+        bool isLowEta = fabs(i_ak7jet->eta()) <= 2.4 && 
                         nhf < 0.9 &&
                         phf < 0.9 && 
                         elf < 0.99 && 
@@ -284,41 +457,62 @@ void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
 
 
         // Variables of the tuple
-        jet_tightID[jet_index] = tightID;
-        jet_area[jet_index] = i_pfjet->jetArea();
-        jet_jes[jet_index] = 1./i_pfjet->jecFactor(0); // JEC energy scale
+        ak7_tightID[ak7_index] = tightID;
+        ak7_area[ak7_index] = i_ak7jet->jetArea();
+        ak7_jes[ak7_index] = 1/i_ak7jet->jecFactor(0); // JEC factor (pfjet is already corrected !!)
 
-        // pT and E are corrected in the tuple!
-        double correction = i_pfjet->jecFactor(0);
-        jet_pt[jet_index] = i_pfjet->pt()*correction;  
-        jet_eta[jet_index] = i_pfjet->eta();
-        jet_phi[jet_index] = i_pfjet->phi();
-        jet_E[jet_index] = i_pfjet->energy()*correction; 
+        // p4 is already corrected!
+        auto p4 = i_ak7jet->p4();
+        ak7_pt[ak7_index]   = p4.Pt();
+        ak7_eta[ak7_index]  = p4.Eta();
+        ak7_phi[ak7_index]  = p4.Phi();
+        ak7_E[ak7_index]    = p4.E(); 
         
+        // Matching AK5 jet to this AK7 jet
+        // Index of the generated jet matching this PFjet
+        ak7_to_ak5[ak7_index] = -1; // is -1 if no matching jet
+
+        float r2min(999);
+        for (unsigned int ak5_index = 0; ak5_index != ak5_njet; ak5_index++) {
+
+            // Compute distance squared
+            double deltaR2 = reco::deltaR2( ak7_eta[ak7_index], 
+                                            ak7_phi[ak7_index],
+                                            ak5_eta[ak5_index], 
+                                            ak5_phi[ak5_index]);
+            if (deltaR2 < r2min) {
+                r2min = deltaR2;
+                ak7_to_ak5[ak7_index] = ak5_index;
+            }
+        }
+    
+
+        /*
         // Matching a GenJet to this PFjet
         if (mIsMCarlo && ngen > 0) {
 
             // Index of the generated jet matching this PFjet
-            jet_igen[jet_index] = -1; // is -1 if no matching jet
+            ak7_igen[ak7_index] = -1; // is -1 if no matching jet
 
             // Search generated jet with minimum distance to this PFjet   
             float r2min(999);
             for (unsigned int gen_index = 0; gen_index != ngen; gen_index++) {
-                double deltaR2 = reco::deltaR2( jet_eta[jet_index], 
-                                                jet_phi[jet_index],
+                double deltaR2 = reco::deltaR2( ak7_eta[ak7_index], 
+                                                ak7_phi[ak7_index],
                                                 gen_eta[gen_index], 
                                                 gen_phi[gen_index]);
                 if (deltaR2 < r2min) {
                     r2min = deltaR2;
-                    jet_igen[jet_index] = gen_index;
+                    ak7_igen[ak7_index] = gen_index;
                 }
             }
-        }
+        }*/
         
-    jet_index++;
+    ak7_index++;
     }  
-    // Number of selected jets in the event
-    njet = jet_index;    
+    // Number of saved jets in the event
+    ak7_njet = ak7_index;    
+
 
     // MET
     Handle< PFMETCollection > met_handle;
@@ -328,7 +522,8 @@ void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
     sumet = (*met_handle)[0].sumEt();
 
     // Finally, fill the tree
-    if (njet >= (unsigned)mMinNPFJets) {            
+    if (ak5_njet >= (unsigned)mMinNPFJets && 
+        ak7_njet >= (unsigned)mMinNPFJets ) {            
             mTree->Fill();
     }
 }

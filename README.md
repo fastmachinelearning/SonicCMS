@@ -1,3 +1,19 @@
+## Description
+CMSSW module producing flat tuples from 2011A Jet data.
+
+Source code was forked from the SMPJ Analysis Framework:
+
+https://twiki.cern.ch/twiki/bin/viewauth/CMS/SMPJAnalysisFW
+
+https://github.com/cms-smpj/SMPJ/tree/v1.0/
+
+## Setup
+
+Create project directories:
+```
+
+```
+
 ## Troubleshooting
 
 ### Missing condition database symlinks

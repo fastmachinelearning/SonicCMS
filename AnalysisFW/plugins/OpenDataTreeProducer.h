@@ -45,13 +45,17 @@ class OpenDataTreeProducer : public edm::EDAnalyzer
     bool            mPrintTriggerMenu;
     int             mMinNPFJets;
     double          mMinPFPt, mMinGenPt, mMaxY, mMinJJMass;
-    std::string     mPFPayloadName;
-    edm::InputTag   mPFJetsName;
+    int             mGoodVtxNdof;
+    double          mGoodVtxZ; 
+    edm::InputTag   mPFak5JetsName;
+    edm::InputTag   mPFak7JetsName;
+
     
     // ---- PF Jet input tags ----- //
     edm::InputTag   mGenJetsName;
     edm::InputTag   mSrcPFRho;
     edm::InputTag   mPFMET; 
+    edm::InputTag   mOfflineVertices;
     
     //---- Trigger----------------------
     std::string                 processName_;
@@ -63,21 +67,52 @@ class OpenDataTreeProducer : public edm::EDAnalyzer
     // Output variables
     edm::Service<TFileService>  fs;
     TTree                       *mTree;
+
+    
     //---- TTree variables --------
     
-    static const UInt_t kMaxNjet = 100;
-    static const UInt_t kMaxNtrg = 16;
+    static const UInt_t kMaxNjet = 64;
+    static const UInt_t kMaxNtrg = 32;
 
     // PF jets
-    UInt_t njet;
-    Float_t jet_pt[kMaxNjet];
-    Float_t jet_eta[kMaxNjet];
-    Float_t jet_phi[kMaxNjet];
-    Float_t jet_E[kMaxNjet];
-    Bool_t jet_tightID[kMaxNjet];
-    Float_t jet_area[kMaxNjet];
-    Float_t jet_jes[kMaxNjet];
-    Int_t jet_igen[kMaxNjet];
+    UInt_t ak5_njet;
+    Float_t ak5_pt[kMaxNjet];
+    Float_t ak5_eta[kMaxNjet];
+    Float_t ak5_phi[kMaxNjet];
+    Float_t ak5_E[kMaxNjet];
+    Bool_t ak5_tightID[kMaxNjet];
+    Float_t ak5_area[kMaxNjet];
+    Float_t ak5_jes[kMaxNjet];
+    Int_t ak5_igen[kMaxNjet];
+
+    // PF jets
+    UInt_t ak7_njet;
+    Float_t ak7_pt[kMaxNjet];
+    Float_t ak7_eta[kMaxNjet];
+    Float_t ak7_phi[kMaxNjet];
+    Float_t ak7_E[kMaxNjet];
+    Bool_t ak7_tightID[kMaxNjet];
+    Float_t ak7_area[kMaxNjet];
+    Float_t ak7_jes[kMaxNjet];
+    Int_t ak7_to_ak5[kMaxNjet];
+
+    // Jet composition
+    Float_t chf[kMaxNjet];
+   	Float_t nhf[kMaxNjet];
+   	Float_t phf[kMaxNjet];
+   	Float_t elf[kMaxNjet];
+   	Float_t muf[kMaxNjet];
+   	Float_t hf_hf[kMaxNjet];
+   	Float_t hf_phf[kMaxNjet];
+   	Int_t hf_hm[kMaxNjet];
+   	Int_t hf_phm[kMaxNjet];
+   	Int_t chm[kMaxNjet];
+   	Int_t nhm[kMaxNjet];
+   	Int_t phm[kMaxNjet];
+   	Int_t elm[kMaxNjet];
+   	Int_t mum[kMaxNjet];   
+    Float_t beta[kMaxNjet];   
+    Float_t bstar[kMaxNjet];
 
     // Generated jets
     UInt_t ngen;
@@ -101,10 +136,10 @@ class OpenDataTreeProducer : public edm::EDAnalyzer
     Float_t met;
     Float_t sumet;
     Float_t rho;
+
+    // MC variables
     Float_t pthat;
     Float_t mcweight;
-    Float_t xsection; // Cross section not saved in the TTree!!
-
 
 };
 

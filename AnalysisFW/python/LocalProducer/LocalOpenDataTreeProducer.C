@@ -51,28 +51,58 @@ void LocalOpenDataTreeProducer::Loop()
 //    fChain->GetEntry(jentry);       //read all branches
 //by  b_branchname->GetEntry(ientry); //read only this branch
 
-    if (fChain == 0) return;
+    if (fChain_ak4 == 0) return;
 
     TDirectory *currDir = gDirectory;
     TFile *fout = new TFile("./OpenDataTree.root", "RECREATE");
     TTree *tree = new TTree("OpenDataTree", "OpenDataTree");
     currDir->cd();
 
-    const UInt_t kMaxNjet = 100;
+    const UInt_t kMaxNjet = 64;
     const UInt_t kMaxNtrg = 64;
 
-    UInt_t njet;
-    Float_t jet_pt[kMaxNjet];
-    Float_t jet_eta[kMaxNjet];
-    Float_t jet_phi[kMaxNjet];
-    Float_t jet_E[kMaxNjet];
-    Bool_t jet_tightID[kMaxNjet];
-    Float_t jet_area[kMaxNjet];
-    Float_t jet_jes[kMaxNjet];
+    // PF AK5 jets
+    UInt_t ak4_njet;
+    Float_t ak4_pt[kMaxNjet];
+    Float_t ak4_eta[kMaxNjet];
+    Float_t ak4_phi[kMaxNjet];
+    Float_t ak4_E[kMaxNjet];
+    Bool_t ak4_tightID[kMaxNjet];
+    Float_t ak4_area[kMaxNjet];
+    Float_t ak4_jes[kMaxNjet];
+    Int_t ak4_igen[kMaxNjet];
 
-    
-    Bool_t isMC = false;
+    // PF AK7 jets
+    UInt_t ak7_njet;
+    Float_t ak7_pt[kMaxNjet];
+    Float_t ak7_eta[kMaxNjet];
+    Float_t ak7_phi[kMaxNjet];
+    Float_t ak7_E[kMaxNjet];
+    Float_t ak7_area[kMaxNjet];
+    Float_t ak7_jes[kMaxNjet];
+    Int_t ak7_to_ak4[kMaxNjet];
 
+    // Jet composition
+    Float_t chf[kMaxNjet];
+    Float_t nhf[kMaxNjet];
+    Float_t phf[kMaxNjet];
+    Float_t elf[kMaxNjet];
+    Float_t muf[kMaxNjet];
+    Float_t hf_hf[kMaxNjet];
+    Float_t hf_phf[kMaxNjet];
+    Int_t hf_hm[kMaxNjet];
+    Int_t hf_phm[kMaxNjet];
+    Int_t chm[kMaxNjet];
+    Int_t nhm[kMaxNjet];
+    Int_t phm[kMaxNjet];
+    Int_t elm[kMaxNjet];
+    Int_t mum[kMaxNjet];   
+    Float_t beta[kMaxNjet];   
+    Float_t bstar[kMaxNjet];
+    Float_t hof[kMaxPFJets_];  
+    Float_t qgl[kMaxPFJets_];
+
+    // Generated jets
     UInt_t ngen;
     Float_t gen_pt[kMaxNjet];
     Float_t gen_eta[kMaxNjet];
@@ -95,93 +125,172 @@ void LocalOpenDataTreeProducer::Loop()
     Float_t met;
     Float_t sumet;
     Float_t rho;
+
+    // MC variables
     Float_t pthat;
     Float_t mcweight;
 
+    Bool_t isMC = false;
 
-    TBranch *b_njet = tree->Branch("njet", &njet, "njet/i");
-    TBranch *b_jet_pt = tree->Branch("jet_pt", jet_pt, "jet_pt[njet]/F");
-    TBranch *b_jet_eta = tree->Branch("jet_eta", jet_eta, "jet_eta[njet]/F");
-    TBranch *b_jet_phi = tree->Branch("jet_phi", jet_phi, "jet_phi[njet]/F");
-    TBranch *b_jet_E = tree->Branch("jet_E", jet_E, "jet_E[njet]/F");   
-    TBranch *b_jet_tightID = tree->Branch("jet_tightID", jet_tightID, "jet_tightID[njet]/O");
-    TBranch *b_jet_area = tree->Branch("jet_area", jet_area, "jet_area[njet]/F");
-    TBranch *b_jet_jes = tree->Branch("jet_jes", jet_jes, "jet_jes[njet]/F");
-    
+    TBranch *b_ak4_njet = tree->Branch("ak4_njet", &ak4_njet, "ak4_njet/i");
+    TBranch *b_ak4_pt = tree->Branch("ak4_pt", ak4_pt, "ak4_pt[ak4_njet]/F");
+    TBranch *b_ak4_eta = tree->Branch("ak4_eta", ak4_eta, "ak4_eta[ak4_njet]/F");
+    TBranch *b_ak4_phi = tree->Branch("ak4_phi", ak4_phi, "ak4_phi[ak4_njet]/F");
+    TBranch *b_ak4_E = tree->Branch("ak4_E", ak4_E, "ak4_E[ak4_njet]/F");   
+    TBranch *b_ak4_tightID = tree->Branch("ak4_tightID", ak4_tightID, "ak4_tightID[ak4_njet]/O");
+    TBranch *b_ak4_area = tree->Branch("ak4_area", ak4_area, "ak4_area[ak4_njet]/F");
+    TBranch *b_ak4_jes = tree->Branch("ak4_jes", ak4_jes, "ak4_jes[ak4_njet]/F");
+        
+    TBranch *b_ak7_njet = tree->Branch("ak7_njet", &ak7_njet, "ak7_njet/i");
+    TBranch *b_ak7_pt = tree->Branch("ak7_pt", ak7_pt, "ak7_pt[ak7_njet]/F");
+    TBranch *b_ak7_eta = tree->Branch("ak7_eta", ak7_eta, "ak7_eta[ak7_njet]/F");
+    TBranch *b_ak7_phi = tree->Branch("ak7_phi", ak7_phi, "ak7_phi[ak7_njet]/F");
+    TBranch *b_ak7_E = tree->Branch("ak7_E", ak7_E, "ak7_E[ak7_njet]/F");   
+    TBranch *b_ak7_area = tree->Branch("ak7_area", ak7_area, "ak7_area[ak7_njet]/F");
+    TBranch *b_ak7_jes = tree->Branch("ak7_jes", ak7_jes, "ak7_jes[ak7_njet]/F");
+    TBranch *b_ak7_to_ak4 = tree->Branch("ak7_to_ak4", ak7_to_ak4, "ak7_to_ak4[ak7_njet]/I");
 
+    TBranch *b_chf = tree->Branch("chf", chf, "chf[ak4_njet]/F");   
+   	TBranch *b_nhf = tree->Branch("nhf", nhf, "nhf[ak4_njet]/F");   
+   	TBranch *b_phf = tree->Branch("phf", phf, "phf[ak4_njet]/F");   
+   	TBranch *b_elf = tree->Branch("elf", elf, "elf[ak4_njet]/F");   
+   	TBranch *b_muf = tree->Branch("muf", muf, "muf[ak4_njet]/F");   
+
+   	TBranch *b_hf_hf = tree->Branch("hf_hf", hf_hf, "hf_hf[ak4_njet]/F");   
+   	TBranch *b_hf_phf = tree->Branch("hf_phf", hf_phf, "hf_phf[ak4_njet]/F");   
+   	TBranch *b_hf_hm = tree->Branch("hf_hm", hf_hm, "hf_hm[ak4_njet]/i");    
+   	TBranch *b_hf_phm = tree->Branch("hf_phm", hf_phm, "hf_phm[ak4_njet]/i");
+   	
+    TBranch *b_chm = tree->Branch("chm", chm, "chm[ak4_njet]/i");   
+   	TBranch *b_nhm = tree->Branch("nhm", nhm, "nhm[ak4_njet]/i");   
+   	TBranch *b_phm = tree->Branch("phm", phm, "phm[ak4_njet]/i");   
+   	TBranch *b_elm = tree->Branch("elm", elm, "elm[ak4_njet]/i");   
+   	TBranch *b_mum = tree->Branch("mum", mum, "mum[ak4_njet]/i");
+   
+    TBranch *b_hof 		= tree->Branch("hof", hof, "hof[ak4_njet]/F");   
+    TBranch *b_beta 	= tree->Branch("beta", beta, "beta[ak4_njet]/F");   
+    TBranch *b_bstar 	= tree->Branch("bstar", bstar, "bstar[ak4_njet]/F");
+    TBranch *b_qgl 		= tree->Branch("qgl", qgl, "qgl[ak4_njet]/F");
+   	
     if (isMC) {
-        TBranch *b_ngen = tree->Branch("ngen", &ngen, "ngen/i");
-        TBranch *b_gen_pt = tree->Branch("gen_pt", gen_pt, "gen_pt[ngen]/F");
-        TBranch *b_gen_eta = tree->Branch("gen_eta", gen_eta, "gen_eta[ngen]/F");
-        TBranch *b_gen_phi = tree->Branch("gen_phi", gen_eta, "gen_phi[ngen]/F");
-        TBranch *b_gen_E = tree->Branch("gen_E", gen_E, "gen_E[ngen]/F");
+        TBranch *b_ngen 	= tree->Branch("ngen", &ngen, "ngen/i");
+        TBranch *b_gen_pt 	= tree->Branch("gen_pt", gen_pt, "gen_pt[ngen]/F");
+        TBranch *b_gen_eta 	= tree->Branch("gen_eta", gen_eta, "gen_eta[ngen]/F");
+        TBranch *b_gen_phi 	= tree->Branch("gen_phi", gen_eta, "gen_phi[ngen]/F");
+        TBranch *b_gen_E 	= tree->Branch("gen_E", gen_E, "gen_E[ngen]/F");
     }
 
-    TBranch *b_run = tree->Branch("run", &run, "run/i");
-    TBranch *b_lumi = tree->Branch("lumi", &lumi, "lumi/i");
-    TBranch *b_event = tree->Branch("event", &event, "event/l");
+    TBranch *b_run 		= tree->Branch("run", &run, "run/i");
+    TBranch *b_lumi 	= tree->Branch("lumi", &lumi, "lumi/i");
+    TBranch *b_event 	= tree->Branch("event", &event, "event/l");
 
-    TBranch *b_ntrg = tree->Branch("ntrg", &ntrg, "ntrg/i");
-    TBranch *b_triggers = tree->Branch("triggers", triggers, "triggers[ntrg]/O");
+    TBranch *b_ntrg 		= tree->Branch("ntrg", &ntrg, "ntrg/i");
+    TBranch *b_triggers 	= tree->Branch("triggers", triggers, "triggers[ntrg]/O");
     TBranch *b_triggernames = tree->Branch("triggernames", &triggernames);
-    TBranch *b_prescales = tree->Branch("prescales", prescales, "prescales[ntrg]/i");
+    TBranch *b_prescales 	= tree->Branch("prescales", prescales, "prescales[ntrg]/i");
 
-
-    TBranch *b_met = tree->Branch("met", &met, "met/F");
-    TBranch *b_sumet = tree->Branch("sumet", &sumet, "sumet/F");
-    TBranch *b_rho = tree->Branch("rho", &rho, "rho/F");
-    TBranch *b_pthat = tree->Branch("pthat", &pthat, "pthat/F");
+    TBranch *b_met 		= tree->Branch("met", &met, "met/F");
+    TBranch *b_sumet 	= tree->Branch("sumet", &sumet, "sumet/F");
+    TBranch *b_rho 		= tree->Branch("rho", &rho, "rho/F");
+    TBranch *b_pthat 	= tree->Branch("pthat", &pthat, "pthat/F");
     TBranch *b_mcweight = tree->Branch("mcweight", &mcweight, "mcweight/F");
+    
+    assert(fChain_ak4 && "AK4 tree invalid!" );
+    assert(fChain_ak7 && "AK7 tree invalid!" );
+    fChain_ak4->SetBranchStatus("*",0);  // disable all branches
+    fChain_ak7->SetBranchStatus("*",0);
 
 
-    fChain->SetBranchStatus("*",0);  // disable all branches
+    // AK7
+
+    // To begin, read only these 3 variables
+    fChain_ak7->SetBranchStatus("EvtHdr_.mRun",1); // run
+    fChain_ak7->SetBranchStatus("EvtHdr_.mLumi",1); // lumi
+    fChain_ak7->SetBranchStatus("EvtHdr_.mEvent",1); // event
+
+    std::cout << "Mapping AK7 events to AK4 events for data" << std::endl;
+    map<Int_t, map<Int_t, map<UInt_t, Long64_t> > > ak7entry;
+
+    Long64_t nentries7 = fChain_ak7->GetEntries();
+    for (Long64_t jentry7 = 0; jentry7 < nentries7; jentry7++) {
+        fChain_ak7->GetEntry(jentry7);
+
+        // Check for duplicates
+        assert(ak7entry[EvtHdr__mRun_ak7][EvtHdr__mLumi_ak7][EvtHdr__mEvent_ak7] == 0);
+        ak7entry[EvtHdr__mRun_ak7][EvtHdr__mLumi_ak7][EvtHdr__mEvent_ak7] = jentry7;
+    } 
+
+    std::cout << "Found mapping for " << ak7entry.size() << " runs" << std::endl;
+
+    // Enable the remaining variables
+
+    fChain_ak4->SetBranchStatus("PFJets_",1); // ak4_njet
+    fChain_ak4->SetBranchStatus("PFJets_.P4_.fCoordinates.f*",1); // Four-momentum
     
-    fChain->SetBranchStatus("PFJets_",1); // njet
-    fChain->SetBranchStatus("PFJets_.P4_.fCoordinates.fX",1);
-    fChain->SetBranchStatus("PFJets_.P4_.fCoordinates.fY",1);
-    fChain->SetBranchStatus("PFJets_.P4_.fCoordinates.fZ",1);
-    fChain->SetBranchStatus("PFJets_.P4_.fCoordinates.fT",1);
-    fChain->SetBranchStatus("PFJets_.tightID_",1); // jet_tightID
-    fChain->SetBranchStatus("PFJets_.area_",1); // jet_area
-    fChain->SetBranchStatus("PFJets_.cor_",1); // jet_jes
+    fChain_ak4->SetBranchStatus("PFJets_.tightID_",1); // jet_tightID
+    fChain_ak4->SetBranchStatus("PFJets_.area_",1); // jet_area
+    fChain_ak4->SetBranchStatus("PFJets_.cor_",1); // jet_jes
     
+    // Composition values
+    fChain_ak4->SetBranchStatus("PFJets_.chf_",1);
+    fChain_ak4->SetBranchStatus("PFJets_.nhf_",1);
+    fChain_ak4->SetBranchStatus("PFJets_.nemf_",1);
+    fChain_ak4->SetBranchStatus("PFJets_.cemf_",1);
+    fChain_ak4->SetBranchStatus("PFJets_.muf_",1);
+    fChain_ak4->SetBranchStatus("PFJets_.hf_*",1);
+    fChain_ak4->SetBranchStatus("PFJets_.chm_",1);
+    fChain_ak4->SetBranchStatus("PFJets_.nhm_",1);
+    fChain_ak4->SetBranchStatus("PFJets_.phm_",1);
+    fChain_ak4->SetBranchStatus("PFJets_.elm_",1);
+    fChain_ak4->SetBranchStatus("PFJets_.mum_",1);
+    fChain_ak4->SetBranchStatus("PFJets_.QGtagger_",1);
+    fChain_ak4->SetBranchStatus("PFJets_.beta_",1);
+    fChain_ak4->SetBranchStatus("PFJets_.betaStar_",1);
+    fChain_ak4->SetBranchStatus("PFJets_.hof_",1);
+
     
     if (isMC) { // MC
-        fChain->SetBranchStatus("GenJets_",1); // ngen
-        fChain->SetBranchStatus("GenJets_.fCoordinates.fX",1);
-        fChain->SetBranchStatus("GenJets_.fCoordinates.fY",1);
-        fChain->SetBranchStatus("GenJets_.fCoordinates.fZ",1);
-        fChain->SetBranchStatus("GenJets_.fCoordinates.fT",1);
+        fChain_ak4->SetBranchStatus("GenJets_",1); // ngen
+        fChain_ak4->SetBranchStatus("GenJets_.fCoordinates.f*",1);
     }
     
+    fChain_ak4->SetBranchStatus("TriggerDecision_",1);
+    fChain_ak4->SetBranchStatus("L1Prescale_",1);
+    fChain_ak4->SetBranchStatus("HLTPrescale_",1);
 
-    fChain->SetBranchStatus("TriggerDecision_",1);
-    fChain->SetBranchStatus("L1Prescale_",1);
-    fChain->SetBranchStatus("HLTPrescale_",1);
-
-
-    fChain->SetBranchStatus("EvtHdr_.mRun",1); // run
-    fChain->SetBranchStatus("EvtHdr_.mLumi",1); // lumi
-    fChain->SetBranchStatus("EvtHdr_.mEvent",1); // event
-    fChain->SetBranchStatus("PFMet_.et_",1); // met
-    fChain->SetBranchStatus("PFMet_.sumEt_",1); // sumet
-    fChain->SetBranchStatus("EvtHdr_.mPFRho",1); // rho
-    fChain->SetBranchStatus("EvtHdr_.mPthat",1); // pthat
-    fChain->SetBranchStatus("EvtHdr_.mWeight",1); // mcweight
+    fChain_ak4->SetBranchStatus("EvtHdr_.mRun",1); // run
+    fChain_ak4->SetBranchStatus("EvtHdr_.mLumi",1); // lumi
+    fChain_ak4->SetBranchStatus("EvtHdr_.mEvent",1); // event
+    fChain_ak4->SetBranchStatus("PFMet_.et_",1); // met
+    fChain_ak4->SetBranchStatus("PFMet_.sumEt_",1); // sumet
+    fChain_ak4->SetBranchStatus("EvtHdr_.mPFRho",1); // rho
+    fChain_ak4->SetBranchStatus("EvtHdr_.mPthat",1); // pthat
+    fChain_ak4->SetBranchStatus("EvtHdr_.mWeight",1); // mcweight
 
 
-    TLorentzVector p4, p4gen;
-    Long64_t nentries = fChain->GetEntriesFast();
+   	fChain_ak7->SetBranchStatus("PFJets_", 1);
+   	fChain_ak7->SetBranchStatus("PFJets_.P4_.fCoordinates.f*", 1);
+   	fChain_ak7->SetBranchStatus("PFJets_.cor_", 1);
+   	fChain_ak7->SetBranchStatus("PFJets_.area_", 1);
+
+    // Helper variables
+    TLorentzVector p4, p4_ak4, p4_ak7, p4gen;
+    
+    // Total number of events
+    Long64_t nentries = fChain_ak4->GetEntries(); 
     std::cout << "Total entries: " << nentries << std::endl;
-    nentries = 5000;
  
+    // DEBUG!!
+ 	//nentries = 1000000;
 
     // Convert set into vector
     std::vector<std::string> trg_vec;
 
-    // Process triggers only for actual data
+    // Process triggers only for data
     if (!isMC) {    
+
         // Trigger names, common to all events
+        assert(TriggerNames);
         auto trg_list = TriggerNames->GetXaxis()->GetLabels();
 
         // Helper variables, not included in the output
@@ -196,7 +305,6 @@ void LocalOpenDataTreeProducer::Loop()
         }
 
         trg_vec.assign( s.begin(), s.end() );
-
         // And sort the vector wrt. the trigger momentum 
         //sort(trg_vec.begin(), trg_vec.end(), compareTrgNames);
 
@@ -208,33 +316,121 @@ void LocalOpenDataTreeProducer::Loop()
             triggernames.push_back(transformName(i));
         }
     }
-    
-    // Iterating over the events
 
+
+
+    // Iterating over the events
     for (Long64_t jentry = 0; jentry != nentries; ++jentry) {
         
         Long64_t ientry = LoadTree(jentry);
-        if (ientry < 0) break;          
-        fChain->GetEntry(jentry);
+        if (ientry < 0) break;
 
-        njet = PFJets__;
-        for (int i = 0; i != njet; ++i) {
+        fChain_ak4->GetEntry(jentry);
+
+        int i_out = 0;
+        for (int i = 0; i != PFJets__; ++i) {
 
             p4.SetPxPyPzE(  PFJets__P4__fCoordinates_fX[i], PFJets__P4__fCoordinates_fY[i],
                             PFJets__P4__fCoordinates_fZ[i], PFJets__P4__fCoordinates_fT[i]);
-        
-            jet_pt[i] = p4.Pt()/PFJets__cor_[i];    
-            jet_eta[i] = p4.Eta();
-            jet_phi[i] = p4.Phi();
-            jet_E[i] = p4.E()/PFJets__cor_[i];
 
-            jet_tightID[i] = PFJets__tightID_[i];
-            jet_area[i] = PFJets__area_[i];
-            jet_jes[i] = PFJets__cor_[i]; // NOTE!! Energy scale, not correction (!)
+        	// pT selection
+            Float_t minPt = 15;
+
+        	if (p4.Pt() > minPt) {
+
+	            ak4_pt[i_out] = p4.Pt();
+	            ak4_eta[i_out] = p4.Eta();
+	            ak4_phi[i_out] = p4.Phi();
+	            ak4_E[i_out] = p4.E();
+
+
+	            ak4_tightID[i_out] = PFJets__tightID_[i];
+	            ak4_area[i_out] = PFJets__area_[i];
+	            ak4_jes[i_out] = PFJets__cor_[i]; 
+
+
+	            // Jet composition
+	            chf[i_out] 	= PFJets__chf_[i];
+			   	nhf[i_out] 	= PFJets__nhf_[i];
+			   	phf[i_out] = PFJets__nemf_[i];
+			   	elf[i_out] = PFJets__cemf_[i];
+			   	muf[i_out] 	= PFJets__muf_[i];
+			   	hf_hf[i] 	= PFJets__hf_hf_[i];
+			   	hf_phf[i] 	= PFJets__hf_phf_[i];
+			   	hf_hm[i] 	= PFJets__hf_hm_[i];
+			   	hf_phm[i] 	= PFJets__hf_phm_[i];
+			   	chm[i_out] 	= PFJets__chm_[i];
+			   	nhm[i_out] 	= PFJets__nhm_[i];
+			   	phm[i_out] 	= PFJets__phm_[i];
+			   	elm[i_out] 	= PFJets__elm_[i];
+			   	mum[i_out] 	= PFJets__mum_[i];
+
+   				qgl[i_out]  = PFJets__QGtagger_[i];
+   				beta[i_out]  = PFJets__beta_[i];
+   				bstar[i_out]  = PFJets__betaStar_[i];
+   				hof[i_out]  = PFJets__hof_[i];
+
+
+		   		++i_out;
+			   	}
         }
+        ak4_njet = i_out;
+
+        // Using the entry mapping (AK4 to AK7)
+
+        fChain_ak7->GetEntry(ak7entry[EvtHdr__mRun][EvtHdr__mLumi][EvtHdr__mEvent]);
 
 
-    
+
+        // Safety check
+        if (EvtHdr__mRun != EvtHdr__mRun_ak7 || 
+        	EvtHdr__mEvent != EvtHdr__mEvent_ak7 ||
+        	EvtHdr__mLumi != EvtHdr__mLumi_ak7) {
+        	
+        	assert(false && "Mismatch between AK4 and AK7 events!!");
+        	}
+
+
+
+        // Keep only four leading jets
+		ak7_njet = min(PFJets_ak7__, 4);
+        for (int i = 0; i != ak7_njet; ++i) {
+
+            p4_ak7.SetPxPyPzE(  PFJets__P4__fCoordinates_fX_ak7[i], PFJets__P4__fCoordinates_fY_ak7[i],
+                                PFJets__P4__fCoordinates_fZ_ak7[i], PFJets__P4__fCoordinates_fT_ak7[i]);
+
+            ak7_pt[i]	= p4_ak7.Pt();   
+            ak7_eta[i] 	= p4_ak7.Eta();
+            ak7_phi[i] 	= p4_ak7.Phi();
+            ak7_E[i] 	= p4_ak7.E();
+
+
+            ak7_area[i] = PFJets__area_ak7_[i];
+            ak7_jes[i] 	= PFJets__cor_ak7_[i]; 
+
+            // Matching AK7 jet to AK4
+            ak7_to_ak4[i] = -1;
+
+            // Search AK4 jet with minimum distance to this PFjet   
+            float rMin(999);
+            for (unsigned int ak4_i = 0; ak4_i != ak4_njet; ++ak4_i) {
+                
+
+                // Initialize AK4 jet
+                p4_ak4.SetPtEtaPhiE(  ak4_pt[ak4_i],  ak4_eta[ak4_i],
+                                      ak4_phi[ak4_i], ak4_E[ak4_i]);  
+                // Distance between jets
+                double deltaR = p4_ak7.DeltaR(p4_ak4);
+
+
+                if (deltaR < rMin) {
+                    rMin = deltaR;
+                    ak7_to_ak4[i] = ak4_i;
+                }
+            }
+
+        }
+		
         // MC jets
         if (isMC) {
             ngen = GenJets__;
@@ -254,7 +450,6 @@ void LocalOpenDataTreeProducer::Loop()
         
 
         // Triggers and prescales
-
         auto trg_list = TriggerNames->GetXaxis()->GetLabels();
         for (int itrg = 0; itrg != trg_list->GetSize(); ++itrg ) {
             
@@ -270,19 +465,17 @@ void LocalOpenDataTreeProducer::Loop()
                 prescales[pos] = HLTPrescale_[itrg]*L1Prescale_[itrg];
             }
         }
-        
-        
-        
+
         // Event identification
         run = EvtHdr__mRun;
         event = EvtHdr__mEvent;
         lumi = EvtHdr__mLumi;
 
-        // MET, SuMET, rho, eventfilter
+
+        // MET, SuMET, rho
         met = PFMet__et_;
         sumet = PFMet__sumEt_;
         rho = EvtHdr__mPFRho;
-        //eventfilter = ;  ???
 
         tree->Fill();
    }
