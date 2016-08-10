@@ -54,25 +54,21 @@ With `cms-opendata-2011-jets/AnalysisFW/python/` as the current folder, run the 
     
 ## Run the program:
 To create tuples from data run the following command:
-    ```
+
     cmsRun OpenDataTreeProducer_dataPAT_2011_cfg.py
-    ```
+    
 This command creates tuples from Monte Carlo simulations:
-    ```
+
     cmsRun OpenDataTreeProducer_mcPAT_2011_cfg.py
-    ```
-
+ 
 After running the code, you can browse the tuples by opening the produced files in ROOT:
- 
-    ```
-    root OpenDataTree_*
-    ```
-Finally, run this command in the ROOT command prompt:
- 
-    ```
-    TBrowser t
-    ```
 
+    root OpenDataTree_*
+ 
+Finally, run this command in the ROOT command prompt:
+
+    TBrowser t
+ 
 
 ## Troubleshooting
 
