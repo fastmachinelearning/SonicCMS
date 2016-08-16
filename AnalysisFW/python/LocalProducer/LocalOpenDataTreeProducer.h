@@ -195,11 +195,14 @@ LocalOpenDataTreeProducer::LocalOpenDataTreeProducer(TTree *tree_ak4, TTree *tre
 
    const std::string treeName = "ProcessedTree";
    const int numFiles = 3;
+
+   // Here are the input files!
    const char *fileNames[numFiles] = { "root://eoscms.cern.ch//store/group/phys_smp/Multijet/13TeV/Data/2016/Ntuples-Data-2016-RunC-v2-part1.root",
                                        "root://eoscms.cern.ch//store/group/phys_smp/Multijet/13TeV/Data/2016/Ntuples-Data-2016-RunC-v2-part2.root",
                                        "root://eoscms.cern.ch//store/group/phys_smp/Multijet/13TeV/Data/2016/Ntuples-Data-2016-RunC-v2-part3.root",
                                     };
 
+   // AK4 and AK7 trees
    TChain *chain_ak4 = new TChain(("ak4/" + treeName).c_str());
    TChain *chain_ak7 = new TChain(("ak7/" + treeName).c_str());
 
@@ -208,10 +211,12 @@ LocalOpenDataTreeProducer::LocalOpenDataTreeProducer(TTree *tree_ak4, TTree *tre
       chain_ak7->Add(fileNames[i]);
    }
 
+   // Retrieve trigger names
    TFile *f = TFile::Open(fileNames[0]);
    TDirectory *dir = (TDirectory*)f->Get("ak4");
    dir->GetObject("TriggerNames", TriggerNames);    
 
+   // Process the trees
    tree_ak4 = chain_ak4;
    tree_ak7 = chain_ak7;
    Init(tree_ak4, tree_ak7);
@@ -220,11 +225,7 @@ LocalOpenDataTreeProducer::LocalOpenDataTreeProducer(TTree *tree_ak4, TTree *tre
 
 LocalOpenDataTreeProducer::~LocalOpenDataTreeProducer()
 {
-   if (!fChain_ak4) return;
-   delete fChain_ak4->GetCurrentFile();
 
-   if (!fChain_ak7) return;
-   delete fChain_ak7->GetCurrentFile();
 }
 
 Int_t LocalOpenDataTreeProducer::GetEntry(Long64_t entry)
@@ -277,7 +278,7 @@ void LocalOpenDataTreeProducer::Init(TTree *tree_ak4, TTree *tree_ak7)
    fChain_ak4->SetBranchAddress("TriggerDecision_", &TriggerDecision_, &b_events_TriggerDecision_);
    fChain_ak4->SetBranchAddress("L1Prescale_", &L1Prescale_, &b_events_L1Prescale_);
    fChain_ak4->SetBranchAddress("HLTPrescale_", &HLTPrescale_, &b_events_HLTPrescale_);
-   /*
+   /* MC
    fChain_ak4->SetBranchAddress("GenJets_", &GenJets__, &b_events_GenJets__);
    fChain_ak4->SetBranchAddress("GenJets_.fCoordinates.fX", GenJets__fCoordinates_fX, &b_GenJets__fCoordinates_fX);
    fChain_ak4->SetBranchAddress("GenJets_.fCoordinates.fY", GenJets__fCoordinates_fY, &b_GenJets__fCoordinates_fY);
@@ -290,7 +291,7 @@ void LocalOpenDataTreeProducer::Init(TTree *tree_ak4, TTree *tree_ak7)
    fChain_ak4->SetBranchAddress("PFJets_.P4_.fCoordinates.fZ", PFJets__P4__fCoordinates_fZ, &b_PFJets__P4__fCoordinates_fZ);
    fChain_ak4->SetBranchAddress("PFJets_.P4_.fCoordinates.fT", PFJets__P4__fCoordinates_fT, &b_PFJets__P4__fCoordinates_fT);
 /*
-// Index or four-vector??
+// MC : Index or four-vector??
    fChain_ak4->SetBranchAddress("PFJets_.genP4_.fCoordinates.fX", PFJets__genP4__fCoordinates_fX, &b_PFJets__genP4__fCoordinates_fX);
    fChain_ak4->SetBranchAddress("PFJets_.genP4_.fCoordinates.fY", PFJets__genP4__fCoordinates_fY, &b_PFJets__genP4__fCoordinates_fY);
    fChain_ak4->SetBranchAddress("PFJets_.genP4_.fCoordinates.fZ", PFJets__genP4__fCoordinates_fZ, &b_PFJets__genP4__fCoordinates_fZ);
