@@ -53,31 +53,25 @@ process.goodOfflinePrimaryVertices = cms.EDFilter(
     cut = cms.string("!isFake && ndof > 4 && abs(z) <= 24 && position.rho < 2")
     )
 
-postfix = "CHS7"
-usePF2PAT(process,runPF2PAT=True, jetAlgo="AK7", runOnMC=False, postfix=postfix,
-         jetCorrections=('AK7PFchs', ['L1FastJet','L2Relative','L3Absolute','L2L3Residual']),
-         pvCollection=cms.InputTag('goodOfflinePrimaryVertices'),
-         typeIMetCorrections=True
-         )
-
-
-# Does this need to be modified??
-# --- modifying the pfpileup+postfix -------------------- #
-process.pfPileUpCHS7.checkClosestZVertex = False
-process.pfPileUpCHS7.Enable = True
-process.pfPileUpCHS7.Vertices = cms.InputTag('goodOfflinePrimaryVertices')
-process.pfJetsCHS7.doAreaFastjet = True
-process.pfJetsCHS7.doRhoFastjet = False
-
 process.ak5PFJets.doAreaFastjet = True
 process.ak7PFJets.doAreaFastjet = True
 process.kt6PFJets.doRhoFastjet = True
 
-# Use tau-cleaned jet collection uncomment the following:
-getattr(process,"pfNoTau"+postfix).enable = True
+addPfMET(process, 'PF')
 
 # ------------- Adding Ak7 jet collection to process ------------- #
-addPfMET(process, 'PF')
+addJetCollection(process,cms.InputTag('ak5PFJets'),
+                 'AK5', 'PFCorr',
+                 doJTA        = True,
+                 doBTagging   = False,
+                 jetCorrLabel = ('AK5PF', cms.vstring(['L1FastJet','L2Relative','L3Absolute','L2L3Residual'])),
+                 doType1MET   = True,
+                 doL1Cleaning = True,
+                 doL1Counters = False,
+                 doJetID      = True,
+                 jetIdLabel   = "ak5"
+                 )
+
 
 # ------- Adding non CHS jets to process ------//
 addJetCollection(process,cms.InputTag('ak7PFJets'),
@@ -101,11 +95,12 @@ process.trackingFailureFilter.VertexSource = cms.InputTag('goodOfflinePrimaryVer
 
 
 ################### EDAnalyzer ##############################3
-process.ak7 = cms.EDAnalyzer('OpenDataTreeProducer',
+process.ak5ak7 = cms.EDAnalyzer('OpenDataTreeProducer',
     ## jet collections ###########################
-    pfjets          = cms.InputTag('selectedPatJetsAK7PFCorr'),
+    pfak7jets       = cms.InputTag('selectedPatJetsAK7PFCorr'),
+    pfak5jets       = cms.InputTag('selectedPatJetsAK5PFCorr'),
     ## MET collection ####
-    pfmet           = cms.InputTag('pfMETCHS7'),
+    pfmet           = cms.InputTag('pfMET7'),
     ## database entry for the uncertainties ######
     PFPayloadName   = cms.string('AK7PF'),
 
@@ -132,8 +127,7 @@ process.ak7 = cms.EDAnalyzer('OpenDataTreeProducer',
                                 'HLT_Jet150','HLT_Jet190','HLT_Jet240','HLT_Jet370',
                                 ),
     triggerResults  = cms.InputTag("TriggerResults","","HLT"),
-    triggerEvent    = cms.InputTag("hltTriggerSummaryAOD","","HLT"),
-    pfjecService    = cms.string('ak7PFL1FastL2L3Residual')
+    triggerEvent    = cms.InputTag("hltTriggerSummaryAOD","","HLT")
 )
 
 
@@ -153,8 +147,7 @@ process.p = cms.Path(
     process.hltFilter *
     process.trackingFailureFilter *
     process.patDefaultSequence *
-    getattr(process,"patPF2PATSequence"+postfix) *
-    process.ak7
+    process.ak5ak7
 )
 
 

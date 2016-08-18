@@ -5,21 +5,33 @@
 #include <TCanvas.h>
 
 
-// These functions depend on the trigger names !!
-bool compareTrgNames(std::string left, std::string right) {
-
-    return left < right;
-    return  std::stoi(left.substr(7, std::string::npos)) <
-            std::stoi(right.substr(7, std::string::npos)); 
+// Compactify
+inline char mapFloatToChar(float frac) {
+// Convert floats in [0,1] to char in [0,255] to save space
+    return char(255.*frac);
+}
+inline char mapIntToChar(int mult) {
+// Convert 4 byte integer to 1 byte
+// returns at most 255
+    return char(min(mult, 255));
 }
 
-std::string transformName(std::string str) {
-    return str;
-    return "jt" + str.substr(7, string::npos);
+// Uncompactify
+inline float mapCharToFloat(char cfrac) {
+// Convert char back to float
+    return float(cfrac)/255;
 }
+inline int mapCharToInt(char mult) {
+// Convert 1 byte to 4 byte integer
+// Not necessary, but helps with consistency
+    return mult;
+}
+
+
+
 
 std::string removeTrgVersion(std::string &trg_name) {
-
+// Remove version suffic from trigger name
     size_t last_i = trg_name.find_last_of("_");
     return trg_name.substr(0, last_i);
 }
@@ -88,24 +100,24 @@ void LocalOpenDataTreeProducer::Loop()
     Int_t ak7_to_ak4[kMaxNjet];
 
     // Jet composition
-    Float_t chf[kMaxNjet];
+    char chf[kMaxNjet];
     Float_t nhf[kMaxNjet];
-    Float_t phf[kMaxNjet];
-    Float_t elf[kMaxNjet];
-    Float_t muf[kMaxNjet];
-    Float_t hf_hf[kMaxNjet];
-    Float_t hf_phf[kMaxNjet];
-    Int_t hf_hm[kMaxNjet];
-    Int_t hf_phm[kMaxNjet];
-    Int_t chm[kMaxNjet];
+    char phf[kMaxNjet];
+    char elf[kMaxNjet];
+    char muf[kMaxNjet];
+    char hf_hf[kMaxNjet];
+    char hf_phf[kMaxNjet];
+    char hf_hm[kMaxNjet];
+    char hf_phm[kMaxNjet];
+    char chm[kMaxNjet];
     Int_t nhm[kMaxNjet];
-    Int_t phm[kMaxNjet];
-    Int_t elm[kMaxNjet];
-    Int_t mum[kMaxNjet];   
-    Float_t beta[kMaxNjet];   
-    Float_t bstar[kMaxNjet];
-    Float_t hof[kMaxPFJets_];  
-    Float_t qgl[kMaxPFJets_];
+    char phm[kMaxNjet];
+    char elm[kMaxNjet];
+    char mum[kMaxNjet];   
+    char beta[kMaxNjet];   
+    char bstar[kMaxNjet];
+    char hof[kMaxPFJets_];  
+    char qgl[kMaxPFJets_];
 
     // Generated jets
     UInt_t ngen;
@@ -155,27 +167,27 @@ void LocalOpenDataTreeProducer::Loop()
     TBranch *b_jet_jes_ak7 = tree->Branch("jet_jes_ak7", jet_jes_ak7, "jet_jes_ak7[njet_ak7]/F");
     TBranch *b_ak7_to_ak4 = tree->Branch("ak7_to_ak4", ak7_to_ak4, "ak7_to_ak4[njet_ak7]/I");
 
-    TBranch *b_chf = tree->Branch("chf", chf, "chf[njet]/F");   
+    TBranch *b_chf = tree->Branch("chf", chf, "chf[njet]/B");   
     TBranch *b_nhf = tree->Branch("nhf", nhf, "nhf[njet]/F");   
-    TBranch *b_phf = tree->Branch("phf", phf, "phf[njet]/F");   
-    TBranch *b_elf = tree->Branch("elf", elf, "elf[njet]/F");   
-    TBranch *b_muf = tree->Branch("muf", muf, "muf[njet]/F");   
+    TBranch *b_phf = tree->Branch("phf", phf, "phf[njet]/B");   
+    TBranch *b_elf = tree->Branch("elf", elf, "elf[njet]/B");   
+    TBranch *b_muf = tree->Branch("muf", muf, "muf[njet]/B");   
 
-    TBranch *b_hf_hf = tree->Branch("hf_hf", hf_hf, "hf_hf[njet]/F");   
-    TBranch *b_hf_phf = tree->Branch("hf_phf", hf_phf, "hf_phf[njet]/F");   
-    TBranch *b_hf_hm = tree->Branch("hf_hm", hf_hm, "hf_hm[njet]/i");    
-    TBranch *b_hf_phm = tree->Branch("hf_phm", hf_phm, "hf_phm[njet]/i");
+    TBranch *b_hf_hf = tree->Branch("hf_hf", hf_hf, "hf_hf[njet]/B");   
+    TBranch *b_hf_phf = tree->Branch("hf_phf", hf_phf, "hf_phf[njet]/B");   
+    TBranch *b_hf_hm = tree->Branch("hf_hm", hf_hm, "hf_hm[njet]/B");    
+    TBranch *b_hf_phm = tree->Branch("hf_phm", hf_phm, "hf_phm[njet]/B");
     
-    TBranch *b_chm = tree->Branch("chm", chm, "chm[njet]/i");   
+    TBranch *b_chm = tree->Branch("chm", chm, "chm[njet]/B");   
     TBranch *b_nhm = tree->Branch("nhm", nhm, "nhm[njet]/i");   
-    TBranch *b_phm = tree->Branch("phm", phm, "phm[njet]/i");   
-    TBranch *b_elm = tree->Branch("elm", elm, "elm[njet]/i");   
-    TBranch *b_mum = tree->Branch("mum", mum, "mum[njet]/i");
+    TBranch *b_phm = tree->Branch("phm", phm, "phm[njet]/B");   
+    TBranch *b_elm = tree->Branch("elm", elm, "elm[njet]/B");   
+    TBranch *b_mum = tree->Branch("mum", mum, "mum[njet]/B");
    
-    TBranch *b_hof      = tree->Branch("hof", hof, "hof[njet]/F");   
-    TBranch *b_beta     = tree->Branch("beta", beta, "beta[njet]/F");   
-    TBranch *b_bstar    = tree->Branch("bstar", bstar, "bstar[njet]/F");
-    TBranch *b_qgl      = tree->Branch("qgl", qgl, "qgl[njet]/F");
+    TBranch *b_hof      = tree->Branch("hof", hof, "hof[njet]/B");   
+    TBranch *b_beta     = tree->Branch("beta", beta, "beta[njet]/B");   
+    TBranch *b_bstar    = tree->Branch("bstar", bstar, "bstar[njet]/B");
+    TBranch *b_qgl      = tree->Branch("qgl", qgl, "qgl[njet]/B");
     
     if (isMC) {
         TBranch *b_ngen     = tree->Branch("ngen", &ngen, "ngen/i");
@@ -278,13 +290,14 @@ void LocalOpenDataTreeProducer::Loop()
     // Helper variables
     TLorentzVector p4, p4_ak4, p4_ak7, p4gen;
     
+
     // Total number of events
     Long64_t nentries = fChain_ak4->GetEntries(); 
     std::cout << "Total entries: " << nentries << std::endl;
  
     // DEBUG!!
     // Change number of events here
-    nentries = 100000;
+    nentries = 1000000;
 
     // Convert set into vector
     std::vector<std::string> trg_vec;
@@ -314,8 +327,8 @@ void LocalOpenDataTreeProducer::Loop()
         ntrg = trg_vec.size();
 
         // Shorten trigger names
-        for (auto i : trg_vec ) {
-            triggernames.push_back(transformName(i));
+        for (std::string name : trg_vec ) {
+            triggernames.push_back(name);
         }
     }
 
@@ -328,7 +341,7 @@ void LocalOpenDataTreeProducer::Loop()
 
         fChain_ak4->GetEntry(jentry);
 
-        // Jet index in the output (after pT cut)
+        // Jet index in the output arrays (after pT cut)
         int i_out = 0;
         
         for (int i = 0; i != PFJets__; ++i) {
@@ -337,7 +350,9 @@ void LocalOpenDataTreeProducer::Loop()
                             PFJets__P4__fCoordinates_fZ[i], PFJets__P4__fCoordinates_fT[i]);
 
             // pT selection
-            Float_t minPt = 15;
+            const Float_t minPt = 15;
+            const UInt_t maxNjetComp = 3;
+
             if (p4.Pt() > minPt) {
 
                 jet_pt[i_out] = p4.Pt();
@@ -345,35 +360,37 @@ void LocalOpenDataTreeProducer::Loop()
                 jet_phi[i_out] = p4.Phi();
                 jet_E[i_out] = p4.E();
 
-
                 jet_tightID[i_out] = PFJets__tightID_[i];
                 jet_area[i_out] = PFJets__area_[i];
                 jet_jes[i_out] = PFJets__cor_[i]; 
 
-
                 // Jet composition
-                chf[i_out]  = PFJets__chf_[i];
-                nhf[i_out]  = PFJets__nhf_[i];
-                phf[i_out] = PFJets__nemf_[i];
-                elf[i_out] = PFJets__cemf_[i];
-                muf[i_out]  = PFJets__muf_[i];
-                hf_hf[i]    = PFJets__hf_hf_[i];
-                hf_phf[i]   = PFJets__hf_phf_[i];
-                hf_hm[i]    = PFJets__hf_hm_[i];
-                hf_phm[i]   = PFJets__hf_phm_[i];
-                chm[i_out]  = PFJets__chm_[i];
-                nhm[i_out]  = PFJets__nhm_[i];
-                phm[i_out]  = PFJets__phm_[i];
-                elm[i_out]  = PFJets__elm_[i];
-                mum[i_out]  = PFJets__mum_[i];
+                if (i_out <= maxNjetComp) {
+                    chf[i_out]  = mapFloatToChar(PFJets__chf_[i]);
+                    nhf[i_out]  = mapCharToFloat(chf[i_out]);
+                    //nhf[i_out]  = mapFloatToChar(PFJets__nhf_[i]);
+                    phf[i_out]  = mapFloatToChar(PFJets__nemf_[i]);
+                    elf[i_out]  = mapFloatToChar(PFJets__cemf_[i]);
+                    muf[i_out]  = mapFloatToChar(PFJets__muf_[i]);
+                    hf_hf[i]    = mapFloatToChar(PFJets__hf_hf_[i]);
+                    hf_phf[i]   = mapFloatToChar(PFJets__hf_phf_[i]);
+                    hf_hm[i]    = mapIntToChar(PFJets__hf_hm_[i]);
+                    hf_phm[i]   = mapIntToChar(PFJets__hf_phm_[i]);
+                    chm[i_out]  = mapIntToChar(PFJets__chm_[i]);
+                    nhm[i_out]  = mapCharToInt(chm[i_out]);
+                    //nhm[i_out]  = mapIntToChar(PFJets__nhm_[i]);
+                    phm[i_out]  = mapIntToChar(PFJets__phm_[i]);
+                    elm[i_out]  = mapIntToChar(PFJets__elm_[i]);
+                    mum[i_out]  = mapIntToChar(PFJets__mum_[i]);
 
-                qgl[i_out]  = PFJets__QGtagger_[i];
-                beta[i_out]  = PFJets__beta_[i];
-                bstar[i_out]  = PFJets__betaStar_[i];
-                hof[i_out]  = PFJets__hof_[i];
-                
-                ++i_out;
+                    qgl[i_out]   = mapFloatToChar(PFJets__QGtagger_[i]);
+                    beta[i_out]  = mapFloatToChar(PFJets__beta_[i]);
+                    bstar[i_out] = mapFloatToChar(PFJets__betaStar_[i]);
+                    hof[i_out]   = mapFloatToChar(PFJets__hof_[i]);
                 }
+
+                ++i_out;
+            }
         }
         njet = i_out;
 
@@ -389,7 +406,7 @@ void LocalOpenDataTreeProducer::Loop()
         }
 
         // Keep only four leading jets
-        njet_ak7 = min(PFJets_ak7__, 4);
+        njet_ak7 = min(PFJets_ak7__, 3);
         for (int i = 0; i != njet_ak7; ++i) {
 
             p4_ak7.SetPxPyPzE(  PFJets__P4__fCoordinates_fX_ak7[i], PFJets__P4__fCoordinates_fY_ak7[i],

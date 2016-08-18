@@ -15,19 +15,18 @@ echo "Mounting EOS"
 mkdir -p eos
 eosmount eos/
 
-# Top-level directory
+# Top-level directory of the CRAB3 outputs  
 cd eos/cms/store/group/phys_smp/mhaapale/
 
 # Output directory for merged tuples
 OUTDIR="MCTuples"
 mkdir -p $OUTDIR
 
-# Input directories
+# Input directories and files
 DIRS="QCD_Pt-*to*_TuneZ2_7TeV_pythia6/"
 REGEX="QCD_Pt-([[:digit:]]+to[[:digit:]]+)_TuneZ2_7TeV_pythia6/"
 DATE="160728"
 PREFIX="OpenDataTree_mc_"
-
 
 # Loop over directories
 for d in $DIRS

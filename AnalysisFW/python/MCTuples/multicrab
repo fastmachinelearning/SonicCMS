@@ -5,6 +5,9 @@ This is a small script that does the equivalent of multicrab.
 Source:
 https://twiki.cern.ch/twiki/bin/view/CMSPublic/CRABClientLibraryAPI?rev=29#Multicrab_using_the_crabCommand
 
+Show the status of multiple CRAB3 jobs:
+  source /cvmfs/cms.cern.ch/crab3/crab.sh && ./multicrab -c status -w crab_projects/
+
 """
 
 import os

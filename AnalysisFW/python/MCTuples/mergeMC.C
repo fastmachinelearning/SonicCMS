@@ -6,21 +6,14 @@
 
 void mergeMC::Loop()
 {
-//       To read only selected branches, Insert statements like:
-// METHOD1:
-//    fChain->SetBranchStatus("*",0);  // disable all branches
-//    fChain->SetBranchStatus("branchname",1);  // activate branchname
-// METHOD2: replace line
-//    fChain->GetEntry(jentry);       //read all branches
-//by  b_branchname->GetEntry(ientry); //read only this branch
-
+    // Safety
     if (fChain == 0) return;
 
-    // File for merged trees
+    // Final tuple file
     TFile *newfile = new TFile("MC_tuples.root","RECREATE");
     
     // Subdirectory
-    TDirectory *ydir = newfile->mkdir("ak7");
+    TDirectory *ydir = newfile->mkdir("ak5ak7");
     assert(ydir);
     ydir->cd();
 
@@ -40,9 +33,9 @@ void mergeMC::Loop()
         // Read values to the variables
         fChain->GetEntry(jentry);
 
-        // Divide cross section by number of events to get total luminosity
+        // Divide cross section by number of events to get total integrated luminosity
         UInt_t const eventNum = fChain->GetTree()->GetEntries(); 
-        mcweight /= eventNum; // 'mcweight' contained the cross section (!)
+        mcweight /= eventNum; // 'mcweight' already contained the cross section (!)
         
         // Write to the tree
         newtree->Fill();

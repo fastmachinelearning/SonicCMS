@@ -153,13 +153,13 @@ process.p = cms.Path(
 )
 
 # Processing time on VM (2011 laptop)
-# DATA: 50000 events / 4 hours
-# MC:   50000 events / 5 hours
+# - DATA: 50000 events / 4 hours
+# - MC:   50000 events / 5 hours
 
 # Change number of events here:
-process.maxEvents.input = 1000
+process.maxEvents.input = 100
 
-process.MessageLogger.cerr.FwkReport.reportEvery = 20
+process.MessageLogger.cerr.FwkReport.reportEvery = 5
 
 # Output file
 process.TFileService = cms.Service("TFileService", fileName = cms.string('OpenDataTree_data.root'))

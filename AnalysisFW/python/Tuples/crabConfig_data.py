@@ -1,3 +1,15 @@
+'''
+
+CRAB3 configuration used to produce 2011 data tuples
+Uses the OpenData 2011 Jet dataset as input
+
+Output is divided in approximately 200 ROOT tuples which have to be merged afterwards
+
+Run this command from the parent directory:
+	crab submit -c Tuples/crabConfig_data.py
+
+'''
+
 
 from CRABClient.UserUtilities import config, getUsernameFromSiteDB
 config = config()

@@ -1,21 +1,3 @@
-
-## Description
-CMSSW module producing flat tuples from 2011A Jet data.
-
-Source code was forked from the SMPJ Analysis Framework:
-
-https://twiki.cern.ch/twiki/bin/viewauth/CMS/SMPJAnalysisFW
-
-https://github.com/cms-smpj/SMPJ/tree/v1.0/
-
-## Setup
-
-Create project directories:
-```
-
-```
-
-=======
 # CMS Jet Tuple production 2011
 
 This project is a CMSSW module producing flat tuples from 2011A Jet data.
@@ -60,7 +42,7 @@ With `cms-opendata-2011-jets/AnalysisFW/python/` as the current folder, run the 
     wget http://opendata.cern.ch/record/1001/files/Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt
     ```
     
-3. Make link to the condition databases:
+3. Create links to the condition databases:
 
     ```
     ln -sf /cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA FT_53_LV5_AN1 
@@ -87,3 +69,78 @@ Finally, run this command in the ROOT command prompt:
 
     TBrowser t
  
+
+
+## Tuple variables
+
+* Properties of the event:
+
+    UInt_t          run;                // Run number
+    UInt_t          lumi;               // Luminosity section
+    ULong64_t       event;              // Event number
+    UInt_t          ntrg;               // Number of triggers
+    Bool_t          triggers[ntrg];     // Trigger bits
+    vector<string>  *triggernames;      // Trigger names
+    UInt_t          prescales[ntrg];    // Trigger prescales
+    Float_t         met;                // Missing transverse energy
+    Float_t         sumet;              // Sum of transverse energy
+    Float_t         rho;                // Energy density
+
+
+* Jets reconstructed using the anti-kT algorithm with a parameter R = 0.5 (short. AK5). Number of jets and corrected four-momentum in cylindrical coordinates.
+
+    UInt_t          njet;           // Number of AK5 jets
+    Float_t         jet_pt[njet];   // Corrected transverse momentum
+    Float_t         jet_eta[njet];  // Pseudorapidity
+    Float_t         jet_phi[njet];  // Azimuthal angle
+    Float_t         jet_E[njet];    // Energy
+
+* Other AK5 jet information
+
+    Bool_t          jet_tightID[njet];  // Tight selection pass/fail
+    Float_t         jet_area[njet];     // Jet area in eta-phi plane
+    Float_t         jet_jes[njet];      // Jet energy correction
+    Int_t           jet_igen[njet];     // Index of the matching generated jet
+
+
+* Composition values of the AK5 jets
+
+    Float_t         chf[njet];      // Charged hadron energy fraction
+    Float_t         nhf[njet];      // Neutral hadron energy fraction
+    Float_t         phf[njet];      // Photon energy fraction
+    Float_t         elf[njet];      // Electron energy fraction
+    Float_t         muf[njet];      // Muon energy fraction
+    Float_t         hf_hf[njet];    // Forward calorimeter (HF) hadron energy fraction
+    Float_t         hf_phf[njet];   // HF photon energy fraction
+    UInt_t          hf_hm[njet];    // HF hadron multiplicity
+    UInt_t          hf_phm[njet];   // HF photon multiplicity
+    UInt_t          chm[njet];      // Charged hadron multiplicity
+    UInt_t          nhm[njet];      // Neutral hadron multiplicity
+    UInt_t          phm[njet];      // Photon multiplicity
+    UInt_t          elm[njet];      // Electron multiplicity
+    UInt_t          mum[njet];      // Muon multiplicity
+    Float_t         beta[njet];     // Fraction of chf associated to the hard process
+    Float_t         bstar[njet];    // Fraction of chf associated to pile-up
+
+
+* Jets reconstructed using the anti-kT algorithm with a parameter R = 0.7 (short. AK7)
+
+    UInt_t          njet_ak7;               // Number of jets
+    Float_t         jet_pt_ak7[njet_ak7];   // Transverse momentum
+    Float_t         jet_eta_ak7[njet_ak7];  // Pseudorapidity
+    Float_t         jet_phi_ak7[njet_ak7];  // Azimuthal angle
+    Float_t         jet_E_ak7[njet_ak7];    // Energy
+    Float_t         jet_area_ak7[njet_ak7]; // Jet area
+    Float_t         jet_jes_ak7[njet_ak7];  // Jet energy corection factor
+    Int_t           ak7_to_ak5[njet_ak7];   // Index of the corresponding AK5 jet 
+
+* True quantities of the jet generated in the Monte Carlo simulation (only MC datasets)
+
+    UInt_t          ngen;           // Number of jets generated
+    Float_t         gen_pt[ngen];   // Transverse momentum
+    Float_t         gen_eta[ngen];  // Pseudorapidity
+    Float_t         gen_phi[ngen];  // Azimuthal angle
+    Float_t         gen_E[ngen];    // Energy
+
+    Float_t         pthat;          // Transverse momentum in the rest frame of the hard interaction
+    Float_t         mcweight;       // Monte Carlo weight of the event

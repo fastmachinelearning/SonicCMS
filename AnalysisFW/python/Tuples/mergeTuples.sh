@@ -1,4 +1,6 @@
 
+# Helper script to merge tuples produced with CRAB3 
+
 cwd=$(pwd)
 
 # Environment
@@ -13,7 +15,7 @@ source /afs/cern.ch/project/eos/installation/cms/etc/setup.sh
 # Mount EOS
 mkdir eos
 eosmount eos/
-cd eos/cms/store/group/phys_smp/mhaapale/Jet/crab_OpenDataTree_all/160722_132928/0000
+cd eos/cms/store/group/phys_smp/mhaapale/Jet/crab_OpenDataTree_all/160808_155332/0000
 
 
 # Merge files

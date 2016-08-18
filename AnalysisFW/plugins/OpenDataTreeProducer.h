@@ -75,25 +75,24 @@ class OpenDataTreeProducer : public edm::EDAnalyzer
     static const UInt_t kMaxNtrg = 32;
 
     // PF jets
-    UInt_t ak5_njet;
-    Float_t ak5_pt[kMaxNjet];
-    Float_t ak5_eta[kMaxNjet];
-    Float_t ak5_phi[kMaxNjet];
-    Float_t ak5_E[kMaxNjet];
-    Bool_t ak5_tightID[kMaxNjet];
-    Float_t ak5_area[kMaxNjet];
-    Float_t ak5_jes[kMaxNjet];
-    Int_t ak5_igen[kMaxNjet];
+    UInt_t njet;
+    Float_t jet_pt[kMaxNjet];
+    Float_t jet_eta[kMaxNjet];
+    Float_t jet_phi[kMaxNjet];
+    Float_t jet_E[kMaxNjet];
+    Bool_t jet_tightID[kMaxNjet];
+    Float_t jet_area[kMaxNjet];
+    Float_t jet_jes[kMaxNjet];
+    Int_t jet_igen[kMaxNjet];
 
     // PF jets
-    UInt_t ak7_njet;
-    Float_t ak7_pt[kMaxNjet];
-    Float_t ak7_eta[kMaxNjet];
-    Float_t ak7_phi[kMaxNjet];
-    Float_t ak7_E[kMaxNjet];
-    Bool_t ak7_tightID[kMaxNjet];
-    Float_t ak7_area[kMaxNjet];
-    Float_t ak7_jes[kMaxNjet];
+    UInt_t njet_ak7;
+    Float_t jet_pt_ak7[kMaxNjet];
+    Float_t jet_eta_ak7[kMaxNjet];
+    Float_t jet_phi_ak7[kMaxNjet];
+    Float_t jet_E_ak7[kMaxNjet];
+    Float_t jet_area_ak7[kMaxNjet];
+    Float_t jet_jes_ak7[kMaxNjet];
     Int_t ak7_to_ak5[kMaxNjet];
 
     // Jet composition

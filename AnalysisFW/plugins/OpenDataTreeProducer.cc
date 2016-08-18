@@ -76,26 +76,25 @@ void OpenDataTreeProducer::beginJob() {
     mTree = fs->make< TTree >("OpenDataTree", "OpenDataTree");
 
     // Variables of the flat tuple
-    mTree->Branch("ak5_njet", &ak5_njet, "ak5_njet/i");
-    mTree->Branch("ak5_pt", ak5_pt, "ak5_pt[ak5_njet]/F");
-    mTree->Branch("ak5_eta", ak5_eta, "ak5_eta[ak5_njet]/F");
-    mTree->Branch("ak5_phi", ak5_phi, "ak5_phi[ak5_njet]/F");
-    mTree->Branch("ak5_E", ak5_E, "ak5_E[ak5_njet]/F");   
-    mTree->Branch("ak5_tightID", ak5_tightID, "ak5_tightID[ak5_njet]/O");
-    mTree->Branch("ak5_area", ak5_area, "ak5_area[ak5_njet]/F");
-    mTree->Branch("ak5_jes", ak5_jes, "ak5_jes[ak5_njet]/F");
-    mTree->Branch("ak5_igen", ak5_igen, "ak5_igen[ak5_njet]/I");
+    mTree->Branch("njet", &njet, "njet/i");
+    mTree->Branch("jet_pt", jet_pt, "jet_pt[njet]/F");
+    mTree->Branch("jet_eta", jet_eta, "jet_eta[njet]/F");
+    mTree->Branch("jet_phi", jet_phi, "jet_phi[njet]/F");
+    mTree->Branch("jet_E", jet_E, "jet_E[njet]/F");   
+    mTree->Branch("jet_tightID", jet_tightID, "jet_tightID[njet]/O");
+    mTree->Branch("jet_area", jet_area, "jet_area[njet]/F");
+    mTree->Branch("jet_jes", jet_jes, "jet_jes[njet]/F");
+    mTree->Branch("jet_igen", jet_igen, "jet_igen[njet]/I");
 
     // AK7 variables
-    mTree->Branch("ak7_njet", &ak7_njet, "ak7_njet/i");
-    mTree->Branch("ak7_pt", ak7_pt, "ak7_pt[ak7_njet]/F");
-    mTree->Branch("ak7_eta", ak7_eta, "ak7_eta[ak7_njet]/F");
-    mTree->Branch("ak7_phi", ak7_phi, "ak7_phi[ak7_njet]/F");
-    mTree->Branch("ak7_E", ak7_E, "ak7_E[ak7_njet]/F");
-    mTree->Branch("ak7_area", ak7_area, "ak7_area[ak7_njet]/F");
-    mTree->Branch("ak7_jes", ak7_jes, "ak7_jes[ak7_njet]/F");
-    //mTree->Branch("ak7_igen", ak7_igen, "ak7_igen[ak7_njet]/I");
-    mTree->Branch("ak7_to_ak5", ak7_to_ak5, "ak7_to_ak5[ak7_njet]/I");
+    mTree->Branch("njet_ak7", &njet_ak7, "njet_ak7/i");
+    mTree->Branch("jet_pt_ak7", jet_pt_ak7, "jet_pt_ak7[njet_ak7]/F");
+    mTree->Branch("jet_eta_ak7", jet_eta_ak7, "jet_eta_ak7[njet_ak7]/F");
+    mTree->Branch("jet_phi_ak7", jet_phi_ak7, "jet_phi_ak7[njet_ak7]/F");
+    mTree->Branch("jet_E_ak7", jet_E_ak7, "jet_E_ak7[njet_ak7]/F");
+    mTree->Branch("jet_area_ak7", jet_area_ak7, "jet_area_ak7[njet_ak7]/F");
+    mTree->Branch("jet_jes_ak7", jet_jes_ak7, "jet_jes_ak7[njet_ak7]/F");
+    mTree->Branch("ak7_to_ak5", ak7_to_ak5, "ak7_to_ak5[njet_ak7]/I");
 
     mTree->Branch("ngen", &ngen, "ngen/i");
     mTree->Branch("gen_pt", gen_pt, "gen_pt[ngen]/F");
@@ -116,22 +115,22 @@ void OpenDataTreeProducer::beginJob() {
     mTree->Branch("pthat", &pthat, "pthat/F");
     mTree->Branch("mcweight", &mcweight, "mcweight/F");
 
-    mTree->Branch("chf", chf, "chf[ak5_njet]/F");   
-    mTree->Branch("nhf", nhf, "nhf[ak5_njet]/F");   
-    mTree->Branch("phf", phf, "phf[ak5_njet]/F");   
-    mTree->Branch("elf", elf, "elf[ak5_njet]/F");   
-    mTree->Branch("muf", muf, "muf[ak5_njet]/F");   
-    mTree->Branch("hf_hf", hf_hf, "hf_hf[ak5_njet]/F");   
-    mTree->Branch("hf_phf", hf_phf, "hf_phf[ak5_njet]/F");   
-    mTree->Branch("hf_hm", hf_hm, "hf_hm[ak5_njet]/i");    
-    mTree->Branch("hf_phm", hf_phm, "hf_phm[ak5_njet]/i");
-    mTree->Branch("chm", chm, "chm[ak5_njet]/i");   
-    mTree->Branch("nhm", nhm, "nhm[ak5_njet]/i");   
-    mTree->Branch("phm", phm, "phm[ak5_njet]/i");   
-    mTree->Branch("elm", elm, "elm[ak5_njet]/i");   
-    mTree->Branch("mum", mum, "mum[ak5_njet]/i");
-    mTree->Branch("beta", beta, "beta[ak5_njet]/F");   
-    mTree->Branch("bstar", bstar, "bstar[ak5_njet]/F");
+    mTree->Branch("chf", chf, "chf[njet]/F");   
+    mTree->Branch("nhf", nhf, "nhf[njet]/F");   
+    mTree->Branch("phf", phf, "phf[njet]/F");   
+    mTree->Branch("elf", elf, "elf[njet]/F");   
+    mTree->Branch("muf", muf, "muf[njet]/F");   
+    mTree->Branch("hf_hf", hf_hf, "hf_hf[njet]/F");   
+    mTree->Branch("hf_phf", hf_phf, "hf_phf[njet]/F");   
+    mTree->Branch("hf_hm", hf_hm, "hf_hm[njet]/i");    
+    mTree->Branch("hf_phm", hf_phm, "hf_phm[njet]/i");
+    mTree->Branch("chm", chm, "chm[njet]/i");   
+    mTree->Branch("nhm", nhm, "nhm[njet]/i");   
+    mTree->Branch("phm", phm, "phm[njet]/i");   
+    mTree->Branch("elm", elm, "elm[njet]/i");   
+    mTree->Branch("mum", mum, "mum[njet]/i");
+    mTree->Branch("beta", beta, "beta[njet]/F");   
+    mTree->Branch("bstar", bstar, "bstar[njet]/F");
     
 }
 
@@ -219,7 +218,6 @@ void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
         // Total prescale: PreL1*PreHLT 
         prescales[itrig] = prescalePair.first*prescalePair.second;   
     }    
-
 
     // Rho
     Handle< double > rho_handle;
@@ -376,33 +374,33 @@ void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
 
 
         // Variables of the tuple
-        ak5_tightID[ak5_index] = tightID;
-        ak5_area[ak5_index] = i_ak5jet->jetArea();
-        ak5_jes[ak5_index] = 1/i_ak5jet->jecFactor(0); // JEC factor (pfjet is already corrected !!)
+        jet_tightID[ak5_index] = tightID;
+        jet_area[ak5_index] = i_ak5jet->jetArea();
+        jet_jes[ak5_index] = 1/i_ak5jet->jecFactor(0); // JEC factor (pfjet is already corrected !!)
 
         // p4 is already corrected!
         auto p4 = i_ak5jet->p4();
-        ak5_pt[ak5_index]   = p4.Pt();
-        ak5_eta[ak5_index]  = p4.Eta();
-        ak5_phi[ak5_index]  = p4.Phi();
-        ak5_E[ak5_index]    = p4.E(); 
+        jet_pt[ak5_index]   = p4.Pt();
+        jet_eta[ak5_index]  = p4.Eta();
+        jet_phi[ak5_index]  = p4.Phi();
+        jet_E[ak5_index]    = p4.E(); 
         
         // Matching a GenJet to this PFjet
         if (mIsMCarlo && ngen > 0) {
 
             // Index of the generated jet matching this PFjet
-            ak5_igen[ak5_index] = -1; // is -1 if no matching jet
+            jet_igen[ak5_index] = -1; // is -1 if no matching jet
 
             // Search generated jet with minimum distance to this PFjet   
             float r2min(999);
             for (unsigned int gen_index = 0; gen_index != ngen; gen_index++) {
-                double deltaR2 = reco::deltaR2( ak5_eta[ak5_index], 
-                                                ak5_phi[ak5_index],
+                double deltaR2 = reco::deltaR2( jet_eta[ak5_index], 
+                                                jet_phi[ak5_index],
                                                 gen_eta[gen_index], 
                                                 gen_phi[gen_index]);
                 if (deltaR2 < r2min) {
                     r2min = deltaR2;
-                    ak5_igen[ak5_index] = gen_index;
+                    jet_igen[ak5_index] = gen_index;
                 }
             }
         }
@@ -410,7 +408,7 @@ void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
     ak5_index++;
     }  
     // Number of selected jets in the event
-    ak5_njet = ak5_index;    
+    njet = ak5_index;    
 
 
     // Four leading AK7 Jets
@@ -433,85 +431,39 @@ void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
             continue;
         }
 
-        // Jet properties
-        int     npr     = i_ak7jet->chargedMultiplicity() + 
-                            i_ak7jet->neutralMultiplicity();
-        double  phf     = i_ak7jet->photonEnergyFraction();
-        double  nhf     = i_ak7jet->neutralHadronEnergyFraction() +
-                            i_ak7jet->HFHadronEnergyFraction();
-        double  elf     = i_ak7jet->electronEnergyFraction();
-        double  chf     = i_ak7jet->chargedHadronEnergyFraction();
-        int     chm     = i_ak7jet->chargedHadronMultiplicity();
-
-        bool isHighEta = fabs(i_ak7jet->eta()) > 2.4;
-        bool isLowEta = fabs(i_ak7jet->eta()) <= 2.4 && 
-                        nhf < 0.9 &&
-                        phf < 0.9 && 
-                        elf < 0.99 && 
-                        chf > 0 && 
-                        chm > 0;
-        bool tightID =  npr > 1 && 
-                        phf < 0.99 && 
-                        nhf < 0.99 &&
-                        (isLowEta || isHighEta);
-
-
         // Variables of the tuple
-        ak7_tightID[ak7_index] = tightID;
-        ak7_area[ak7_index] = i_ak7jet->jetArea();
-        ak7_jes[ak7_index] = 1/i_ak7jet->jecFactor(0); // JEC factor (pfjet is already corrected !!)
+        jet_area_ak7[ak7_index] = i_ak7jet->jetArea();
+        jet_jes_ak7[ak7_index] = 1/i_ak7jet->jecFactor(0); // JEC factor (pfjet is already corrected !!)
 
         // p4 is already corrected!
         auto p4 = i_ak7jet->p4();
-        ak7_pt[ak7_index]   = p4.Pt();
-        ak7_eta[ak7_index]  = p4.Eta();
-        ak7_phi[ak7_index]  = p4.Phi();
-        ak7_E[ak7_index]    = p4.E(); 
+        jet_pt_ak7[ak7_index]   = p4.Pt();
+        jet_eta_ak7[ak7_index]  = p4.Eta();
+        jet_phi_ak7[ak7_index]  = p4.Phi();
+        jet_E_ak7[ak7_index]    = p4.E(); 
         
         // Matching AK5 jet to this AK7 jet
         // Index of the generated jet matching this PFjet
-        ak7_to_ak5[ak7_index] = -1; // is -1 if no matching jet
+        ak7_to_ak5[ak7_index] = -1; // -1 if no matching jet
 
         float r2min(999);
-        for (unsigned int ak5_index = 0; ak5_index != ak5_njet; ak5_index++) {
+        for (unsigned int ak5_index = 0; ak5_index != njet; ak5_index++) {
 
             // Compute distance squared
-            double deltaR2 = reco::deltaR2( ak7_eta[ak7_index], 
-                                            ak7_phi[ak7_index],
-                                            ak5_eta[ak5_index], 
-                                            ak5_phi[ak5_index]);
+            double deltaR2 = reco::deltaR2( jet_eta_ak7[ak7_index], 
+                                            jet_phi_ak7[ak7_index],
+                                            jet_eta[ak5_index], 
+                                            jet_phi[ak5_index]);
             if (deltaR2 < r2min) {
                 r2min = deltaR2;
                 ak7_to_ak5[ak7_index] = ak5_index;
             }
         }
-    
-
-        /*
-        // Matching a GenJet to this PFjet
-        if (mIsMCarlo && ngen > 0) {
-
-            // Index of the generated jet matching this PFjet
-            ak7_igen[ak7_index] = -1; // is -1 if no matching jet
-
-            // Search generated jet with minimum distance to this PFjet   
-            float r2min(999);
-            for (unsigned int gen_index = 0; gen_index != ngen; gen_index++) {
-                double deltaR2 = reco::deltaR2( ak7_eta[ak7_index], 
-                                                ak7_phi[ak7_index],
-                                                gen_eta[gen_index], 
-                                                gen_phi[gen_index]);
-                if (deltaR2 < r2min) {
-                    r2min = deltaR2;
-                    ak7_igen[ak7_index] = gen_index;
-                }
-            }
-        }*/
         
     ak7_index++;
     }  
     // Number of saved jets in the event
-    ak7_njet = ak7_index;    
+    njet_ak7 = ak7_index;    
 
 
     // MET
@@ -522,8 +474,8 @@ void OpenDataTreeProducer::analyze(edm::Event const &event_obj,
     sumet = (*met_handle)[0].sumEt();
 
     // Finally, fill the tree
-    if (ak5_njet >= (unsigned)mMinNPFJets && 
-        ak7_njet >= (unsigned)mMinNPFJets ) {            
+    if (njet >= (unsigned)mMinNPFJets && 
+        njet_ak7 >= (unsigned)mMinNPFJets ) {            
             mTree->Fill();
     }
 }
