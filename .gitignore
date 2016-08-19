@@ -1,5 +1,6 @@
-AnalysisFW/test/crab_projects/
-AnalysisFW/test/Legacy11/
+AnalysisFW/python/crab_projects*/
+crab.log
+**/LSFJOB*
 *.root
 *.pyc
 __init__.py
