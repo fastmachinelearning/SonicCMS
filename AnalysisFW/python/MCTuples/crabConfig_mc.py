@@ -8,6 +8,8 @@ Run the following commands from the parent directory:
 
 1. Submit CRAB3 jobs
     cmsenv && source /cvmfs/cms.cern.ch/crab3/crab.sh && python MCTuples/crabConfig_mc.py
+If the jobs crash (error 8002), try checking that in the CMSSW config 'runOnVM' is False!
+
 2. Merge the tuples of each sample: get one file per pthat interval
     bsub -q 1nh -J job1 < MCTuples/mergeMCTuples.sh
 3. Create the final Monte Carlo tuple file
