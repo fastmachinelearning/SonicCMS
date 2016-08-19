@@ -1,12 +1,14 @@
 '''
 
-CRAB3 configuration used to produce 2011 data tuples
+CRAB3 configuration which was used to produce 2011 data tuples
 Uses the OpenData 2011 Jet dataset as input
 
 Output is divided in approximately 200 ROOT tuples which have to be merged afterwards
 
-Run this command from the parent directory:
+1. Run this command from the parent directory:
 	crab submit -c Tuples/crabConfig_data.py
+2. Merge the tuple files produced by the job:
+	bsub -q 1nh -J job_data < mergeTuples.sh
 
 '''
 
