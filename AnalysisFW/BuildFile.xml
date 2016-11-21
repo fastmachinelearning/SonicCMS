@@ -22,6 +22,7 @@
 <use   name="CondFormats/L1TObjects"/>
 <use   name="CondFormats/DataRecord"/>
 <use   name="CondFormats/JetMETObjects"/>
+<use   name="RecoJets/JetAssociationProducers"/>
 <export>
   <lib   name="1"/>
 </export>

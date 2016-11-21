@@ -1,4 +1,4 @@
-# CMS Jet Tuple production 2011
+# CMS Jet Tuple production 2011 (performance optimisied)
 
 This project is a CMSSW module producing flat tuples from 2011A Jet data.
 

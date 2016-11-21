@@ -140,6 +140,10 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     Float_t pthat;
     Float_t mcweight;
 
+    // Jet correction labels
+    std::string mJetCorr_ak5;
+    std::string mJetCorr_ak7;
+
 };
 
 #endif

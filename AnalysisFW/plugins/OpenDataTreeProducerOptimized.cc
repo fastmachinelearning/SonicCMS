@@ -49,6 +49,8 @@
 #include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
 #include "JetMETCorrections/Objects/interface/JetCorrectionsRecord.h"
 
+#include "DataFormats/JetReco/interface/JetTracksAssociation.h"
+
 OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet const &cfg) {
   mMinPFPt           = cfg.getParameter<double>                    ("minPFPt");
   mMinJJMass         = cfg.getParameter<double>                    ("minJJMass");
@@ -69,6 +71,8 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
   processName_       = cfg.getParameter<std::string>               ("processName");
   triggerNames_      = cfg.getParameter<std::vector<std::string> > ("triggerNames");
   triggerResultsTag_ = cfg.getParameter<edm::InputTag>             ("triggerResults");
+  mJetCorr_ak5       = cfg.getParameter<std::string>               ("jetCorr_ak5");
+  mJetCorr_ak7       = cfg.getParameter<std::string>               ("jetCorr_ak7");
 }
 
 
@@ -171,6 +175,7 @@ void OpenDataTreeProducerOptimized::beginRun(edm::Run const &iRun,
     }
 
     // Retrieve cross section of the simulated process
+    mcweight = 0;
     if (mIsMCarlo) {
 
         edm::Handle<GenRunInfoProduct> genRunInfo;
@@ -228,6 +233,7 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
     // Generator Info
 
     // Retrieve pthat and mcweight (only MC)
+    pthat = 0;
     if (mIsMCarlo && mUseGenInfo) {
         Handle< GenEventInfoProduct > hEventInfo;
         event_obj.getByLabel("generator", hEventInfo);
@@ -242,6 +248,7 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
     }
 
     // Generator-level jets
+    ngen = 0;
     if (mIsMCarlo) {
 
         Handle< GenJetCollection > genjets;
@@ -269,21 +276,68 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 
     // PF AK5 Jets
 
-    edm::Handle< std::vector< pat::Jet > > ak5_handle;
-    event_obj.getByLabel(mPFak5JetsName, ak5_handle);
+    //edm::Handle< std::vector< pat::Jet > > ak5_handle;
+    //event_obj.getByLabel(mPFak5JetsName, ak5_handle);
 
     // Copy vector of jets (they are sorted wrt. pT)
-    std::vector< pat::Jet > patjets(ak5_handle->begin(), ak5_handle->end());
+    //std::vector< pat::Jet > patjets(ak5_handle->begin(), ak5_handle->end());
 
-    // Index of the selected jet 
-    int ak5_index = 0;
+    edm::Handle<reco::PFJetCollection> ak5_handle;
+    event_obj.getByLabel(mPFak5JetsName, ak5_handle);
+    edm::Handle <edm::View <reco::Jet> > ak5_handle2;
+    event_obj.getByLabel(mPFak5JetsName, ak5_handle2);
+    const JetCorrector* corrector_ak5 = JetCorrector::getJetCorrector(mJetCorr_ak5, iSetup);
 
     // Vertex Info
     Handle<reco::VertexCollection> recVtxs;
     event_obj.getByLabel(mOfflineVertices, recVtxs);
 
-    // Iterate over the jets of the event
-    for (auto i_ak5jet = patjets.begin(); i_ak5jet != patjets.end(); ++i_ak5jet) {
+    // Jet Track Association (JTA)
+    edm::Handle <reco::TrackCollection> tracks_h;
+    event_obj.getByLabel ("generalTracks", tracks_h);
+    std::auto_ptr<reco::JetTracksAssociation::Container> tracksInJets (new reco::JetTracksAssociation::Container (reco::JetRefBaseProd(ak5_handle)));
+    // format inputs
+    std::vector <edm::RefToBase<reco::Jet> > allJets;
+    allJets.reserve (ak5_handle->size());
+    for (unsigned i = 0; i < ak5_handle->size(); ++i)
+      allJets.push_back((ak5_handle2->refAt(i)));
+    std::vector <reco::TrackRef> allTracks;
+    allTracks.reserve(tracks_h->size());
+    for (unsigned i = 0; i < tracks_h->size(); ++i) 
+      allTracks.push_back (reco::TrackRef (tracks_h, i));
+    // run JTA algorithm
+    JetTracksAssociationDRVertex mAssociator(0.5); // passed argument: 0.5 cone size
+    mAssociator.produce (&*tracksInJets, allJets, allTracks);
+  
+    // Index of the selected jet 
+    int ak5_index = 0;
+
+    // Jet energy correction factor
+    double jec = -1.0;
+
+    // Jets will be unsorted in pT after applying JEC,  
+    // therefore store corrected jets in a new collection (map): key (double) is pT * -1 (key), 
+    // value (std::pair<PFJet*, double>) is pair of original jet iterator and corresponding JEC factor
+    std::map<double, std::pair<reco::PFJetCollection::const_iterator, double> > sortedJets;
+    for (auto i_ak5jet_orig = ak5_handle->begin(); i_ak5jet_orig != ak5_handle->end(); ++i_ak5jet_orig) {
+        // take jet energy correction and get corrected pT
+        jec = corrector_ak5->correction(*i_ak5jet_orig, event_obj, iSetup);
+        // Multiply pT by -1 in order to have largest pT jet first (sorted in ascending order by default)
+        sortedJets.insert(std::pair<double, std::pair<reco::PFJetCollection::const_iterator, double> >(-1 * i_ak5jet_orig->pt() * jec, std::pair<reco::PFJetCollection::const_iterator, double>(i_ak5jet_orig, jec)));
+    }
+
+    // Iterate over the jets (sorted in pT) of the event
+    for (auto i_ak5jet_orig = sortedJets.begin(); i_ak5jet_orig != sortedJets.end(); ++i_ak5jet_orig) {
+
+        // Apply jet energy correction "on the fly":
+        // copy original (uncorrected) jet;
+        PFJet corjet = *((i_ak5jet_orig->second).first);
+        // take stored JEC factor
+        jec = (i_ak5jet_orig->second).second;
+        // apply JEC
+        corjet.scaleEnergy(jec);
+        // pointer for further use
+        const PFJet* i_ak5jet = &corjet;
 
         // Skip the current iteration if jet is not selected
         if (!i_ak5jet->isPFJet() || 
@@ -295,7 +349,7 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
         // Computing beta and beta*
 
         // Get tracks
-        reco::TrackRefVector tracks(i_ak5jet->associatedTracks());
+        reco::TrackRefVector tracks = reco::JetTracksAssociation::getValue(*tracksInJets, *((i_ak5jet_orig->second).first));
 
         float sumTrkPt(0.0), sumTrkPtBeta(0.0),sumTrkPtBetaStar(0.0);
         beta[ak5_index] = 0.0;
@@ -343,13 +397,14 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 
 
         // Jet composition
-        chf[ak5_index]     = i_ak5jet->chargedHadronEnergyFraction();
-        nhf[ak5_index]     = i_ak5jet->neutralHadronEnergyFraction() + i_ak5jet->HFHadronEnergyFraction();
-        phf[ak5_index]     = i_ak5jet->photonEnergyFraction();
-        elf[ak5_index]     = i_ak5jet->electronEnergyFraction();
-        muf[ak5_index]     = i_ak5jet->muonEnergyFraction();
-        hf_hf[ak5_index]   = i_ak5jet->HFHadronEnergyFraction();
-        hf_phf[ak5_index]  = i_ak5jet->HFEMEnergyFraction();
+        // (all energy fractions have to be multiplied by the JEC factor)
+        chf[ak5_index]     = i_ak5jet->chargedHadronEnergyFraction() * jec;
+        nhf[ak5_index]     = (i_ak5jet->neutralHadronEnergyFraction() + i_ak5jet->HFHadronEnergyFraction()) * jec;
+        phf[ak5_index]     = i_ak5jet->photonEnergyFraction() * jec;
+        elf[ak5_index]     = i_ak5jet->electronEnergyFraction() * jec;
+        muf[ak5_index]     = i_ak5jet->muonEnergyFraction() * jec;
+        hf_hf[ak5_index]   = i_ak5jet->HFHadronEnergyFraction() * jec;
+        hf_phf[ak5_index]  = i_ak5jet->HFEMEnergyFraction() * jec;
         hf_hm[ak5_index]   = i_ak5jet->HFHadronMultiplicity();
         hf_phm[ak5_index]  = i_ak5jet->HFEMMultiplicity();
         chm[ak5_index]     = i_ak5jet->chargedHadronMultiplicity();
@@ -386,6 +441,7 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
         jet_E[ak5_index]    = p4.E(); 
         
         // Matching a GenJet to this PFjet
+        jet_igen[ak5_index] = 0;
         if (mIsMCarlo && ngen > 0) {
 
             // Index of the generated jet matching this PFjet
@@ -415,14 +471,29 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
     edm::Handle< std::vector< pat::Jet > > ak7_handle;
     event_obj.getByLabel(mPFak7JetsName, ak7_handle);
 
-    // Copy vector of jets (they are sorted wrt. pT)
-    std::vector< pat::Jet > ak7_patjets(ak7_handle->begin(), ak7_handle->end());
+    // Jets will be unsorted in pT after applying JEC,  
+    // therefore store corrected jets in a new collection (map): key (double) is pT * -1 (key), 
+    // value (std::pair<PFJet*, double>) is pair of original jet iterator and corresponding JEC factor
+    sortedJets.clear();
+    for (auto i_ak7jet_orig = ak7_handle->begin(); i_ak7jet_orig != ak7_handle->end(); ++i_ak7jet_orig) {
+        // take jet energy correction and get corrected pT
+        jec = corrector_ak7->correction(*i_ak7jet_orig, event_obj, iSetup);
+        // Multiply pT by -1 in order to have largest pT jet first (sorted in ascending order by default)
+        sortedJets.insert(std::pair<double, std::pair<reco::PFJetCollection::const_iterator, double> >(-1 * i_ak7jet_orig->pt() * jec, std::pair<reco::PFJetCollection::const_iterator, double>(i_ak7jet_orig, jec)));
+    }
 
-    // Index of the selected jet 
-    int ak7_index = 0;
+    // Iterate over the jets (sorted in pT) of the event
+    for (auto i_ak7jet_orig = sortedJets.begin(); i_ak7jet_orig != sortedJets.end() && ak7_index < 4; ++i_ak7jet_orig) {
 
-    // Iterate only over four leading jets
-    for (auto i_ak7jet = ak7_patjets.begin(); i_ak7jet != ak7_patjets.end() && i_ak7jet - ak7_patjets.begin() != 4; ++i_ak7jet) {
+        // Apply jet energy correction "on the fly":
+        // copy original (uncorrected) jet;
+        PFJet corjet = *((i_ak7jet_orig->second).first);
+        // take stored JEC factor
+        jec = (i_ak7jet_orig->second).second;
+        // apply JEC
+        corjet.scaleEnergy(jec);
+        // pointer for further use
+        const PFJet* i_ak7jet = &corjet;
 
         // Skip the current iteration if jet is not selected
         if (!i_ak7jet->isPFJet() || 
