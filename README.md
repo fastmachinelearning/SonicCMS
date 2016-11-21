@@ -17,17 +17,15 @@ cd ./WorkingArea
 cmsrel CMSSW_5_3_32
 cd ./CMSSW_5_3_32/src
 cmsenv
-git cms-addpkg PhysicsTools/PatAlgos
-git clone https://github.com/tamshai/cms-opendata-2011-jets/
-cp cms-opendata-2011-jets/jetProducer_cfi.py PhysicsTools/PatAlgos/python/producersLayer1/
+git clone https://github.com/zenaiev/2011-jet-inclusivecrosssection-ntupleproduction-optimized.git
 scram b
-cd cms-opendata-2011-jets/AnalysisFW/python/
+cd cms-opendata-2011-jets-optimized/AnalysisFW/python/
 
 ```
 
 ## Setting up additional files
 
-With `cms-opendata-2011-jets/AnalysisFW/python/` as the current folder, run the following commands:
+With `cms-opendata-2011-jets-optimized/AnalysisFW/python/` as the current folder, run the following commands:
 
 1. Download index files : 
     
@@ -45,24 +43,21 @@ With `cms-opendata-2011-jets/AnalysisFW/python/` as the current folder, run the 
 3. Create links to the condition databases:
 
     ```
-    ln -sf /cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA FT_53_LV5_AN1 
-    ln -sf /cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA.db FT_53_LV5_AN1_RUNA.db
-    
+    ln -sf /cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA FT_53_LV5_AN1     
     ln -sf /cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1 START53_LV6A1
-    ln -sf /cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db START53_LV6A1.db
     ```
     
 ## Run the program:
 To create tuples from data run the following command:
 
 ```
-    cmsRun OpenDataTreeProducer_dataPAT_2011_cfg.py
+    cmsRun OpenDataTreeProducerOptimized_dataPAT_2011_cfg.py
 ```
     
 This command creates tuples from Monte Carlo simulations:
 
 ```
-    cmsRun OpenDataTreeProducer_mcPAT_2011_cfg.py
+    cmsRun OpenDataTreeProducerOptimized_mcPAT_2011_cfg.py
 ```
  
 After running the code, you can browse the tuples by opening the produced files in ROOT:
