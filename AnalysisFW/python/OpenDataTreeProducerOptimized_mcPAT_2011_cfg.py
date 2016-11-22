@@ -2,6 +2,7 @@
 # Forked from SMPJ Analysis Framework
 # https://twiki.cern.ch/twiki/bin/viewauth/CMS/SMPJAnalysisFW
 # https://github.com/cms-smpj/SMPJ/tree/v1.0
+# (further optimized to improve performance)
 
 
 ## Skeleton process
@@ -25,27 +26,7 @@ if runOnVM:
 # Global tag for Summer11LegDR-PU_S13_START53_LV6-v1
 process.GlobalTag.globaltag = cms.string('START53_LV6A1::All')
 
-
-# Load PAT config
-process.load("RecoTauTag.Configuration.RecoPFTauTag_cff") # re-run tau discriminators (new version)
-process.load("PhysicsTools.PatAlgos.patSequences_cff")
-process.load('Configuration.StandardSequences.Reconstruction_cff')
-process.load('RecoJets.Configuration.RecoPFJets_cff')
-process.load('RecoJets.Configuration.RecoJets_cff')
-process.load('RecoJets.JetProducers.TrackJetParameters_cfi')
-process.load('JetMETCorrections.Configuration.DefaultJEC_cff')
-
-
-# Configure PAT to use PF2PAT instead of AOD sources
-# this function will modify the PAT sequences.
-from PhysicsTools.PatAlgos.tools.pfTools import *
-from PhysicsTools.PatAlgos.tools.coreTools import *
-from PhysicsTools.PatAlgos.tools.metTools import *
-from PhysicsTools.PatAlgos.tools.jetTools import *
-from PhysicsTools.PatAlgos.tools.coreTools import *
-from PhysicsTools.SelectorUtils.pvSelector_cfi import pvSelector
-
-
+# Select good vertices
 process.goodOfflinePrimaryVertices = cms.EDFilter(
     "VertexSelector",
     filter = cms.bool(False),
@@ -53,52 +34,19 @@ process.goodOfflinePrimaryVertices = cms.EDFilter(
     cut = cms.string("!isFake && ndof > 4 && abs(z) <= 24 && position.rho < 2")
     )
 
-process.ak5PFJets.doAreaFastjet = True
-process.ak7PFJets.doAreaFastjet = True
-process.kt6PFJets.doRhoFastjet = True
-
-addPfMET(process, 'PF')
-
-# ------------- Adding Ak7 jet collection to process ------------- #
-addJetCollection(process,cms.InputTag('ak5PFJets'),
-                 'AK5', 'PFCorr',
-                 doJTA        = True,
-                 doBTagging   = False,
-                 jetCorrLabel = ('AK5PF', cms.vstring(['L1FastJet','L2Relative','L3Absolute','L2L3Residual'])),
-                 doType1MET   = True,
-                 doL1Cleaning = True,
-                 doL1Counters = False,
-                 doJetID      = True,
-                 jetIdLabel   = "ak5"
-                 )
-
-
-# ------- Adding non CHS jets to process ------//
-addJetCollection(process,cms.InputTag('ak7PFJets'),
-                 'AK7', 'PFCorr',
-                 doJTA        = True,
-                 doBTagging   = False,
-                 jetCorrLabel = ('AK7PF', cms.vstring(['L1FastJet','L2Relative','L3Absolute','L2L3Residual'])),
-                 doType1MET   = True,
-                 doL1Cleaning = True,
-                 doL1Counters = False,
-                 genJetCollection=cms.InputTag("ak7GenJets"),
-                 doJetID      = True,
-                 jetIdLabel   = "ak7"
-                 )
-
-
 # -------- The Tracking failure filter ------#
 from RecoMET.METFilters.trackingFailureFilter_cfi import trackingFailureFilter
 process.trackingFailureFilter = trackingFailureFilter.clone()
 process.trackingFailureFilter.VertexSource = cms.InputTag('goodOfflinePrimaryVertices')
 
+# Load jet correction services for all jet algoritms
+process.load("JetMETCorrections.Configuration.JetCorrectionServicesAllAlgos_cff")
 
 ################### EDAnalyzer ##############################3
 process.ak5ak7 = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
     ## jet collections ###########################
-    pfak7jets       = cms.InputTag('selectedPatJetsAK7PFCorr'),
-    pfak5jets       = cms.InputTag('selectedPatJetsAK5PFCorr'),
+    pfak7jets       = cms.InputTag('ak7PFJets'),
+    pfak5jets       = cms.InputTag('ak5PFJets'),
     ## MET collection ####
     pfmet           = cms.InputTag('pfMET7'),
     ## database entry for the uncertainties ######
@@ -127,9 +75,11 @@ process.ak5ak7 = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
                                 'HLT_Jet150','HLT_Jet190','HLT_Jet240','HLT_Jet370',
                                 ),
     triggerResults  = cms.InputTag("TriggerResults","","HLT"),
-    triggerEvent    = cms.InputTag("hltTriggerSummaryAOD","","HLT")
+    triggerEvent    = cms.InputTag("hltTriggerSummaryAOD","","HLT"),
+    ## jet energy correction labels ##############
+    jetCorr_ak5      = cms.string('ak5PFL1FastL2L3Residual'),
+    jetCorr_ak7      = cms.string('ak7PFL1FastL2L3Residual'),
 )
-
 
 ############# hlt filter #########################
 process.hltFilter = cms.EDFilter('HLTHighLevel',
@@ -146,7 +96,6 @@ process.p = cms.Path(
     process.goodOfflinePrimaryVertices*
     process.hltFilter *
     process.trackingFailureFilter *
-    process.patDefaultSequence *
     process.ak5ak7
 )
 
@@ -156,9 +105,9 @@ process.p = cms.Path(
 # MC:   50000 events / 5 hours
 
 # Change number of events here:
-process.maxEvents.input = 100
+process.maxEvents.input = 50000
 
-process.MessageLogger.cerr.FwkReport.reportEvery = 5
+process.MessageLogger.cerr.FwkReport.reportEvery = 500
 
 # Output file
 process.TFileService = cms.Service("TFileService", fileName = cms.string('OpenDataTree_mc.root'))

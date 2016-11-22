@@ -6,7 +6,7 @@
 
 
 ## Import skeleton process
-#from PhysicsTools.PatAlgos.patTemplate_cfg import *
+from PhysicsTools.PatAlgos.patTemplate_cfg import *
 import FWCore.Utilities.FileUtils as FileUtils
 
 process.load('Configuration.StandardSequences.Services_cff')
@@ -36,25 +36,6 @@ process.source.lumisToProcess.extend(myLumis)
 # Global tag for 2011A data
 process.GlobalTag.globaltag = 'FT_53_LV5_AN1::All'
 
-
-# Load PAT config
-#process.load("RecoTauTag.Configuration.RecoPFTauTag_cff") # re-run tau discriminators (new version)
-#process.load("PhysicsTools.PatAlgos.patSequences_cff")
-#process.load('Configuration.StandardSequences.Reconstruction_cff')
-#process.load('RecoJets.Configuration.RecoPFJets_cff')
-#process.load('RecoJets.Configuration.RecoJets_cff')
-#process.load('RecoJets.JetProducers.TrackJetParameters_cfi')
-#process.load('JetMETCorrections.Configuration.DefaultJEC_cff')
-
-
-# Import PAT tools
-#from PhysicsTools.PatAlgos.tools.pfTools import *
-#from PhysicsTools.PatAlgos.tools.coreTools import *
-#from PhysicsTools.PatAlgos.tools.metTools import *
-#from PhysicsTools.PatAlgos.tools.jetTools import *
-#from PhysicsTools.PatAlgos.tools.coreTools import *
-#from PhysicsTools.SelectorUtils.pvSelector_cfi import pvSelector
-
 # Select good vertices
 process.goodOfflinePrimaryVertices = cms.EDFilter(
     "VertexSelector",
@@ -63,42 +44,6 @@ process.goodOfflinePrimaryVertices = cms.EDFilter(
     cut = cms.string("!isFake && ndof > 4 && abs(z) <= 24 && position.rho < 2")
     )
 
-
-#process.ak5PFJets.doAreaFastjet = True
-#process.ak7PFJets.doAreaFastjet = True
-#process.kt6PFJets.doRhoFastjet = True
-
-#removeMCMatchingPF2PAT( process, '' )
-#runOnData(process)
-
-# Choose PF met
-#addPfMET(process, 'PF')
-'''
-# Adding non CHS jets to process
-addJetCollection(process,cms.InputTag('ak5PFJets'),
-                 'AK5', 'PFCorr',
-                 doJTA        = True,
-                 doBTagging   = False,
-                 jetCorrLabel = ('AK5PF', cms.vstring(['L1FastJet','L2Relative','L3Absolute','L2L3Residual'])),
-                 doType1MET   = True,
-                 doL1Cleaning = True,
-                 doL1Counters = False,
-                 doJetID      = True,
-                 jetIdLabel   = "ak5"
-                 )
-
-addJetCollection(process,cms.InputTag('ak7PFJets'),
-                 'AK7', 'PFCorr',
-                 doJTA        = True,
-                 doBTagging   = False,
-                 jetCorrLabel = ('AK7PF', cms.vstring(['L1FastJet','L2Relative','L3Absolute','L2L3Residual'])),
-                 doType1MET   = True,
-                 doL1Cleaning = True,
-                 doL1Counters = False,
-                 doJetID      = True,
-                 jetIdLabel   = "ak7"
-                 )
-'''
 # Tracking failure filter
 from RecoMET.METFilters.trackingFailureFilter_cfi import trackingFailureFilter
 process.trackingFailureFilter = trackingFailureFilter.clone()
@@ -154,7 +99,6 @@ process.p = cms.Path(
     process.goodOfflinePrimaryVertices*
     process.hltFilter *
     process.trackingFailureFilter *
-    #process.patDefaultSequence *
     process.ak5ak7
 )
 
@@ -163,9 +107,9 @@ process.p = cms.Path(
 # - MC:   50000 events / 5 hours
 
 # Change number of events here:
-process.maxEvents.input = 100
+process.maxEvents.input = 50000
 
-process.MessageLogger.cerr.FwkReport.reportEvery = 50
+process.MessageLogger.cerr.FwkReport.reportEvery = 500
 
 # Output file
 process.TFileService = cms.Service("TFileService", fileName = cms.string('OpenDataTree_data.root'))

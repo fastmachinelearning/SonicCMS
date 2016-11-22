@@ -19,7 +19,7 @@ cd ./CMSSW_5_3_32/src
 cmsenv
 git clone https://github.com/zenaiev/2011-jet-inclusivecrosssection-ntupleproduction-optimized.git
 scram b
-cd cms-opendata-2011-jets-optimized/AnalysisFW/python/
+cd 2011-jet-inclusivecrosssection-ntupleproduction-optimized/AnalysisFW/python/
 
 ```
 

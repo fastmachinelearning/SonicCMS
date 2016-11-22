@@ -8,15 +8,10 @@
 <use   name="DataFormats/HepMCCandidate"/>
 <use   name="DataFormats/TrackCandidate"/>
 <use   name="DataFormats/HLTReco"/>
-<use   name="PhysicsTools/UtilAlgos"/>
-<use   name="PhysicsTools/PatUtils"/>
-<use   name="PhysicsTools/PatAlgos"/>
 <use   name="JetMETCorrections/Objects"/>
 <use   name="FWCore/Framework"/>
 <use   name="FWCore/PluginManager"/>
 <use   name="FWCore/ServiceRegistry"/>
-<use   name="clhep"/>
-<use   name="root"/>
 <use   name="HLTrigger/HLTcore"/>
 <use   name="L1Trigger/GlobalTriggerAnalyzer"/>
 <use   name="CondFormats/L1TObjects"/>

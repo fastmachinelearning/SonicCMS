@@ -18,7 +18,7 @@
 #include <cassert>
 #include <TLorentzVector.h>
 
-#include "cms-opendata-2011-jets/AnalysisFW/plugins/OpenDataTreeProducerOptimized.h"
+#include "OpenDataTreeProducerOptimized.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -49,7 +49,7 @@
 #include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
 #include "JetMETCorrections/Objects/interface/JetCorrectionsRecord.h"
 
-#include "DataFormats/JetReco/interface/JetTracksAssociation.h"
+#include "RecoJets/JetAssociationProducers/src/JetTracksAssociatorAtVertex.h"
 
 OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet const &cfg) {
   mMinPFPt           = cfg.getParameter<double>                    ("minPFPt");
@@ -273,24 +273,16 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
         ngen = gen_index;
     }
 
-
-    // PF AK5 Jets
-
-    //edm::Handle< std::vector< pat::Jet > > ak5_handle;
-    //event_obj.getByLabel(mPFak5JetsName, ak5_handle);
-
-    // Copy vector of jets (they are sorted wrt. pT)
-    //std::vector< pat::Jet > patjets(ak5_handle->begin(), ak5_handle->end());
-
-    edm::Handle<reco::PFJetCollection> ak5_handle;
-    event_obj.getByLabel(mPFak5JetsName, ak5_handle);
-    edm::Handle <edm::View <reco::Jet> > ak5_handle2;
-    event_obj.getByLabel(mPFak5JetsName, ak5_handle2);
-    const JetCorrector* corrector_ak5 = JetCorrector::getJetCorrector(mJetCorr_ak5, iSetup);
-
     // Vertex Info
     Handle<reco::VertexCollection> recVtxs;
     event_obj.getByLabel(mOfflineVertices, recVtxs);
+
+
+    // PF AK5 Jets
+
+    edm::Handle<reco::PFJetCollection> ak5_handle;
+    event_obj.getByLabel(mPFak5JetsName, ak5_handle);
+    const JetCorrector* corrector_ak5 = JetCorrector::getJetCorrector(mJetCorr_ak5, iSetup);
 
     // Jet Track Association (JTA)
     edm::Handle <reco::TrackCollection> tracks_h;
@@ -300,11 +292,14 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
     std::vector <edm::RefToBase<reco::Jet> > allJets;
     allJets.reserve (ak5_handle->size());
     for (unsigned i = 0; i < ak5_handle->size(); ++i)
-      allJets.push_back((ak5_handle2->refAt(i)));
+    {
+      edm::RefToBase<reco::Jet> jetRef(edm::Ref<reco::PFJetCollection>(ak5_handle, i));
+      allJets.push_back(jetRef);
+    }
     std::vector <reco::TrackRef> allTracks;
     allTracks.reserve(tracks_h->size());
     for (unsigned i = 0; i < tracks_h->size(); ++i) 
-      allTracks.push_back (reco::TrackRef (tracks_h, i));
+      allTracks.push_back (reco::TrackRef(tracks_h, i));
     // run JTA algorithm
     JetTracksAssociationDRVertex mAssociator(0.5); // passed argument: 0.5 cone size
     mAssociator.produce (&*tracksInJets, allJets, allTracks);
@@ -340,8 +335,7 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
         const PFJet* i_ak5jet = &corjet;
 
         // Skip the current iteration if jet is not selected
-        if (!i_ak5jet->isPFJet() || 
-            fabs(i_ak5jet->y()) > mMaxY || 
+        if (fabs(i_ak5jet->y()) > mMaxY || 
             (i_ak5jet->pt()) < mMinPFPt) {
             continue;
         }
@@ -368,6 +362,7 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
                 reco::Vertex vertex = (*recVtxs)[ivtx];
 
                 // Loop over tracks associated with the vertex
+                bool flagBreak = false;
                 if (!(vertex.isFake()) && 
                     vertex.ndof() >= mGoodVtxNdof && 
                     fabs(vertex.z()) <= mGoodVtxZ) {
@@ -384,9 +379,13 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
                             }
                             else {
                                 sumTrkPtBetaStar += (*i_trk)->pt();
-                            } 
+                            }
+                            flagBreak = true;
+                            break;
                         } 
                     } 
+                    if(flagBreak)
+                      break;
                 } 
             } 
         }
@@ -431,7 +430,7 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
         // Variables of the tuple
         jet_tightID[ak5_index] = tightID;
         jet_area[ak5_index] = i_ak5jet->jetArea();
-        jet_jes[ak5_index] = 1/i_ak5jet->jecFactor(0); // JEC factor (pfjet is already corrected !!)
+        jet_jes[ak5_index] = jec; // JEC factor
 
         // p4 is already corrected!
         auto p4 = i_ak5jet->p4();
@@ -468,8 +467,13 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 
 
     // Four leading AK7 Jets
-    edm::Handle< std::vector< pat::Jet > > ak7_handle;
+
+    edm::Handle<reco::PFJetCollection> ak7_handle;
     event_obj.getByLabel(mPFak7JetsName, ak7_handle);
+    const JetCorrector* corrector_ak7 = JetCorrector::getJetCorrector(mJetCorr_ak7, iSetup);
+
+    // Index of the selected jet 
+    int ak7_index = 0;
 
     // Jets will be unsorted in pT after applying JEC,  
     // therefore store corrected jets in a new collection (map): key (double) is pT * -1 (key), 
@@ -496,15 +500,14 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
         const PFJet* i_ak7jet = &corjet;
 
         // Skip the current iteration if jet is not selected
-        if (!i_ak7jet->isPFJet() || 
-            fabs(i_ak7jet->y()) > mMaxY || 
+        if (fabs(i_ak7jet->y()) > mMaxY || 
             (i_ak7jet->pt()) < mMinPFPt) {
             continue;
         }
 
         // Variables of the tuple
         jet_area_ak7[ak7_index] = i_ak7jet->jetArea();
-        jet_jes_ak7[ak7_index] = 1/i_ak7jet->jecFactor(0); // JEC factor (pfjet is already corrected !!)
+        jet_jes_ak7[ak7_index] = jec; // JEC factor
 
         // p4 is already corrected!
         auto p4 = i_ak7jet->p4();
