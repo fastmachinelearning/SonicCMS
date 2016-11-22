@@ -115,6 +115,6 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 500
 process.TFileService = cms.Service("TFileService", fileName = cms.string('OpenDataTree_data.root'))
 
 # To suppress long output at the end of the job
-process.options.wantSummary = False   
+#process.options.wantSummary = False   
 
 del process.outpath

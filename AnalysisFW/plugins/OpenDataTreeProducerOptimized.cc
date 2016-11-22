@@ -75,7 +75,6 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
   mJetCorr_ak7       = cfg.getParameter<std::string>               ("jetCorr_ak7");
 }
 
-
 void OpenDataTreeProducerOptimized::beginJob() {
     mTree = fs->make< TTree >("OpenDataTree", "OpenDataTree");
 

@@ -143,7 +143,6 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     // Jet correction labels
     std::string mJetCorr_ak5;
     std::string mJetCorr_ak7;
-
 };
 
 #endif
