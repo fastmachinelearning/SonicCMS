@@ -41,6 +41,7 @@
 #include "DataFormats/METReco/interface/PFMETCollection.h"
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
+#include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 #include "SimDataFormats/GeneratorProducts/interface/GenRunInfoProduct.h"
@@ -73,9 +74,17 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
   triggerResultsTag_ = cfg.getParameter<edm::InputTag>             ("triggerResults");
   mJetCorr_ak5       = cfg.getParameter<std::string>               ("jetCorr_ak5");
   mJetCorr_ak7       = cfg.getParameter<std::string>               ("jetCorr_ak7");
+  pfCandidates_ = cfg.getParameter<edm::InputTag>                  ("pfCandidates");
 }
 
 void OpenDataTreeProducerOptimized::beginJob() {
+  
+    etas   = new std::vector<float>; etas->clear();
+    phis   = new std::vector<float>; phis->clear();
+    pts    = new std::vector<float>; pts->clear();
+    ids    = new std::vector<int>;   ids->clear();    
+    ak7indices    = new std::vector<int>;   ak7indices->clear();
+    
     mTree = fs->make< TTree >("OpenDataTree", "OpenDataTree");
 
     // Variables of the flat tuple
@@ -134,6 +143,13 @@ void OpenDataTreeProducerOptimized::beginJob() {
     mTree->Branch("mum", mum, "mum[njet]/i");
     mTree->Branch("beta", beta, "beta[njet]/F");   
     mTree->Branch("bstar", bstar, "bstar[njet]/F");
+
+    //PF Candidates
+    mTree->Branch("ak7pfcand_pt", "std::vector<float>", &pts);
+    mTree->Branch("ak7pfcand_eta", "std::vector<float>", &etas);
+    mTree->Branch("ak7pfcand_phi", "std::vector<float>", &phis);
+    mTree->Branch("ak7pfcand_id", "std::vector<int>", &ids);
+    mTree->Branch("ak7pfcand_ijet", "std::vector<int>", &ak7indices);
     
 }
 
@@ -532,12 +548,22 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
                 ak7_to_ak5[ak7_index] = ak5_index;
             }
         }
-        
+
+	// PF Candidates in AK7 jet
+	for ( unsigned ida = 0; ida < i_ak7jet->numberOfDaughters(); ++ida ) 
+	  {
+	    reco::Candidate const * cand = i_ak7jet->daughter(ida);
+	    pts->push_back(cand->pt());
+	    etas->push_back(cand->eta());
+	    phis->push_back(cand->phi());
+	    ids->push_back(cand->pdgId());
+	    ak7indices->push_back(ak7_index);
+	  }
+    
     ak7_index++;
     }  
     // Number of saved jets in the event
-    njet_ak7 = ak7_index;    
-
+    njet_ak7 = ak7_index;
 
     // MET
     Handle< PFMETCollection > met_handle;
@@ -546,11 +572,27 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
     met = (*met_handle)[0].et();
     sumet = (*met_handle)[0].sumEt();
 
+    // All PF Candidates
+    
+    //pfCandidates_ = edm::InputTag("particleFlow","","RECO");
+    // Handle<std::vector<reco::PFCandidate> > pfCandidates;
+    // event_obj.getByLabel(pfCandidates_, pfCandidates);
+
+    // for(size_t i = 0; i < pfCandidates->size(); i++){
+    //   reco::PFCandidate p = (*pfCandidates)[i];
+    //   if (fabs(p.eta()) > 5.0) continue;
+    //   pts->push_back(p.pt());
+    //   etas->push_back(p.eta());
+    //   phis->push_back(p.phi());
+    //   ids->push_back(p.pdgId());
+    // }
+
     // Finally, fill the tree
     if (njet >= (unsigned)mMinNPFJets && 
         njet_ak7 >= (unsigned)mMinNPFJets ) {            
             mTree->Fill();
     }
+
 }
 
 

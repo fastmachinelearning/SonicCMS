@@ -14,7 +14,7 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 # True : when running in OpenData virtual machine
 # False: when runing in lxplus 
-runOnVM = True
+runOnVM = False
 
 # Index of data files
 files2011data = FileUtils.loadListFromFile('CMS_Run2011A_Jet_AOD_12Oct2013-v1_20000_file_index.txt')
@@ -83,6 +83,8 @@ process.ak5ak7 = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
     ## jet energy correction labels ##############
     jetCorr_ak5      = cms.string('ak5PFL1FastL2L3Residual'),
     jetCorr_ak7      = cms.string('ak7PFL1FastL2L3Residual'),
+    # PF Candidates
+    pfCandidates     = cms.InputTag("particleFlow","","RECO"),
 )
 
 # HLT filter
@@ -106,7 +108,7 @@ process.p = cms.Path(
 # 50000 events per 1 hour (both for DATA and MC)
 
 # Change number of events here:
-process.maxEvents.input = 50000
+process.maxEvents.input = 500
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 500
 

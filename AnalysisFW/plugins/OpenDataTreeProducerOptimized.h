@@ -63,6 +63,9 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     std::vector<unsigned int>   triggerIndex_;
     edm::InputTag               triggerResultsTag_;
     HLTConfigProvider           hltConfig_;
+
+    // PF Candidates
+    edm::InputTag pfCandidates_;
     
     // Output variables
     edm::Service<TFileService>  fs;
@@ -143,6 +146,10 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     // Jet correction labels
     std::string mJetCorr_ak5;
     std::string mJetCorr_ak7;
+    
+    //PF Candidates
+    std::vector<float> *etas, *phis, *pts;
+    std::vector<int> *ids, *ak7indices;
 };
 
 #endif

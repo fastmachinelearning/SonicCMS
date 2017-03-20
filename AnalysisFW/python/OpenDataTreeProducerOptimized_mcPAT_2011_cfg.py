@@ -14,7 +14,7 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 # True : when running in OpenData virtual machine
 # False: when runing in lxplus 
-runOnVM = True
+runOnVM = False
 
 # Local input
 fileList = FileUtils.loadListFromFile('CMS_MonteCarlo2011_Summer11LegDR_QCD_Pt-80to120_TuneZ2_7TeV_pythia6_AODSIM_PU_S13_START53_LV6-v1_00000_file_index.txt')
@@ -79,6 +79,8 @@ process.ak5ak7 = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
     ## jet energy correction labels ##############
     jetCorr_ak5      = cms.string('ak5PFL1FastL2L3Residual'),
     jetCorr_ak7      = cms.string('ak7PFL1FastL2L3Residual'),
+    # PF Candidates
+    pfCandidates     = cms.InputTag("particleFlow","","RECO"),
 )
 
 ############# hlt filter #########################
