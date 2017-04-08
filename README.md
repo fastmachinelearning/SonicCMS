@@ -11,7 +11,7 @@ The instruction assume that you will work on a VM properly contextualized for CM
 ## Creating the working area
 
 This step is only needed the first time you run this program:
-```
+```bash
 mkdir WorkingArea
 cd ./WorkingArea
 cmsrel CMSSW_5_3_32
@@ -29,20 +29,20 @@ With `cms-opendata-2011-jets-optimized/AnalysisFW/python/` as the current folder
 
 1. Download index files : 
     
-    ```
+    ```bash
     wget http://opendata.cern.ch/record/21/files/CMS_Run2011A_Jet_AOD_12Oct2013-v1_20000_file_index.txt
     wget http://opendata.cern.ch/record/1562/files/CMS_MonteCarlo2011_Summer11LegDR_QCD_Pt-80to120_TuneZ2_7TeV_pythia6_AODSIM_PU_S13_START53_LV6-v1_00000_file_index.txt 
     ```
     
 2. Download JSON of good runs:
 
-    ```
+    ```bash
     wget http://opendata.cern.ch/record/1001/files/Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt
     ```
     
 3. Create links to the condition databases:
 
-    ```
+    ```bash
     ln -sf /cvmfs/cms-opendata-conddb.cern.ch/FT_53_LV5_AN1_RUNA FT_53_LV5_AN1     
     ln -sf /cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1 START53_LV6A1
     ```
@@ -50,26 +50,28 @@ With `cms-opendata-2011-jets-optimized/AnalysisFW/python/` as the current folder
 ## Run the program:
 To create tuples from data run the following command:
 
-```
-    cmsRun OpenDataTreeProducerOptimized_dataPAT_2011_cfg.py
+```bash
+mkdir output
+cmsRun OpenDataTreeProducerOptimized_dataPAT_2011_cfg.py
 ```
     
 This command creates tuples from Monte Carlo simulations:
 
-```
-    cmsRun OpenDataTreeProducerOptimized_mcPAT_2011_cfg.py
+```bash
+mkdir output
+cmsRun OpenDataTreeProducerOptimized_mcPAT_2011_cfg.py
 ```
  
 After running the code, you can browse the tuples by opening the produced files in ROOT:
 
-```
-    root OpenDataTree_*
+```bash
+root OpenDataTree_*
 ```
  
 Finally, run this command in the ROOT command prompt:
 
-```
-    TBrowser t
+```cpp
+TBrowser t;
 ```
  
 
@@ -156,4 +158,38 @@ Finally, run this command in the ROOT command prompt:
 
     float   pthat;          // Transverse momentum in the rest frame of the hard interaction
     float   mcweight;       // Monte Carlo weight of the event
+```
+
+
+
+## Preparing output for Machine Learning pipelin
+
+When CMSSW runs over the first 500 events of the dataset, it produces three files in `output` named `params0.npy` through `params3.npy`. To make one file, increase the number of rows per file (currently 10000) in the `c2numpy_init` call, recompile, and rerun.
+
+These files should match the ones in this repository.
+
+You can load any of the files in a Python session. We can also convert this into pandas DataFrame and see how we can access the data
+
+```python
+>>> import numpy as np
+>>> import pandas as pd
+>>> params0 = np.load("output/params0.npy")
+>>> params0.dtype.names
+('run', 'lumi', 'event', 'njet_ak7', 'jet_pt_ak7', 'jet_eta_ak7', 'jet_phi_ak7', 'jet_E_ak7', 'jet_area_ak7', 'jet_jes_ak7', 'ak7pfcand_pt', 'ak7pfcand_eta', 'ak7pfcand_phi', 'ak7pfcand_id', 'ak7pfcand_charge', 'ak7pfcand_ijet')
+>>> df = pd.DataFrame(params0)
+>>> print df.iloc[:3]
+      run  lumi     event  njet_ak7  jet_pt_ak7  jet_eta_ak7  jet_phi_ak7  \
+0  160578   366  38174649         2   81.245902     1.601862    -0.247781   
+1  160578   366  38174649         2   81.245902     1.601862    -0.247781   
+2  160578   366  38174649         2   81.245902     1.601862    -0.247781   
+
+    jet_E_ak7  jet_area_ak7  jet_jes_ak7  ak7pfcand_pt  ak7pfcand_eta  \
+0  211.272537      1.515943     0.964843     22.249989       1.604204   
+1  211.272537      1.515943     0.964843      7.718062       1.617311   
+2  211.272537      1.515943     0.964843      6.549799       1.526909   
+
+   ak7pfcand_phi  ak7pfcand_id  ak7pfcand_charge  ak7pfcand_ijet  
+0      -0.197934            22                 0               0  
+1      -0.116796           211                 1               0  
+2      -0.263528          -211                -1               0  
 ```
