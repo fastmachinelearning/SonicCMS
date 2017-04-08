@@ -18,6 +18,8 @@
 #include <cassert>
 #include <TLorentzVector.h>
 
+// c2numpy convertion include
+#include "2011-jet-inclusivecrosssection-ntupleproduction-optimized/AnalysisFW/interface/c2numpy.h"
 #include "OpenDataTreeProducerOptimized.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/ESHandle.h"
@@ -56,6 +58,7 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
   mMinPFPt           = cfg.getParameter<double>                    ("minPFPt");
   mMinJJMass         = cfg.getParameter<double>                    ("minJJMass");
   mMaxY              = cfg.getParameter<double>                    ("maxY");
+  mMaxEta            = cfg.getParameter<double>                    ("maxEta");
   mMinNPFJets        = cfg.getParameter<int>                       ("minNPFJets");
   mPFak5JetsName     = cfg.getParameter<edm::InputTag>             ("pfak5jets");
   mPFak7JetsName     = cfg.getParameter<edm::InputTag>             ("pfak7jets");
@@ -83,6 +86,7 @@ void OpenDataTreeProducerOptimized::beginJob() {
     phis   = new std::vector<float>; phis->clear();
     pts    = new std::vector<float>; pts->clear();
     ids    = new std::vector<int>;   ids->clear();    
+    charges= new std::vector<int>;   charges->clear();    
     ak7indices    = new std::vector<int>;   ak7indices->clear();
     
     mTree = fs->make< TTree >("OpenDataTree", "OpenDataTree");
@@ -149,11 +153,35 @@ void OpenDataTreeProducerOptimized::beginJob() {
     mTree->Branch("ak7pfcand_eta", "std::vector<float>", &etas);
     mTree->Branch("ak7pfcand_phi", "std::vector<float>", &phis);
     mTree->Branch("ak7pfcand_id", "std::vector<int>", &ids);
+    mTree->Branch("ak7pfcand_charge", "std::vector<int>", &charges);
     mTree->Branch("ak7pfcand_ijet", "std::vector<int>", &ak7indices);
+
+    
+    //c2numpy
+   c2numpy_init(&writer, "output/params", 10000);
+   c2numpy_addcolumn(&writer, "run", C2NUMPY_INTC);
+   c2numpy_addcolumn(&writer, "lumi", C2NUMPY_INTC);
+   c2numpy_addcolumn(&writer, "event", C2NUMPY_INTC);
+   c2numpy_addcolumn(&writer, "njet_ak7", C2NUMPY_INTC);
+   c2numpy_addcolumn(&writer, "jet_pt_ak7", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "jet_eta_ak7", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "jet_phi_ak7", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "jet_E_ak7", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "jet_area_ak7", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "jet_jes_ak7", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "ak7pfcand_pt", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "ak7pfcand_eta", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "ak7pfcand_phi", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "ak7pfcand_id", C2NUMPY_INTC);
+   c2numpy_addcolumn(&writer, "ak7pfcand_charge", C2NUMPY_INTC);
+   c2numpy_addcolumn(&writer, "ak7pfcand_ijet", C2NUMPY_INTC);
+
     
 }
 
 void OpenDataTreeProducerOptimized::endJob() {
+  // c2numpy
+  c2numpy_close(&writer);
 }
 
 
@@ -233,7 +261,7 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 
         // Trigger prescales are retrieved using the trigger name
         std::string trgName = hltConfig_.triggerName(triggerIndex_[itrig]);
-        const std::pair< int, int > prescalePair(hltConfig_.prescaleValues(event_obj, iSetup, trgName));
+	const std::pair< int, int > prescalePair(hltConfig_.prescaleValues(event_obj, iSetup, trgName));
 
         // Total prescale: PreL1*PreHLT 
         prescales[itrig] = prescalePair.first*prescalePair.second;   
@@ -275,7 +303,7 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
         for (GenJetCollection::const_iterator i_gen = genjets->begin(); i_gen != genjets->end(); i_gen++)  {
 
             // pT and rapidity selection
-            if (i_gen->pt() > mMinGenPt && fabs(i_gen->y()) < mMaxY) {
+            if (i_gen->pt() > mMinGenPt && fabs(i_gen->y()) < mMaxY && fabs(i_gen->eta()) < mMaxEta) {
                 gen_pt[gen_index] = i_gen->pt();
                 gen_eta[gen_index] = i_gen->eta();
                 gen_phi[gen_index] = i_gen->phi();
@@ -351,7 +379,8 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 
         // Skip the current iteration if jet is not selected
         if (fabs(i_ak5jet->y()) > mMaxY || 
-            (i_ak5jet->pt()) < mMinPFPt) {
+            (i_ak5jet->pt()) < mMinPFPt ||
+	    fabs(i_ak5jet->eta()) > mMaxEta ) {
             continue;
         }
 
@@ -502,7 +531,8 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
     }
 
     // Iterate over the jets (sorted in pT) of the event
-    for (auto i_ak7jet_orig = sortedJets.begin(); i_ak7jet_orig != sortedJets.end() && ak7_index < 4; ++i_ak7jet_orig) {
+    njet_ak7 = 0;
+    for (auto i_ak7jet_orig = sortedJets.begin(); i_ak7jet_orig != sortedJets.end(); ++i_ak7jet_orig) {
 
         // Apply jet energy correction "on the fly":
         // copy original (uncorrected) jet;
@@ -516,7 +546,28 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 
         // Skip the current iteration if jet is not selected
         if (fabs(i_ak7jet->y()) > mMaxY || 
-            (i_ak7jet->pt()) < mMinPFPt) {
+            (i_ak7jet->pt()) < mMinPFPt ||
+	    fabs(i_ak7jet->eta()) > mMaxEta) {
+            continue;
+        }
+	njet_ak7++;
+    }
+    for (auto i_ak7jet_orig = sortedJets.begin(); i_ak7jet_orig != sortedJets.end(); ++i_ak7jet_orig) {
+
+        // Apply jet energy correction "on the fly":
+        // copy original (uncorrected) jet;
+        PFJet corjet = *((i_ak7jet_orig->second).first);
+        // take stored JEC factor
+        jec = (i_ak7jet_orig->second).second;
+        // apply JEC
+        corjet.scaleEnergy(jec);
+        // pointer for further use
+        const PFJet* i_ak7jet = &corjet;
+
+        // Skip the current iteration if jet is not selected
+        if (fabs(i_ak7jet->y()) > mMaxY || 
+            (i_ak7jet->pt()) < mMinPFPt ||
+	    fabs(i_ak7jet->eta()) > mMaxEta) {
             continue;
         }
 
@@ -550,6 +601,7 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
         }
 
 	// PF Candidates in AK7 jet
+	int charge = 0;
 	for ( unsigned ida = 0; ida < i_ak7jet->numberOfDaughters(); ++ida ) 
 	  {
 	    reco::Candidate const * cand = i_ak7jet->daughter(ida);
@@ -557,8 +609,33 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 	    etas->push_back(cand->eta());
 	    phis->push_back(cand->phi());
 	    ids->push_back(cand->pdgId());
+	    if (cand->pdgId() == 22 || cand->pdgId() == 130 || cand->pdgId() == 0 || cand->pdgId() == 1 || cand->pdgId() == 2) {
+	      charge = 0;
+	    }
+	    else {	      
+	      charge = cand->pdgId()/abs(cand->pdgId());
+	    }
+	    charges->push_back(charge);
 	    ak7indices->push_back(ak7_index);
-	  }
+
+	    // c2numpy	    
+	    c2numpy_intc(&writer, run);
+	    c2numpy_intc(&writer, lumi);
+	    c2numpy_intc(&writer, event);
+	    c2numpy_intc(&writer, njet_ak7);
+	    c2numpy_float64(&writer, p4.Pt());
+	    c2numpy_float64(&writer, p4.Eta());
+	    c2numpy_float64(&writer, p4.Phi());
+	    c2numpy_float64(&writer, p4.E());
+	    c2numpy_float64(&writer, i_ak7jet->jetArea());
+	    c2numpy_float64(&writer, jec);	    
+	    c2numpy_float64(&writer, cand->pt());
+	    c2numpy_float64(&writer, cand->eta());
+	    c2numpy_float64(&writer, cand->phi());
+	    c2numpy_intc(&writer, cand->pdgId());
+	    c2numpy_intc(&writer, charge);
+	    c2numpy_intc(&writer, ak7_index);
+  	  }
     
     ak7_index++;
     }  
@@ -588,8 +665,7 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
     // }
 
     // Finally, fill the tree
-    if (njet >= (unsigned)mMinNPFJets && 
-        njet_ak7 >= (unsigned)mMinNPFJets ) {            
+    if ( njet_ak7 >= (unsigned)mMinNPFJets ) {            
             mTree->Fill();
     }
 

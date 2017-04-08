@@ -59,7 +59,8 @@ process.ak5ak7 = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
     ## rho #######################################
     srcPFRho        = cms.InputTag('kt6PFJets','rho'),
     ## preselection cuts #########################
-    maxY            = cms.double(5.0), 
+    maxY            = cms.double(99.0), 
+    maxEta          = cms.double(2.0), 
     minPFPt         = cms.double(30),
     minNPFJets      = cms.int32(1),
     minGenPt        = cms.untracked.double(30),
@@ -106,9 +107,9 @@ process.p = cms.Path(
 # 50000 events per 1 hour (both for DATA and MC)
 
 # Change number of events here:
-process.maxEvents.input = 50000
+process.maxEvents.input = 500
 
-process.MessageLogger.cerr.FwkReport.reportEvery = 500
+process.MessageLogger.cerr.FwkReport.reportEvery = 1
 
 # Output file
 process.TFileService = cms.Service("TFileService", fileName = cms.string('OpenDataTree_mc.root'))

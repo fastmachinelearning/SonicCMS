@@ -44,7 +44,7 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     bool            mUseGenInfo;
     bool            mPrintTriggerMenu;
     int             mMinNPFJets;
-    double          mMinPFPt, mMinGenPt, mMaxY, mMinJJMass;
+    double          mMinPFPt, mMinGenPt, mMaxY, mMaxEta, mMinJJMass;
     int             mGoodVtxNdof;
     double          mGoodVtxZ; 
     edm::InputTag   mPFak5JetsName;
@@ -149,7 +149,10 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     
     //PF Candidates
     std::vector<float> *etas, *phis, *pts;
-    std::vector<int> *ids, *ak7indices;
+    std::vector<int> *ids, *charges, *ak7indices;
+    
+    // c2numpy
+    c2numpy_writer writer;
 };
 
 #endif

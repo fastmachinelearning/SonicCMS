@@ -14,7 +14,7 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 # True : when running in OpenData virtual machine
 # False: when runing in lxplus 
-runOnVM = False
+runOnVM = True
 
 # Index of data files
 files2011data = FileUtils.loadListFromFile('CMS_Run2011A_Jet_AOD_12Oct2013-v1_20000_file_index.txt')
@@ -66,8 +66,9 @@ process.ak5ak7 = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
     ## rho #######################################
     srcPFRho        = cms.InputTag('kt6PFJets','rho'),
     ## preselection cuts #########################
-    maxY            = cms.double(5.0), 
-    minPFPt         = cms.double(15),
+    maxY            = cms.double(99.0), 
+    maxEta          = cms.double(2.0), 
+    minPFPt         = cms.double(30),
     minNPFJets      = cms.int32(1),
     minJJMass       = cms.double(-1),
     isMCarlo        = cms.untracked.bool(False),
@@ -110,7 +111,7 @@ process.p = cms.Path(
 # Change number of events here:
 process.maxEvents.input = 500
 
-process.MessageLogger.cerr.FwkReport.reportEvery = 500
+process.MessageLogger.cerr.FwkReport.reportEvery = 1
 
 # Output file
 process.TFileService = cms.Service("TFileService", fileName = cms.string('OpenDataTree_data.root'))
