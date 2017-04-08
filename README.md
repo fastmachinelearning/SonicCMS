@@ -164,7 +164,7 @@ TBrowser t;
 
 ## Preparing output for Machine Learning pipeline
 
-When CMSSW runs over the first 500 events of the dataset, it produces three files in `output` named `params0.npy` through `params3.npy`. To make one file, increase the number of rows per file (currently 10000) in the `c2numpy_init` call, recompile, and rerun.
+When CMSSW runs over the first 500 events of the dataset, it produces three files in `output` named `params0.npy` through `params2.npy`. To make one file, increase the number of rows per file (currently 10000) in the `c2numpy_init` call, recompile, and rerun.
 
 These files should match the ones in this repository.
 
