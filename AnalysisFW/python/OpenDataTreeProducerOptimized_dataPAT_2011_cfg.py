@@ -54,6 +54,8 @@ process.load("JetMETCorrections.Configuration.JetCorrectionServicesAllAlgos_cff"
 
 ################### EDAnalyzer ##############################
 process.ak5ak7 = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
+    ## numpy output
+    maxRows = cms.untracked.int32(1000000),                            
     ## jet collections ###########################
     pfak7jets       = cms.InputTag('ak7PFJets'),
     pfak5jets       = cms.InputTag('ak5PFJets'),
@@ -68,7 +70,7 @@ process.ak5ak7 = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
     ## preselection cuts #########################
     maxY            = cms.double(99.0), 
     maxEta          = cms.double(2.0), 
-    minPFPt         = cms.double(30),
+    minPFPt         = cms.double(100),
     minNPFJets      = cms.int32(1),
     minJJMass       = cms.double(-1),
     isMCarlo        = cms.untracked.bool(False),
@@ -109,9 +111,9 @@ process.p = cms.Path(
 # 50000 events per 1 hour (both for DATA and MC)
 
 # Change number of events here:
-process.maxEvents.input = 500
+process.maxEvents.input = 50000
 
-process.MessageLogger.cerr.FwkReport.reportEvery = 1
+process.MessageLogger.cerr.FwkReport.reportEvery = 500
 
 # Output file
 process.TFileService = cms.Service("TFileService", fileName = cms.string('OpenDataTree_data.root'))

@@ -43,7 +43,7 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     bool            mIsMCarlo;
     bool            mUseGenInfo;
     bool            mPrintTriggerMenu;
-    int             mMinNPFJets;
+    int             mMinNPFJets, mMaxRows;
     double          mMinPFPt, mMinGenPt, mMaxY, mMaxEta, mMinJJMass;
     int             mGoodVtxNdof;
     double          mGoodVtxZ; 

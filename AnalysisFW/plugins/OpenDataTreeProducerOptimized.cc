@@ -60,6 +60,7 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
   mMaxY              = cfg.getParameter<double>                    ("maxY");
   mMaxEta            = cfg.getParameter<double>                    ("maxEta");
   mMinNPFJets        = cfg.getParameter<int>                       ("minNPFJets");
+  mMaxRows           = cfg.getUntrackedParameter<int>              ("maxRows",10000);
   mPFak5JetsName     = cfg.getParameter<edm::InputTag>             ("pfak5jets");
   mPFak7JetsName     = cfg.getParameter<edm::InputTag>             ("pfak7jets");
   mOfflineVertices   = cfg.getParameter<edm::InputTag>             ("offlineVertices");
@@ -158,7 +159,7 @@ void OpenDataTreeProducerOptimized::beginJob() {
 
     
     //c2numpy
-   c2numpy_init(&writer, "output/params", 10000);
+   c2numpy_init(&writer, "output/params", mMaxRows);
    c2numpy_addcolumn(&writer, "run", C2NUMPY_INTC);
    c2numpy_addcolumn(&writer, "lumi", C2NUMPY_INTC);
    c2numpy_addcolumn(&writer, "event", C2NUMPY_INTC);
