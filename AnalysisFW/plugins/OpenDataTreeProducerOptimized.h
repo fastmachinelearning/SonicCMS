@@ -13,6 +13,7 @@
 #include "DataFormats/PatCandidates/interface/JetCorrFactors.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include "fastjet/contrib/Njettiness.hh"
 
 using namespace edm;
 using namespace reco;
@@ -30,9 +31,54 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     virtual void endRun(edm::Run const &, edm::EventSetup const& iSetup);
     virtual void endJob();
     virtual ~OpenDataTreeProducerOptimized();
+    
+    enum MeasureDefinition_t {
+        NormalizedMeasure=0,       // (beta,R0) 
+        UnnormalizedMeasure,       // (beta) 
+        GeometricMeasure,          // (beta) 
+        NormalizedCutoffMeasure,   // (beta,R0,Rcutoff) 
+        UnnormalizedCutoffMeasure, // (beta,Rcutoff) 
+        GeometricCutoffMeasure,    // (beta,Rcutoff) 
+	N_MEASURE_DEFINITIONS
+    };
+    enum AxesDefinition_t {
+      KT_Axes=0,
+      CA_Axes,
+      AntiKT_Axes,   // (axAxesR0)
+      WTA_KT_Axes,
+      WTA_CA_Axes,
+      Manual_Axes,
+      OnePass_KT_Axes,
+      OnePass_CA_Axes,
+      OnePass_AntiKT_Axes,   // (axAxesR0)
+      OnePass_WTA_KT_Axes,
+      OnePass_WTA_CA_Axes,
+      OnePass_Manual_Axes,
+      MultiPass_Axes,
+      N_AXES_DEFINITIONS
+    };
+
+    //float getTau(unsigned num, const edm::Ptr<reco::Jet> & object) const;
+    float getTau(unsigned num, const reco::PFJet * object) const;
 
 
-  private:  
+  private:
+    
+    // Measure definition : 
+    unsigned                               measureDefinition_;
+    double                                 beta_ ;
+    double                                 R0_;
+    double                                 Rcutoff_;
+
+    // Axes definition : 
+    unsigned                               axesDefinition_;
+    int                                    nPass_;
+    double                                 akAxesR0_;
+    
+    // Softdrop :    
+    double                                 zCut_;
+    
+    std::auto_ptr<fastjet::contrib::Njettiness>   routine_; 
 
     // Function to help sort the jet wrt. pT
     static bool cmp_patjets(const pat::Jet &pj1, const pat::Jet &pj2) {
@@ -53,6 +99,7 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     
     // ---- PF Jet input tags ----- //
     edm::InputTag   mGenJetsName;
+    edm::InputTag   mGenParticles;
     edm::InputTag   mSrcPFRho;
     edm::InputTag   mPFMET; 
     edm::InputTag   mOfflineVertices;
@@ -78,15 +125,15 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     static const UInt_t kMaxNtrg = 32;
 
     // PF jets
-    UInt_t njet;
-    Float_t jet_pt[kMaxNjet];
-    Float_t jet_eta[kMaxNjet];
-    Float_t jet_phi[kMaxNjet];
-    Float_t jet_E[kMaxNjet];
-    Bool_t jet_tightID[kMaxNjet];
-    Float_t jet_area[kMaxNjet];
-    Float_t jet_jes[kMaxNjet];
-    Int_t jet_igen[kMaxNjet];
+    /* UInt_t njet; */
+    /* Float_t jet_pt[kMaxNjet]; */
+    /* Float_t jet_eta[kMaxNjet]; */
+    /* Float_t jet_phi[kMaxNjet]; */
+    /* Float_t jet_E[kMaxNjet]; */
+    /* Bool_t jet_tightID[kMaxNjet]; */
+    /* Float_t jet_area[kMaxNjet]; */
+    /* Float_t jet_jes[kMaxNjet]; */
+    /* Int_t jet_igen[kMaxNjet]; */
 
     // PF jets
     UInt_t njet_ak7;
@@ -94,27 +141,31 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     Float_t jet_eta_ak7[kMaxNjet];
     Float_t jet_phi_ak7[kMaxNjet];
     Float_t jet_E_ak7[kMaxNjet];
+    Float_t jet_msd_ak7[kMaxNjet];
     Float_t jet_area_ak7[kMaxNjet];
-    Float_t jet_jes_ak7[kMaxNjet];
-    Int_t ak7_to_ak5[kMaxNjet];
+    Float_t jet_jes_ak7[kMaxNjet];    
+    Float_t jet_tau21_ak7[kMaxNjet];
+    Int_t jet_igen_ak7[kMaxNjet];
+    Int_t jet_isW_ak7[kMaxNjet];
+    //Int_t ak7_to_ak5[kMaxNjet];
 
     // Jet composition
-    Float_t chf[kMaxNjet];
-   	Float_t nhf[kMaxNjet];
-   	Float_t phf[kMaxNjet];
-   	Float_t elf[kMaxNjet];
-   	Float_t muf[kMaxNjet];
-   	Float_t hf_hf[kMaxNjet];
-   	Float_t hf_phf[kMaxNjet];
-   	Int_t hf_hm[kMaxNjet];
-   	Int_t hf_phm[kMaxNjet];
-   	Int_t chm[kMaxNjet];
-   	Int_t nhm[kMaxNjet];
-   	Int_t phm[kMaxNjet];
-   	Int_t elm[kMaxNjet];
-   	Int_t mum[kMaxNjet];   
-    Float_t beta[kMaxNjet];   
-    Float_t bstar[kMaxNjet];
+    /* Float_t chf[kMaxNjet]; */
+    /* 	Float_t nhf[kMaxNjet]; */
+    /* 	Float_t phf[kMaxNjet]; */
+    /* 	Float_t elf[kMaxNjet]; */
+    /* 	Float_t muf[kMaxNjet]; */
+    /* 	Float_t hf_hf[kMaxNjet]; */
+    /* 	Float_t hf_phf[kMaxNjet]; */
+    /* 	Int_t hf_hm[kMaxNjet]; */
+    /* 	Int_t hf_phm[kMaxNjet]; */
+    /* 	Int_t chm[kMaxNjet]; */
+    /* 	Int_t nhm[kMaxNjet]; */
+    /* 	Int_t phm[kMaxNjet]; */
+    /* 	Int_t elm[kMaxNjet]; */
+    /* 	Int_t mum[kMaxNjet];    */
+    /* Float_t beta[kMaxNjet];    */
+    /* Float_t bstar[kMaxNjet]; */
 
     // Generated jets
     UInt_t ngen;
@@ -122,6 +173,15 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     Float_t gen_eta[kMaxNjet];
     Float_t gen_phi[kMaxNjet];
     Float_t gen_E[kMaxNjet];
+    
+    // Generated particles
+    UInt_t ngenparticles;
+    Float_t genparticle_pt[kMaxNjet];
+    Float_t genparticle_eta[kMaxNjet];
+    Float_t genparticle_phi[kMaxNjet];
+    Float_t genparticle_E[kMaxNjet];
+    Int_t genparticle_id[kMaxNjet];
+    Int_t genparticle_status[kMaxNjet];
 
     // Event identification
     UInt_t run;
@@ -153,6 +213,7 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     
     // c2numpy
     c2numpy_writer writer;
+    
 };
 
 #endif

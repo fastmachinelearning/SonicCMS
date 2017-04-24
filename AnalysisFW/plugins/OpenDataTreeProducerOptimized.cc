@@ -54,6 +54,8 @@
 
 #include "RecoJets/JetAssociationProducers/src/JetTracksAssociatorAtVertex.h"
 
+#include "fastjet/contrib/SoftDrop.hh"
+
 OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet const &cfg) {
   mMinPFPt           = cfg.getParameter<double>                    ("minPFPt");
   mMinJJMass         = cfg.getParameter<double>                    ("minJJMass");
@@ -69,6 +71,7 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
   mSrcPFRho          = cfg.getParameter<edm::InputTag>             ("srcPFRho");
   mPFMET             = cfg.getParameter<edm::InputTag>             ("pfmet");
   mGenJetsName       = cfg.getUntrackedParameter<edm::InputTag>    ("genjets",edm::InputTag(""));
+  mGenParticles      = cfg.getUntrackedParameter<edm::InputTag>    ("genparticles",edm::InputTag(""));
   mPrintTriggerMenu  = cfg.getUntrackedParameter<bool>             ("printTriggerMenu",false);
   mIsMCarlo          = cfg.getUntrackedParameter<bool>             ("isMCarlo",false);
   mUseGenInfo        = cfg.getUntrackedParameter<bool>             ("useGenInfo",false);
@@ -79,6 +82,68 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
   mJetCorr_ak5       = cfg.getParameter<std::string>               ("jetCorr_ak5");
   mJetCorr_ak7       = cfg.getParameter<std::string>               ("jetCorr_ak7");
   pfCandidates_ = cfg.getParameter<edm::InputTag>                  ("pfCandidates");
+
+
+  
+  measureDefinition_ = 0; //CMS default is normalized measure
+  beta_ = 1.0; //CMS default is 1
+  R0_ = 0.7; // CMS default is jet cone size
+  Rcutoff_ = -999.0; // not used by default
+  // variables for axes definition
+  axesDefinition_ = 6; // CMS default is 1-pass KT axes
+  nPass_ = -999; // not used by default
+  akAxesR0_ = -999.0; // not used by default
+  // for softdrop
+  zCut_ = 0.1;
+    
+  // Get the measure definition
+  fastjet::contrib::NormalizedMeasure          normalizedMeasure        (beta_,R0_);
+  fastjet::contrib::UnnormalizedMeasure        unnormalizedMeasure      (beta_);
+  fastjet::contrib::GeometricMeasure           geometricMeasure         (beta_);
+  fastjet::contrib::NormalizedCutoffMeasure    normalizedCutoffMeasure  (beta_,R0_,Rcutoff_);
+  fastjet::contrib::UnnormalizedCutoffMeasure  unnormalizedCutoffMeasure(beta_,Rcutoff_);
+  fastjet::contrib::GeometricCutoffMeasure     geometricCutoffMeasure   (beta_,Rcutoff_);
+
+  fastjet::contrib::MeasureDefinition const * measureDef = 0;
+  switch ( measureDefinition_ ) {
+  case UnnormalizedMeasure : measureDef = &unnormalizedMeasure; break;
+  case GeometricMeasure    : measureDef = &geometricMeasure; break;
+  case NormalizedCutoffMeasure : measureDef = &normalizedCutoffMeasure; break;
+  case UnnormalizedCutoffMeasure : measureDef = &unnormalizedCutoffMeasure; break;
+  case GeometricCutoffMeasure : measureDef = &geometricCutoffMeasure; break;
+  case NormalizedMeasure : default : measureDef = &normalizedMeasure; break;
+  } 
+
+  // Get the axes definition
+  fastjet::contrib::KT_Axes             kt_axes; 
+  fastjet::contrib::CA_Axes             ca_axes; 
+  fastjet::contrib::AntiKT_Axes         antikt_axes   (akAxesR0_);
+  fastjet::contrib::WTA_KT_Axes         wta_kt_axes; 
+  fastjet::contrib::WTA_CA_Axes         wta_ca_axes; 
+  fastjet::contrib::OnePass_KT_Axes     onepass_kt_axes;
+  fastjet::contrib::OnePass_CA_Axes     onepass_ca_axes;
+  fastjet::contrib::OnePass_AntiKT_Axes onepass_antikt_axes   (akAxesR0_);
+  fastjet::contrib::OnePass_WTA_KT_Axes onepass_wta_kt_axes;
+  fastjet::contrib::OnePass_WTA_CA_Axes onepass_wta_ca_axes;
+  fastjet::contrib::MultiPass_Axes      multipass_axes (nPass_);
+
+  fastjet::contrib::AxesDefinition const * axesDef = 0;
+  switch ( axesDefinition_ ) {
+  case  KT_Axes : default : axesDef = &kt_axes; break;
+  case  CA_Axes : axesDef = &ca_axes; break; 
+  case  AntiKT_Axes : axesDef = &antikt_axes; break;
+  case  WTA_KT_Axes : axesDef = &wta_kt_axes; break; 
+  case  WTA_CA_Axes : axesDef = &wta_ca_axes; break; 
+  case  OnePass_KT_Axes : axesDef = &onepass_kt_axes; break;
+  case  OnePass_CA_Axes : axesDef = &onepass_ca_axes; break; 
+  case  OnePass_AntiKT_Axes : axesDef = &onepass_antikt_axes; break;
+  case  OnePass_WTA_KT_Axes : axesDef = &onepass_wta_kt_axes; break; 
+  case  OnePass_WTA_CA_Axes : axesDef = &onepass_wta_ca_axes; break; 
+  case  MultiPass_Axes : axesDef = &multipass_axes; break;
+  };
+
+  routine_ = std::auto_ptr<fastjet::contrib::Njettiness> ( new fastjet::contrib::Njettiness( *axesDef, *measureDef ) );
+  
 }
 
 void OpenDataTreeProducerOptimized::beginJob() {
@@ -93,15 +158,15 @@ void OpenDataTreeProducerOptimized::beginJob() {
     mTree = fs->make< TTree >("OpenDataTree", "OpenDataTree");
 
     // Variables of the flat tuple
-    mTree->Branch("njet", &njet, "njet/i");
-    mTree->Branch("jet_pt", jet_pt, "jet_pt[njet]/F");
-    mTree->Branch("jet_eta", jet_eta, "jet_eta[njet]/F");
-    mTree->Branch("jet_phi", jet_phi, "jet_phi[njet]/F");
-    mTree->Branch("jet_E", jet_E, "jet_E[njet]/F");   
-    mTree->Branch("jet_tightID", jet_tightID, "jet_tightID[njet]/O");
-    mTree->Branch("jet_area", jet_area, "jet_area[njet]/F");
-    mTree->Branch("jet_jes", jet_jes, "jet_jes[njet]/F");
-    mTree->Branch("jet_igen", jet_igen, "jet_igen[njet]/I");
+    // mTree->Branch("njet", &njet, "njet/i");
+    // mTree->Branch("jet_pt", jet_pt, "jet_pt[njet]/F");
+    // mTree->Branch("jet_eta", jet_eta, "jet_eta[njet]/F");
+    // mTree->Branch("jet_phi", jet_phi, "jet_phi[njet]/F");
+    // mTree->Branch("jet_E", jet_E, "jet_E[njet]/F");   
+    // mTree->Branch("jet_tightID", jet_tightID, "jet_tightID[njet]/O");
+    // mTree->Branch("jet_area", jet_area, "jet_area[njet]/F");
+    // mTree->Branch("jet_jes", jet_jes, "jet_jes[njet]/F");
+    // mTree->Branch("jet_igen", jet_igen, "jet_igen[njet]/I");
 
     // AK7 variables
     mTree->Branch("njet_ak7", &njet_ak7, "njet_ak7/i");
@@ -109,15 +174,27 @@ void OpenDataTreeProducerOptimized::beginJob() {
     mTree->Branch("jet_eta_ak7", jet_eta_ak7, "jet_eta_ak7[njet_ak7]/F");
     mTree->Branch("jet_phi_ak7", jet_phi_ak7, "jet_phi_ak7[njet_ak7]/F");
     mTree->Branch("jet_E_ak7", jet_E_ak7, "jet_E_ak7[njet_ak7]/F");
+    mTree->Branch("jet_msd_ak7", jet_msd_ak7, "jet_msd_ak7[njet_ak7]/F");
     mTree->Branch("jet_area_ak7", jet_area_ak7, "jet_area_ak7[njet_ak7]/F");
     mTree->Branch("jet_jes_ak7", jet_jes_ak7, "jet_jes_ak7[njet_ak7]/F");
-    mTree->Branch("ak7_to_ak5", ak7_to_ak5, "ak7_to_ak5[njet_ak7]/I");
+    mTree->Branch("jet_tau21_ak7", jet_tau21_ak7, "jet_tau21_ak7[njet_ak7]/F");
+    mTree->Branch("jet_igen_ak7", jet_igen_ak7, "jet_igen_ak7[njet_ak7]/I");
+    mTree->Branch("jet_isW_ak7", jet_isW_ak7, "jet_isW_ak7[njet_ak7]/I");
+    //mTree->Branch("ak7_to_ak5", ak7_to_ak5, "ak7_to_ak5[njet_ak7]/I");
 
     mTree->Branch("ngen", &ngen, "ngen/i");
     mTree->Branch("gen_pt", gen_pt, "gen_pt[ngen]/F");
     mTree->Branch("gen_eta", gen_eta, "gen_eta[ngen]/F");
     mTree->Branch("gen_phi", gen_phi, "gen_phi[ngen]/F");
     mTree->Branch("gen_E", gen_E, "gen_E[ngen]/F");
+    
+    mTree->Branch("ngenparticles", &ngenparticles, "ngenparticles/i");
+    mTree->Branch("genparticle_pt", genparticle_pt, "genparticle_pt[ngen]/F");
+    mTree->Branch("genparticle_eta", genparticle_eta, "genparticle_eta[ngen]/F");
+    mTree->Branch("genparticle_phi", genparticle_phi, "genparticle_phi[ngen]/F");
+    mTree->Branch("genparticle_E", genparticle_E, "genparticle_E[ngen]/F");
+    mTree->Branch("genparticle_id", genparticle_id, "genparticle_id[ngen]/I");
+    mTree->Branch("genparticle_status", genparticle_status, "genparticle_status[ngen]/I");
 
     mTree->Branch("run", &run, "run/i");
     mTree->Branch("lumi", &lumi, "lumi/i");
@@ -132,22 +209,22 @@ void OpenDataTreeProducerOptimized::beginJob() {
     mTree->Branch("pthat", &pthat, "pthat/F");
     mTree->Branch("mcweight", &mcweight, "mcweight/F");
 
-    mTree->Branch("chf", chf, "chf[njet]/F");   
-    mTree->Branch("nhf", nhf, "nhf[njet]/F");   
-    mTree->Branch("phf", phf, "phf[njet]/F");   
-    mTree->Branch("elf", elf, "elf[njet]/F");   
-    mTree->Branch("muf", muf, "muf[njet]/F");   
-    mTree->Branch("hf_hf", hf_hf, "hf_hf[njet]/F");   
-    mTree->Branch("hf_phf", hf_phf, "hf_phf[njet]/F");   
-    mTree->Branch("hf_hm", hf_hm, "hf_hm[njet]/i");    
-    mTree->Branch("hf_phm", hf_phm, "hf_phm[njet]/i");
-    mTree->Branch("chm", chm, "chm[njet]/i");   
-    mTree->Branch("nhm", nhm, "nhm[njet]/i");   
-    mTree->Branch("phm", phm, "phm[njet]/i");   
-    mTree->Branch("elm", elm, "elm[njet]/i");   
-    mTree->Branch("mum", mum, "mum[njet]/i");
-    mTree->Branch("beta", beta, "beta[njet]/F");   
-    mTree->Branch("bstar", bstar, "bstar[njet]/F");
+    // mTree->Branch("chf", chf, "chf[njet]/F");   
+    // mTree->Branch("nhf", nhf, "nhf[njet]/F");   
+    // mTree->Branch("phf", phf, "phf[njet]/F");   
+    // mTree->Branch("elf", elf, "elf[njet]/F");   
+    // mTree->Branch("muf", muf, "muf[njet]/F");   
+    // mTree->Branch("hf_hf", hf_hf, "hf_hf[njet]/F");   
+    // mTree->Branch("hf_phf", hf_phf, "hf_phf[njet]/F");   
+    // mTree->Branch("hf_hm", hf_hm, "hf_hm[njet]/i");    
+    // mTree->Branch("hf_phm", hf_phm, "hf_phm[njet]/i");
+    // mTree->Branch("chm", chm, "chm[njet]/i");   
+    // mTree->Branch("nhm", nhm, "nhm[njet]/i");   
+    // mTree->Branch("phm", phm, "phm[njet]/i");   
+    // mTree->Branch("elm", elm, "elm[njet]/i");   
+    // mTree->Branch("mum", mum, "mum[njet]/i");
+    // mTree->Branch("beta", beta, "beta[njet]/F");   
+    // mTree->Branch("bstar", bstar, "bstar[njet]/F");
 
     //PF Candidates
     mTree->Branch("ak7pfcand_pt", "std::vector<float>", &pts);
@@ -168,8 +245,11 @@ void OpenDataTreeProducerOptimized::beginJob() {
    c2numpy_addcolumn(&writer, "jet_eta_ak7", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "jet_phi_ak7", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "jet_E_ak7", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "jet_msd_ak7", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "jet_area_ak7", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "jet_jes_ak7", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "jet_tau21_ak7", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "jet_isW_ak7", C2NUMPY_INTC);
    c2numpy_addcolumn(&writer, "ak7pfcand_pt", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "ak7pfcand_eta", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "ak7pfcand_phi", C2NUMPY_FLOAT64);
@@ -291,8 +371,9 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
         }
     }
 
-    // Generator-level jets
+    // Generator-level jets and particles
     ngen = 0;
+    ngenparticles = 0;
     if (mIsMCarlo) {
 
         Handle< GenJetCollection > genjets;
@@ -315,6 +396,32 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 
         // Number of generated jets in this event
         ngen = gen_index;
+	
+        Handle< GenParticleCollection > genparticles;
+        event_obj.getByLabel(mGenParticles, genparticles);
+    
+        // Index of the simulated jet
+        gen_index = 0; 
+
+        for (GenParticleCollection::const_iterator i_gen = genparticles->begin(); i_gen != genparticles->end(); i_gen++)  {
+
+            // pT, rapidity selection
+            if (i_gen->pt() > mMinGenPt && fabs(i_gen->y()) < mMaxY && fabs(i_gen->eta()) < mMaxEta) {
+	      //pdg id selection; for now save only W
+	      //if (abs(i_gen->pdgId()) == 24) {
+	      genparticle_pt[gen_index] = i_gen->pt();
+	      genparticle_eta[gen_index] = i_gen->eta();
+	      genparticle_phi[gen_index] = i_gen->phi();
+	      genparticle_E[gen_index] = i_gen->energy();
+	      genparticle_id[gen_index] = i_gen->pdgId();
+	      genparticle_status[gen_index] = i_gen->status();
+	      gen_index++;
+		//}
+            }
+        }
+
+        // Number of generated particles in this event
+        ngenparticles = gen_index;
     }
 
     // Vertex Info
@@ -324,32 +431,32 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 
     // PF AK5 Jets
 
-    edm::Handle<reco::PFJetCollection> ak5_handle;
-    event_obj.getByLabel(mPFak5JetsName, ak5_handle);
-    const JetCorrector* corrector_ak5 = JetCorrector::getJetCorrector(mJetCorr_ak5, iSetup);
+    // edm::Handle<reco::PFJetCollection> ak5_handle;
+    // event_obj.getByLabel(mPFak5JetsName, ak5_handle);
+    // const JetCorrector* corrector_ak5 = JetCorrector::getJetCorrector(mJetCorr_ak5, iSetup);
 
-    // Jet Track Association (JTA)
-    edm::Handle <reco::TrackCollection> tracks_h;
-    event_obj.getByLabel ("generalTracks", tracks_h);
-    std::auto_ptr<reco::JetTracksAssociation::Container> tracksInJets (new reco::JetTracksAssociation::Container (reco::JetRefBaseProd(ak5_handle)));
-    // format inputs
-    std::vector <edm::RefToBase<reco::Jet> > allJets;
-    allJets.reserve (ak5_handle->size());
-    for (unsigned i = 0; i < ak5_handle->size(); ++i)
-    {
-      edm::RefToBase<reco::Jet> jetRef(edm::Ref<reco::PFJetCollection>(ak5_handle, i));
-      allJets.push_back(jetRef);
-    }
-    std::vector <reco::TrackRef> allTracks;
-    allTracks.reserve(tracks_h->size());
-    for (unsigned i = 0; i < tracks_h->size(); ++i) 
-      allTracks.push_back (reco::TrackRef(tracks_h, i));
-    // run JTA algorithm
-    JetTracksAssociationDRVertex mAssociator(0.5); // passed argument: 0.5 cone size
-    mAssociator.produce (&*tracksInJets, allJets, allTracks);
+    // // Jet Track Association (JTA)
+    // edm::Handle <reco::TrackCollection> tracks_h;
+    // event_obj.getByLabel ("generalTracks", tracks_h);
+    // std::auto_ptr<reco::JetTracksAssociation::Container> tracksInJets (new reco::JetTracksAssociation::Container (reco::JetRefBaseProd(ak5_handle)));
+    // // format inputs
+    // std::vector <edm::RefToBase<reco::Jet> > allJets;
+    // allJets.reserve (ak5_handle->size());
+    // for (unsigned i = 0; i < ak5_handle->size(); ++i)
+    // {
+    //   edm::RefToBase<reco::Jet> jetRef(edm::Ref<reco::PFJetCollection>(ak5_handle, i));
+    //   allJets.push_back(jetRef);
+    // }
+    // std::vector <reco::TrackRef> allTracks;
+    // allTracks.reserve(tracks_h->size());
+    // for (unsigned i = 0; i < tracks_h->size(); ++i) 
+    //   allTracks.push_back (reco::TrackRef(tracks_h, i));
+    // // run JTA algorithm
+    // JetTracksAssociationDRVertex mAssociator(0.5); // passed argument: 0.5 cone size
+    // mAssociator.produce (&*tracksInJets, allJets, allTracks);
   
-    // Index of the selected jet 
-    int ak5_index = 0;
+    // // Index of the selected jet 
+    // int ak5_index = 0;
 
     // Jet energy correction factor
     double jec = -1.0;
@@ -358,157 +465,157 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
     // therefore store corrected jets in a new collection (map): key (double) is pT * -1 (key), 
     // value (std::pair<PFJet*, double>) is pair of original jet iterator and corresponding JEC factor
     std::map<double, std::pair<reco::PFJetCollection::const_iterator, double> > sortedJets;
-    for (auto i_ak5jet_orig = ak5_handle->begin(); i_ak5jet_orig != ak5_handle->end(); ++i_ak5jet_orig) {
-        // take jet energy correction and get corrected pT
-        jec = corrector_ak5->correction(*i_ak5jet_orig, event_obj, iSetup);
-        // Multiply pT by -1 in order to have largest pT jet first (sorted in ascending order by default)
-        sortedJets.insert(std::pair<double, std::pair<reco::PFJetCollection::const_iterator, double> >(-1 * i_ak5jet_orig->pt() * jec, std::pair<reco::PFJetCollection::const_iterator, double>(i_ak5jet_orig, jec)));
-    }
+    // for (auto i_ak5jet_orig = ak5_handle->begin(); i_ak5jet_orig != ak5_handle->end(); ++i_ak5jet_orig) {
+    //     // take jet energy correction and get corrected pT
+    //     jec = corrector_ak5->correction(*i_ak5jet_orig, event_obj, iSetup);
+    //     // Multiply pT by -1 in order to have largest pT jet first (sorted in ascending order by default)
+    //     sortedJets.insert(std::pair<double, std::pair<reco::PFJetCollection::const_iterator, double> >(-1 * i_ak5jet_orig->pt() * jec, std::pair<reco::PFJetCollection::const_iterator, double>(i_ak5jet_orig, jec)));
+    // }
 
-    // Iterate over the jets (sorted in pT) of the event
-    for (auto i_ak5jet_orig = sortedJets.begin(); i_ak5jet_orig != sortedJets.end(); ++i_ak5jet_orig) {
+    // // Iterate over the jets (sorted in pT) of the event
+    // for (auto i_ak5jet_orig = sortedJets.begin(); i_ak5jet_orig != sortedJets.end(); ++i_ak5jet_orig) {
 
-        // Apply jet energy correction "on the fly":
-        // copy original (uncorrected) jet;
-        PFJet corjet = *((i_ak5jet_orig->second).first);
-        // take stored JEC factor
-        jec = (i_ak5jet_orig->second).second;
-        // apply JEC
-        corjet.scaleEnergy(jec);
-        // pointer for further use
-        const PFJet* i_ak5jet = &corjet;
+    //     // Apply jet energy correction "on the fly":
+    //     // copy original (uncorrected) jet;
+    //     PFJet corjet = *((i_ak5jet_orig->second).first);
+    //     // take stored JEC factor
+    //     jec = (i_ak5jet_orig->second).second;
+    //     // apply JEC
+    //     corjet.scaleEnergy(jec);
+    //     // pointer for further use
+    //     const PFJet* i_ak5jet = &corjet;
 
-        // Skip the current iteration if jet is not selected
-        if (fabs(i_ak5jet->y()) > mMaxY || 
-            (i_ak5jet->pt()) < mMinPFPt ||
-	    fabs(i_ak5jet->eta()) > mMaxEta ) {
-            continue;
-        }
+    //     // Skip the current iteration if jet is not selected
+    //     if (fabs(i_ak5jet->y()) > mMaxY || 
+    //         (i_ak5jet->pt()) < mMinPFPt ||
+    // 	    fabs(i_ak5jet->eta()) > mMaxEta ) {
+    //         continue;
+    //     }
 
-        // Computing beta and beta*
+    //     // Computing beta and beta*
 
-        // Get tracks
-        reco::TrackRefVector tracks = reco::JetTracksAssociation::getValue(*tracksInJets, *((i_ak5jet_orig->second).first));
+    //     // Get tracks
+    //     reco::TrackRefVector tracks = reco::JetTracksAssociation::getValue(*tracksInJets, *((i_ak5jet_orig->second).first));
 
-        float sumTrkPt(0.0), sumTrkPtBeta(0.0),sumTrkPtBetaStar(0.0);
-        beta[ak5_index] = 0.0;
-        bstar[ak5_index] = 0.0;
+    //     float sumTrkPt(0.0), sumTrkPtBeta(0.0),sumTrkPtBetaStar(0.0);
+    //     beta[ak5_index] = 0.0;
+    //     bstar[ak5_index] = 0.0;
         
-        // Loop over tracks of the jet
-        for(auto i_trk = tracks.begin(); i_trk != tracks.end(); i_trk++) {
+    //     // Loop over tracks of the jet
+    //     for(auto i_trk = tracks.begin(); i_trk != tracks.end(); i_trk++) {
 
-            if (recVtxs->size() == 0) break;
+    //         if (recVtxs->size() == 0) break;
             
-            // Sum pT
-            sumTrkPt += (*i_trk)->pt();
+    //         // Sum pT
+    //         sumTrkPt += (*i_trk)->pt();
             
-            // Loop over vertices
-            for (unsigned ivtx = 0; ivtx < recVtxs->size(); ivtx++) {
-                reco::Vertex vertex = (*recVtxs)[ivtx];
+    //         // Loop over vertices
+    //         for (unsigned ivtx = 0; ivtx < recVtxs->size(); ivtx++) {
+    //             reco::Vertex vertex = (*recVtxs)[ivtx];
 
-                // Loop over tracks associated with the vertex
-                bool flagBreak = false;
-                if (!(vertex.isFake()) && 
-                    vertex.ndof() >= mGoodVtxNdof && 
-                    fabs(vertex.z()) <= mGoodVtxZ) {
+    //             // Loop over tracks associated with the vertex
+    //             bool flagBreak = false;
+    //             if (!(vertex.isFake()) && 
+    //                 vertex.ndof() >= mGoodVtxNdof && 
+    //                 fabs(vertex.z()) <= mGoodVtxZ) {
                     
-                    for(auto i_vtxTrk = vertex.tracks_begin(); i_vtxTrk != vertex.tracks_end(); ++i_vtxTrk) {
+    //                 for(auto i_vtxTrk = vertex.tracks_begin(); i_vtxTrk != vertex.tracks_end(); ++i_vtxTrk) {
                         
-                        // Match the jet track to the track from the vertex
-                        reco::TrackRef trkRef(i_vtxTrk->castTo<reco::TrackRef>());
+    //                     // Match the jet track to the track from the vertex
+    //                     reco::TrackRef trkRef(i_vtxTrk->castTo<reco::TrackRef>());
                         
-                        // Check for matching vertices
-                        if (trkRef == (*i_trk)) {
-                            if (ivtx == 0) {
-                                sumTrkPtBeta += (*i_trk)->pt();
-                            }
-                            else {
-                                sumTrkPtBetaStar += (*i_trk)->pt();
-                            }
-                            flagBreak = true;
-                            break;
-                        } 
-                    } 
-                    if(flagBreak)
-                      break;
-                } 
-            } 
-        }
-        if (sumTrkPt > 0) {
-            beta[ak5_index]   = sumTrkPtBeta/sumTrkPt;
-            bstar[ak5_index]  = sumTrkPtBetaStar/sumTrkPt;
-        } 
+    //                     // Check for matching vertices
+    //                     if (trkRef == (*i_trk)) {
+    //                         if (ivtx == 0) {
+    //                             sumTrkPtBeta += (*i_trk)->pt();
+    //                         }
+    //                         else {
+    //                             sumTrkPtBetaStar += (*i_trk)->pt();
+    //                         }
+    //                         flagBreak = true;
+    //                         break;
+    //                     } 
+    //                 } 
+    //                 if(flagBreak)
+    //                   break;
+    //             } 
+    //         } 
+    //     }
+    //     if (sumTrkPt > 0) {
+    //         beta[ak5_index]   = sumTrkPtBeta/sumTrkPt;
+    //         bstar[ak5_index]  = sumTrkPtBetaStar/sumTrkPt;
+    //     } 
 
 
-        // Jet composition
-        // (all energy fractions have to be multiplied by the JEC factor)
-        chf[ak5_index]     = i_ak5jet->chargedHadronEnergyFraction() * jec;
-        nhf[ak5_index]     = (i_ak5jet->neutralHadronEnergyFraction() + i_ak5jet->HFHadronEnergyFraction()) * jec;
-        phf[ak5_index]     = i_ak5jet->photonEnergyFraction() * jec;
-        elf[ak5_index]     = i_ak5jet->electronEnergyFraction() * jec;
-        muf[ak5_index]     = i_ak5jet->muonEnergyFraction() * jec;
-        hf_hf[ak5_index]   = i_ak5jet->HFHadronEnergyFraction() * jec;
-        hf_phf[ak5_index]  = i_ak5jet->HFEMEnergyFraction() * jec;
-        hf_hm[ak5_index]   = i_ak5jet->HFHadronMultiplicity();
-        hf_phm[ak5_index]  = i_ak5jet->HFEMMultiplicity();
-        chm[ak5_index]     = i_ak5jet->chargedHadronMultiplicity();
-        nhm[ak5_index]     = i_ak5jet->neutralHadronMultiplicity();
-        phm[ak5_index]     = i_ak5jet->photonMultiplicity();
-        elm[ak5_index]     = i_ak5jet->electronMultiplicity();
-        mum[ak5_index]     = i_ak5jet->muonMultiplicity();
+    //     // Jet composition
+    //     // (all energy fractions have to be multiplied by the JEC factor)
+    //     chf[ak5_index]     = i_ak5jet->chargedHadronEnergyFraction() * jec;
+    //     nhf[ak5_index]     = (i_ak5jet->neutralHadronEnergyFraction() + i_ak5jet->HFHadronEnergyFraction()) * jec;
+    //     phf[ak5_index]     = i_ak5jet->photonEnergyFraction() * jec;
+    //     elf[ak5_index]     = i_ak5jet->electronEnergyFraction() * jec;
+    //     muf[ak5_index]     = i_ak5jet->muonEnergyFraction() * jec;
+    //     hf_hf[ak5_index]   = i_ak5jet->HFHadronEnergyFraction() * jec;
+    //     hf_phf[ak5_index]  = i_ak5jet->HFEMEnergyFraction() * jec;
+    //     hf_hm[ak5_index]   = i_ak5jet->HFHadronMultiplicity();
+    //     hf_phm[ak5_index]  = i_ak5jet->HFEMMultiplicity();
+    //     chm[ak5_index]     = i_ak5jet->chargedHadronMultiplicity();
+    //     nhm[ak5_index]     = i_ak5jet->neutralHadronMultiplicity();
+    //     phm[ak5_index]     = i_ak5jet->photonMultiplicity();
+    //     elm[ak5_index]     = i_ak5jet->electronMultiplicity();
+    //     mum[ak5_index]     = i_ak5jet->muonMultiplicity();
         
-        int npr      = i_ak5jet->chargedMultiplicity() + i_ak5jet->neutralMultiplicity();
+    //     int npr      = i_ak5jet->chargedMultiplicity() + i_ak5jet->neutralMultiplicity();
 
-        bool isHighEta = fabs(i_ak5jet->eta()) > 2.4;
-        bool isLowEta = fabs(i_ak5jet->eta()) <= 2.4 && 
-                        nhf[ak5_index] < 0.9 &&
-                        phf[ak5_index] < 0.9 && 
-                        elf[ak5_index] < 0.99 && 
-                        chf[ak5_index] > 0 && 
-                        chm[ak5_index] > 0;
-        bool tightID =  npr > 1 && 
-                        phf[ak5_index] < 0.99 && 
-                        nhf[ak5_index] < 0.99 &&
-                        (isLowEta || isHighEta);
+    //     bool isHighEta = fabs(i_ak5jet->eta()) > 2.4;
+    //     bool isLowEta = fabs(i_ak5jet->eta()) <= 2.4 && 
+    //                     nhf[ak5_index] < 0.9 &&
+    //                     phf[ak5_index] < 0.9 && 
+    //                     elf[ak5_index] < 0.99 && 
+    //                     chf[ak5_index] > 0 && 
+    //                     chm[ak5_index] > 0;
+    //     bool tightID =  npr > 1 && 
+    //                     phf[ak5_index] < 0.99 && 
+    //                     nhf[ak5_index] < 0.99 &&
+    //                     (isLowEta || isHighEta);
 
 
-        // Variables of the tuple
-        jet_tightID[ak5_index] = tightID;
-        jet_area[ak5_index] = i_ak5jet->jetArea();
-        jet_jes[ak5_index] = jec; // JEC factor
+    //     // Variables of the tuple
+    //     jet_tightID[ak5_index] = tightID;
+    //     jet_area[ak5_index] = i_ak5jet->jetArea();
+    //     jet_jes[ak5_index] = jec; // JEC factor
 
-        // p4 is already corrected!
-        auto p4 = i_ak5jet->p4();
-        jet_pt[ak5_index]   = p4.Pt();
-        jet_eta[ak5_index]  = p4.Eta();
-        jet_phi[ak5_index]  = p4.Phi();
-        jet_E[ak5_index]    = p4.E(); 
+    //     // p4 is already corrected!
+    //     auto p4 = i_ak5jet->p4();
+    //     jet_pt[ak5_index]   = p4.Pt();
+    //     jet_eta[ak5_index]  = p4.Eta();
+    //     jet_phi[ak5_index]  = p4.Phi();
+    //     jet_E[ak5_index]    = p4.E(); 
         
-        // Matching a GenJet to this PFjet
-        jet_igen[ak5_index] = 0;
-        if (mIsMCarlo && ngen > 0) {
+    //     // Matching a GenJet to this PFjet
+    //     jet_igen[ak5_index] = 0;
+    //     if (mIsMCarlo && ngen > 0) {
 
-            // Index of the generated jet matching this PFjet
-            jet_igen[ak5_index] = -1; // is -1 if no matching jet
+    //         // Index of the generated jet matching this PFjet
+    //         jet_igen[ak5_index] = -1; // is -1 if no matching jet
 
-            // Search generated jet with minimum distance to this PFjet   
-            float r2min(999);
-            for (unsigned int gen_index = 0; gen_index != ngen; gen_index++) {
-                double deltaR2 = reco::deltaR2( jet_eta[ak5_index], 
-                                                jet_phi[ak5_index],
-                                                gen_eta[gen_index], 
-                                                gen_phi[gen_index]);
-                if (deltaR2 < r2min) {
-                    r2min = deltaR2;
-                    jet_igen[ak5_index] = gen_index;
-                }
-            }
-        }
+    //         // Search generated jet with minimum distance to this PFjet   
+    //         float r2min(999);
+    //         for (unsigned int gen_index = 0; gen_index != ngen; gen_index++) {
+    //             double deltaR2 = reco::deltaR2( jet_eta[ak5_index], 
+    //                                             jet_phi[ak5_index],
+    //                                             gen_eta[gen_index], 
+    //                                             gen_phi[gen_index]);
+    //             if (deltaR2 < r2min) {
+    //                 r2min = deltaR2;
+    //                 jet_igen[ak5_index] = gen_index;
+    //             }
+    //         }
+    //     }
         
-    ak5_index++;
-    }  
-    // Number of selected jets in the event
-    njet = ak5_index;    
+    // ak5_index++;
+    // }  
+    // // Number of selected jets in the event
+    // njet = ak5_index;    
 
 
     // Four leading AK7 Jets
@@ -572,6 +679,30 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
             continue;
         }
 
+	
+	//edm::Ptr<reco::Jet> jetPtr =  i_ak7jet->masterClone().castTo<edm::Ptr<reco::Jet> >();
+	//float tau1 = getTau( 1, jetPtr );
+	//float tau2 = getTau( 2, jetPtr );
+	float tau1 = getTau( 1, i_ak7jet );
+	float tau2 = getTau( 2, i_ak7jet );
+	
+        jet_tau21_ak7[ak7_index] = tau2/tau1;
+	                                                                                                                 
+	std::vector<fastjet::PseudoJet>   lClusterParticles;	
+	for ( unsigned ida = 0; ida < i_ak7jet->numberOfDaughters(); ++ida ) 
+	  {
+	    reco::Candidate const * cand = i_ak7jet->daughter(ida);	                                                                                                
+	    fastjet::PseudoJet pPart(cand->px(),cand->py(),cand->pz(),cand->energy());                                                                                                      
+	    lClusterParticles.emplace_back(pPart);                                             
+	  }
+	//std::sort(lClusterParticles.begin(),lClusterParticles.end(),JetTools::orderPseudoJet);
+	fastjet::JetDefinition ak7Jet_def(fastjet::antikt_algorithm, R0_);
+	fastjet::ClusterSequence lCClust_seq(fastjet::sorted_by_pt(lClusterParticles), ak7Jet_def);
+	//std::vector<fastjet::PseudoJet> tempJets = fastjet::sorted_by_pt(fjClusterSeq_->inclusive_jets(jetPtMin_));
+	std::vector<fastjet::PseudoJet> inclusive_jets = fastjet::sorted_by_pt(lCClust_seq.inclusive_jets(0));
+	fastjet::contrib::SoftDrop sd(beta_, zCut_, R0_ );
+	fastjet::PseudoJet sd_jet = sd(inclusive_jets[0]);
+	
         // Variables of the tuple
         jet_area_ak7[ak7_index] = i_ak7jet->jetArea();
         jet_jes_ak7[ak7_index] = jec; // JEC factor
@@ -581,24 +712,46 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
         jet_pt_ak7[ak7_index]   = p4.Pt();
         jet_eta_ak7[ak7_index]  = p4.Eta();
         jet_phi_ak7[ak7_index]  = p4.Phi();
-        jet_E_ak7[ak7_index]    = p4.E(); 
+        jet_E_ak7[ak7_index]    = p4.E();
+	jet_msd_ak7[ak7_index]  = sd_jet.m();
         
         // Matching AK5 jet to this AK7 jet
         // Index of the generated jet matching this PFjet
-        ak7_to_ak5[ak7_index] = -1; // -1 if no matching jet
+        //ak7_to_ak5[ak7_index] = -1; // -1 if no matching jet
 
-        float r2min(999);
-        for (unsigned int ak5_index = 0; ak5_index != njet; ak5_index++) {
+        // float r2min(999);
+        // for (unsigned int ak5_index = 0; ak5_index != njet; ak5_index++) {
 
-            // Compute distance squared
-            double deltaR2 = reco::deltaR2( jet_eta_ak7[ak7_index], 
-                                            jet_phi_ak7[ak7_index],
-                                            jet_eta[ak5_index], 
-                                            jet_phi[ak5_index]);
-            if (deltaR2 < r2min) {
-                r2min = deltaR2;
-                ak7_to_ak5[ak7_index] = ak5_index;
+        //     // Compute distance squared
+        //     double deltaR2 = reco::deltaR2( jet_eta_ak7[ak7_index], 
+        //                                     jet_phi_ak7[ak7_index],
+        //                                     jet_eta[ak5_index], 
+        //                                     jet_phi[ak5_index]);
+        //     if (deltaR2 < r2min) {
+        //         r2min = deltaR2;
+        //         ak7_to_ak5[ak7_index] = ak5_index;
+        //     }
+        // }
+
+	
+        // Matching a GenParticle to this PFjet
+        jet_igen_ak7[ak7_index] = -1; // is -1 if no matching gen particle
+        jet_isW_ak7[ak7_index] = 0; // isW is 0 if no matching W
+        if (mIsMCarlo && ngenparticles > 0) {
+
+            // Search generated particle with minimum distance to this PFjet   
+            float r2min(999);
+            for (unsigned int gen_index = 0; gen_index != ngen; gen_index++) {
+                double deltaR2 = reco::deltaR2( jet_eta_ak7[ak7_index], 
+                                                jet_phi_ak7[ak7_index],
+                                                genparticle_eta[gen_index], 
+                                                genparticle_phi[gen_index]);
+                if (deltaR2 < r2min) {
+                    r2min = deltaR2;
+                    jet_igen_ak7[ak7_index] = gen_index;
+                }
             }
+	    jet_isW_ak7[ak7_index] = abs(genparticle_id[jet_igen_ak7[ak7_index]])==24;
         }
 
 	// PF Candidates in AK7 jet
@@ -628,8 +781,11 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 	    c2numpy_float64(&writer, p4.Eta());
 	    c2numpy_float64(&writer, p4.Phi());
 	    c2numpy_float64(&writer, p4.E());
+	    c2numpy_float64(&writer, sd_jet.m());
 	    c2numpy_float64(&writer, i_ak7jet->jetArea());
 	    c2numpy_float64(&writer, jec);	    
+	    c2numpy_float64(&writer, jet_tau21_ak7[ak7_index]);
+	    c2numpy_intc(&writer, jet_isW_ak7[ak7_index]);
 	    c2numpy_float64(&writer, cand->pt());
 	    c2numpy_float64(&writer, cand->eta());
 	    c2numpy_float64(&writer, cand->phi());
@@ -679,6 +835,25 @@ void OpenDataTreeProducerOptimized::endRun(edm::Run const &iRun, edm::EventSetup
 
 OpenDataTreeProducerOptimized::~OpenDataTreeProducerOptimized() {
 }
+
+
+//float OpenDataTreeProducerOptimized::getTau(unsigned num, const edm::Ptr<reco::Jet> & object) const
+float OpenDataTreeProducerOptimized::getTau(unsigned num, const reco::PFJet * object) const
+{
+  std::vector<fastjet::PseudoJet> FJparticles;
+  for (unsigned k = 0; k < object->numberOfDaughters(); ++k)
+    {
+      const reco::CandidatePtr & dp = object->daughterPtr(k);
+      if ( dp.isNonnull() && dp.isAvailable() )
+	FJparticles.push_back( fastjet::PseudoJet( dp->px(), dp->py(), dp->pz(), dp->energy() ) );
+      else
+	edm::LogWarning("MissingJetConstituent") << "Jet constituent required for N-subjettiness computation is missing!";
+    }
+
+  return routine_->getTau(num, FJparticles); 
+}
+
+
 
 
 DEFINE_FWK_MODULE(OpenDataTreeProducerOptimized);

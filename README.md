@@ -12,15 +12,24 @@ The instruction assume that you will work on a VM properly contextualized for CM
 
 This step is only needed the first time you run this program:
 ```bash
-mkdir WorkingArea
-cd ./WorkingArea
 cmsrel CMSSW_5_3_32
-cd ./CMSSW_5_3_32/src
+cd CMSSW_5_3_32/src
 cmsenv
-git clone https://github.com/zenaiev/2011-jet-inclusivecrosssection-ntupleproduction-optimized.git
+git clone git@github.com/jmduarte/2011-jet-inclusivecrosssection-ntupleproduction-optimized.
+git clone git@github.com/cms-externals/fastjet-contrib
+cd fastjet-contrib
+export FASTJET_BASE=`scramv1 tool tag fastjet FASTJET_BASE`
+./configure --fastjet-config=$FASTJET_BASE/bin/fastjet-config --prefix=$PWD CXXFLAGS="-I$FASTJET_BASE/include -I$FASTJET_BASE/tools"
+make
+make check
+make install
+make fragile-shared
+make fragile-shared-install
+cd $CMSSW_BASE/src
+cp  2011-jet-inclusivecrosssection-ntupleproduction-optimized/fastjet-contrib.xml $CMSSW_BASE/config/toolbox/$SCRAM_ARCH/tools/selected/fastjet-contrib.xml
+scram setup fastjet-contrib
 scram b
 cd 2011-jet-inclusivecrosssection-ntupleproduction-optimized/AnalysisFW/python/
-
 ```
 
 ## Setting up additional files
@@ -32,6 +41,7 @@ With `cms-opendata-2011-jets-optimized/AnalysisFW/python/` as the current folder
     ```bash
     wget http://opendata.cern.ch/record/21/files/CMS_Run2011A_Jet_AOD_12Oct2013-v1_20000_file_index.txt
     wget http://opendata.cern.ch/record/1562/files/CMS_MonteCarlo2011_Summer11LegDR_QCD_Pt-80to120_TuneZ2_7TeV_pythia6_AODSIM_PU_S13_START53_LV6-v1_00000_file_index.txt 
+	wget http://opendata.cern.ch/record/1611/files/CMS_MonteCarlo2011_Summer11LegDR_W1Jet_TuneZ2_7TeV-madgraph-tauola_AODSIM_PU_S13_START53_LV6-v1_00000_file_index.txt
     ```
     
 2. Download JSON of good runs:
