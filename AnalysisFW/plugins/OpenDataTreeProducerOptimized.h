@@ -147,6 +147,7 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     Float_t jet_tau21_ak7[kMaxNjet];
     Int_t jet_igen_ak7[kMaxNjet];
     Int_t jet_isW_ak7[kMaxNjet];
+    Int_t jet_ncand_ak7[kMaxNjet];
     //Int_t ak7_to_ak5[kMaxNjet];
 
     // Jet composition
@@ -181,6 +182,7 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     Float_t genparticle_phi[kMaxNjet];
     Float_t genparticle_E[kMaxNjet];
     Int_t genparticle_id[kMaxNjet];
+    Int_t genparticle_dauId[kMaxNjet];
     Int_t genparticle_status[kMaxNjet];
 
     // Event identification
