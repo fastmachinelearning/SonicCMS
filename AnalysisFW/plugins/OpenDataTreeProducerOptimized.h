@@ -182,7 +182,9 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     Float_t genparticle_phi[kMaxNjet];
     Float_t genparticle_E[kMaxNjet];
     Int_t genparticle_id[kMaxNjet];
-    Int_t genparticle_dauId[kMaxNjet];
+    Int_t genparticle_dauId1[kMaxNjet];
+    Int_t genparticle_dauId2[kMaxNjet];
+    Float_t genparticle_dauDR[kMaxNjet];
     Int_t genparticle_status[kMaxNjet];
 
     // Event identification

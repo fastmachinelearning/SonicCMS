@@ -195,7 +195,9 @@ void OpenDataTreeProducerOptimized::beginJob() {
     mTree->Branch("genparticle_phi", genparticle_phi, "genparticle_phi[ngen]/F");
     mTree->Branch("genparticle_E", genparticle_E, "genparticle_E[ngen]/F");
     mTree->Branch("genparticle_id", genparticle_id, "genparticle_id[ngen]/I");
-    mTree->Branch("genparticle_dauId", genparticle_dauId, "genparticle_dauId[ngen]/I");
+    mTree->Branch("genparticle_dauId1", genparticle_dauId1, "genparticle_dauId1[ngen]/I");
+    mTree->Branch("genparticle_dauId2", genparticle_dauId2, "genparticle_dauId2[ngen]/I");
+    mTree->Branch("genparticle_dauDR", genparticle_dauDR, "genparticle_dauDR[ngen]/F");
     mTree->Branch("genparticle_status", genparticle_status, "genparticle_status[ngen]/I");
 
     mTree->Branch("run", &run, "run/i");
@@ -425,17 +427,29 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 	      genparticle_E[gen_index] = i_gen->energy();
 	      genparticle_id[gen_index] = i_gen->pdgId();
 	      genparticle_status[gen_index] = i_gen->status();
-	      genparticle_dauId[gen_index] = -1;
+	      genparticle_dauId1[gen_index] = -1;
+	      genparticle_dauId2[gen_index] = -1;
+	      genparticle_dauDR[gen_index] = -1;
 	      if (abs(i_gen->pdgId()) == 24) {		
 		//std::cout << i_gen->pdgId() << std::endl;
 		unsigned n = i_gen->numberOfDaughters();
-		for(unsigned j = 0; j < n; ++ j) {
-		  const Candidate * d = i_gen->daughter( j );
-		  int dauId = d->pdgId();
-		  //std::cout << dauId << std::endl;		  
-		  genparticle_dauId[gen_index] = dauId;
-		  break;
+		if (n>=2) {		  
+		  const Candidate * d1 = i_gen->daughter( 0 );
+		  const Candidate * d2 = i_gen->daughter( 1 );
+		  int dauId1 = d1->pdgId();	  
+		  int dauId2 = d2->pdgId();	  
+		  genparticle_dauId1[gen_index] = dauId1;
+		  genparticle_dauId2[gen_index] = dauId2;
+		  genparticle_dauDR[gen_index] = reco::deltaR( d1->eta(),
+							       d1->phi(),
+							       d2->eta(),
+							       d2->phi());
 		}
+		// for(unsigned j = 0; j < n; ++ j) {
+		//   const Candidate * d = i_gen->daughter( j );
+		//   int dauId = d->pdgId();	  
+		//   genparticle_dauId1[gen_index] = dauId;
+		// }
 	      }	      
 	      gen_index++;
 	    }
@@ -773,7 +787,11 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
                 }
 	      }
             }
-	    jet_isW_ak7[ak7_index] = (abs(genparticle_id[jet_igen_ak7[ak7_index]])==24 && abs(genparticle_dauId[jet_igen_ak7[ak7_index]])<=4);
+	    jet_isW_ak7[ak7_index] = (abs(genparticle_id[jet_igen_ak7[ak7_index]])==24
+				      && abs(genparticle_dauId1[jet_igen_ak7[ak7_index]])<6
+				      && abs(genparticle_dauId2[jet_igen_ak7[ak7_index]])<6				      
+				      && abs(genparticle_dauDR[jet_igen_ak7[ak7_index]])>0
+				      && abs(genparticle_dauDR[jet_igen_ak7[ak7_index]])<R0_);
         }
 	
         jet_ncand_ak7[ak7_index] = i_ak7jet->numberOfDaughters();
