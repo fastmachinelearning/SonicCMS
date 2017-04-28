@@ -17,7 +17,11 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 runOnVM = False
 
 # Local input
-fileList = FileUtils.loadListFromFile('CMS_MonteCarlo2011_Summer11LegDR_QCD_Pt-80to120_TuneZ2_7TeV_pythia6_AODSIM_PU_S13_START53_LV6-v1_00000_file_index.txt')
+fileList = FileUtils.loadListFromFile(
+    'temp.txt',
+    #'CMS_MonteCarlo2011_Summer11LegDR_W1Jet_TuneZ2_7TeV-madgraph-tauola_AODSIM_PU_S13_START53_LV6-v1_00000_file_index.txt',
+    #'CMS_MonteCarlo2011_Summer11LegDR_QCD_Pt-80to120_TuneZ2_7TeV_pythia6_AODSIM_PU_S13_START53_LV6-v1_00000_file_index.txt'
+)
 process.source.fileNames = cms.untracked.vstring(*fileList)
 
 if runOnVM:
@@ -69,6 +73,7 @@ process.ak5ak7 = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
     minJJMass       = cms.double(-1),
     isMCarlo        = cms.untracked.bool(True),
     genjets         = cms.untracked.InputTag('ak7GenJets'),
+    genparticles    = cms.untracked.InputTag('genParticles'),
     useGenInfo      = cms.untracked.bool(True),
     ## trigger ###################################
     printTriggerMenu = cms.untracked.bool(True),
