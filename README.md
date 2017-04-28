@@ -15,8 +15,8 @@ This step is only needed the first time you run this program:
 cmsrel CMSSW_5_3_32
 cd CMSSW_5_3_32/src
 cmsenv
-git clone git@github.com/jmduarte/2011-jet-inclusivecrosssection-ntupleproduction-optimized.
-git clone git@github.com/cms-externals/fastjet-contrib
+git clone git@github.com:jmduarte/2011-jet-inclusivecrosssection-ntupleproduction-optimized.
+git clone git@github.com:cms-externals/fastjet-contrib
 cd fastjet-contrib
 export FASTJET_BASE=`scramv1 tool tag fastjet FASTJET_BASE`
 ./configure --fastjet-config=$FASTJET_BASE/bin/fastjet-config --prefix=$PWD CXXFLAGS="-I$FASTJET_BASE/include -I$FASTJET_BASE/tools"
