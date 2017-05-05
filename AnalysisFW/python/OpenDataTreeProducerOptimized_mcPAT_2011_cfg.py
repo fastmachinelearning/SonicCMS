@@ -8,6 +8,7 @@
 ## Skeleton process
 from PhysicsTools.PatAlgos.patTemplate_cfg import *
 import FWCore.Utilities.FileUtils as FileUtils
+import sys
 
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
@@ -17,12 +18,12 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 runOnVM = False
 
 # Local input
-fileList = FileUtils.loadListFromFile(
-    'temp.txt',
+#fileList = FileUtils.loadListFromFile(
+    #'tmp.txt',
     #'CMS_MonteCarlo2011_Summer11LegDR_W1Jet_TuneZ2_7TeV-madgraph-tauola_AODSIM_PU_S13_START53_LV6-v1_00000_file_index.txt',
     #'CMS_MonteCarlo2011_Summer11LegDR_QCD_Pt-80to120_TuneZ2_7TeV_pythia6_AODSIM_PU_S13_START53_LV6-v1_00000_file_index.txt'
-)
-process.source.fileNames = cms.untracked.vstring(*fileList)
+#)
+process.source.fileNames = cms.untracked.vstring([sys.argv[2]])
 
 if runOnVM:
     process.GlobalTag.connect = cms.string('sqlite_file:/cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db')
@@ -114,7 +115,8 @@ process.p = cms.Path(
 # 50000 events per 1 hour (both for DATA and MC)
 
 # Change number of events here:
-process.maxEvents.input = 50000
+#process.maxEvents.input = 1000
+process.maxEvents.input = -1
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 500
 

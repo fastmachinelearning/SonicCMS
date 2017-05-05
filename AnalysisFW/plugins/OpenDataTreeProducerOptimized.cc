@@ -240,10 +240,15 @@ void OpenDataTreeProducerOptimized::beginJob() {
 
     
     //c2numpy
-   c2numpy_init(&writer, "output/params", mMaxRows);
+   c2numpy_init(&writer, "params", mMaxRows);
    c2numpy_addcolumn(&writer, "run", C2NUMPY_INTC);
    c2numpy_addcolumn(&writer, "lumi", C2NUMPY_INTC);
    c2numpy_addcolumn(&writer, "event", C2NUMPY_INTC);
+   c2numpy_addcolumn(&writer, "met", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "sumet", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "rho", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "pthat", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "mcweight", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "njet_ak7", C2NUMPY_INTC);
    c2numpy_addcolumn(&writer, "jet_pt_ak7", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "jet_eta_ak7", C2NUMPY_FLOAT64);
@@ -818,6 +823,11 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 	    c2numpy_intc(&writer, run);
 	    c2numpy_intc(&writer, lumi);
 	    c2numpy_intc(&writer, event);
+	    c2numpy_float64(&writer, met);
+	    c2numpy_float64(&writer, sumet);
+	    c2numpy_float64(&writer, rho);
+	    c2numpy_float64(&writer, pthat);
+	    c2numpy_float64(&writer, mcweight);
 	    c2numpy_intc(&writer, njet_ak7);
 	    c2numpy_float64(&writer, p4.Pt());
 	    c2numpy_float64(&writer, p4.Eta());
