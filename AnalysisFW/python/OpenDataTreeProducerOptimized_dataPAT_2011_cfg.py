@@ -1,4 +1,4 @@
-
+import sys
 # Forked from SMPJ Analysis Framework
 # https://twiki.cern.ch/twiki/bin/viewauth/CMS/SMPJAnalysisFW
 # https://github.com/cms-smpj/SMPJ/tree/v1.0
@@ -14,11 +14,13 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 # True : when running in OpenData virtual machine
 # False: when runing in lxplus 
-runOnVM = True
+runOnVM = False
 
 # Index of data files
-files2011data = FileUtils.loadListFromFile('CMS_Run2011A_Jet_AOD_12Oct2013-v1_20000_file_index.txt')
-process.source.fileNames = cms.untracked.vstring(*files2011data)
+#files2011data = FileUtils.loadListFromFile('CMS_Run2011A_Jet_AOD_12Oct2013-v1_20000_file_index.txt')
+#process.source.fileNames = cms.untracked.vstring(*files2011data)
+                                                             
+process.source.fileNames = cms.untracked.vstring([sys.argv[2]])
 
 # Read condition data from local sqlite database
 if runOnVM:
@@ -27,7 +29,7 @@ if runOnVM:
 
 # Read good luminosity sections from local JSON file
 import FWCore.PythonUtilities.LumiList as LumiList 
-goodJSON = './Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt' 
+goodJSON = '/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions11/7TeV/Reprocessing/Cert_160404-180252_7TeV_ReRecoNov08_Collisions11_JSON.txt'
 myLumis = LumiList.LumiList(filename = goodJSON).getCMSSWString().split(',') 
 process.source.lumisToProcess = cms.untracked.VLuminosityBlockRange() 
 process.source.lumisToProcess.extend(myLumis)
@@ -111,7 +113,7 @@ process.p = cms.Path(
 # 50000 events per 1 hour (both for DATA and MC)
 
 # Change number of events here:
-process.maxEvents.input = 50000
+process.maxEvents.input = -1
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 500
 
