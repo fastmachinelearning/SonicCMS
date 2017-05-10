@@ -49,8 +49,8 @@ process.load("JetMETCorrections.Configuration.JetCorrectionServicesAllAlgos_cff"
 
 ################### EDAnalyzer ##############################3
 process.ak5ak7 = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
-    ## numpy output                                                                                                                      
-    maxRows = cms.untracked.int32(1000000),
+    ## numpy output                                                                                                          
+    maxRows = cms.untracked.int32(10000000),
     ## jet collections ###########################
     pfak7jets       = cms.InputTag('ak7PFJets'),
     pfak5jets       = cms.InputTag('ak5PFJets'),

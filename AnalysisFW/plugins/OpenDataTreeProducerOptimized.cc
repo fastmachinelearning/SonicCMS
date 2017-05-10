@@ -62,7 +62,7 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
   mMaxY              = cfg.getParameter<double>                    ("maxY");
   mMaxEta            = cfg.getParameter<double>                    ("maxEta");
   mMinNPFJets        = cfg.getParameter<int>                       ("minNPFJets");
-  mMaxRows           = cfg.getUntrackedParameter<int>              ("maxRows",10000);
+  mMaxRows           = cfg.getUntrackedParameter<int>              ("maxRows",1000000);
   mPFak5JetsName     = cfg.getParameter<edm::InputTag>             ("pfak5jets");
   mPFak7JetsName     = cfg.getParameter<edm::InputTag>             ("pfak7jets");
   mOfflineVertices   = cfg.getParameter<edm::InputTag>             ("offlineVertices");
@@ -179,6 +179,7 @@ void OpenDataTreeProducerOptimized::beginJob() {
     mTree->Branch("jet_jes_ak7", jet_jes_ak7, "jet_jes_ak7[njet_ak7]/F");
     mTree->Branch("jet_tau21_ak7", jet_tau21_ak7, "jet_tau21_ak7[njet_ak7]/F");
     mTree->Branch("jet_igen_ak7", jet_igen_ak7, "jet_igen_ak7[njet_ak7]/I");
+    mTree->Branch("jet_igenjet_ak7", jet_igenjet_ak7, "jet_igenjet_ak7[njet_ak7]/I");
     mTree->Branch("jet_isW_ak7", jet_isW_ak7, "jet_isW_ak7[njet_ak7]/I");
     mTree->Branch("jet_ncand_ak7", jet_ncand_ak7, "jet_ncand_ak7[njet_ak7]/I");
     //mTree->Branch("ak7_to_ak5", ak7_to_ak5, "ak7_to_ak5[njet_ak7]/I");
@@ -190,15 +191,15 @@ void OpenDataTreeProducerOptimized::beginJob() {
     mTree->Branch("gen_E", gen_E, "gen_E[ngen]/F");
     
     mTree->Branch("ngenparticles", &ngenparticles, "ngenparticles/i");
-    mTree->Branch("genparticle_pt", genparticle_pt, "genparticle_pt[ngen]/F");
-    mTree->Branch("genparticle_eta", genparticle_eta, "genparticle_eta[ngen]/F");
-    mTree->Branch("genparticle_phi", genparticle_phi, "genparticle_phi[ngen]/F");
-    mTree->Branch("genparticle_E", genparticle_E, "genparticle_E[ngen]/F");
-    mTree->Branch("genparticle_id", genparticle_id, "genparticle_id[ngen]/I");
-    mTree->Branch("genparticle_dauId1", genparticle_dauId1, "genparticle_dauId1[ngen]/I");
-    mTree->Branch("genparticle_dauId2", genparticle_dauId2, "genparticle_dauId2[ngen]/I");
-    mTree->Branch("genparticle_dauDR", genparticle_dauDR, "genparticle_dauDR[ngen]/F");
-    mTree->Branch("genparticle_status", genparticle_status, "genparticle_status[ngen]/I");
+    mTree->Branch("genparticle_pt", genparticle_pt, "genparticle_pt[ngenparticles]/F");
+    mTree->Branch("genparticle_eta", genparticle_eta, "genparticle_eta[ngenparticles]/F");
+    mTree->Branch("genparticle_phi", genparticle_phi, "genparticle_phi[ngenparticles]/F");
+    mTree->Branch("genparticle_E", genparticle_E, "genparticle_E[ngenparticles]/F");
+    mTree->Branch("genparticle_id", genparticle_id, "genparticle_id[ngenparticles]/I");
+    mTree->Branch("genparticle_dauId1", genparticle_dauId1, "genparticle_dauId1[ngenparticles]/I");
+    mTree->Branch("genparticle_dauId2", genparticle_dauId2, "genparticle_dauId2[ngenparticles]/I");
+    mTree->Branch("genparticle_dauDR", genparticle_dauDR, "genparticle_dauDR[ngenparticles]/F");
+    mTree->Branch("genparticle_status", genparticle_status, "genparticle_status[ngenparticles]/I");
 
     mTree->Branch("run", &run, "run/i");
     mTree->Branch("lumi", &lumi, "lumi/i");
@@ -251,15 +252,21 @@ void OpenDataTreeProducerOptimized::beginJob() {
    c2numpy_addcolumn(&writer, "mcweight", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "njet_ak7", C2NUMPY_INTC);
    c2numpy_addcolumn(&writer, "jet_pt_ak7", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "jet_ptraw_ak7", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "jet_eta_ak7", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "jet_phi_ak7", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "jet_E_ak7", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "jet_Eraw_ak7", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "jet_msd_ak7", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "jet_area_ak7", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "jet_jes_ak7", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "jet_tau21_ak7", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "jet_isW_ak7", C2NUMPY_INTC);
    c2numpy_addcolumn(&writer, "jet_ncand_ak7", C2NUMPY_INTC);
+   c2numpy_addcolumn(&writer, "genjet_pt_ak7", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "genjet_eta_ak7", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "genjet_phi_ak7", C2NUMPY_FLOAT64);
+   c2numpy_addcolumn(&writer, "genjet_E_ak7", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "ak7pfcand_pt", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "ak7pfcand_eta", C2NUMPY_FLOAT64);
    c2numpy_addcolumn(&writer, "ak7pfcand_phi", C2NUMPY_FLOAT64);
@@ -772,6 +779,25 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
         //     }
         // }
 
+	 
+        
+        // Matching a AK7 GenJet to this AK7 PFjet
+        jet_igenjet_ak7[ak7_index] = -1; // is -1 if no matching genjet
+        if (mIsMCarlo && ngen > 0) {
+
+            // Search generated jet with minimum distance to this PFjet   
+            float r2min(999);
+            for (unsigned int gen_index = 0; gen_index != ngen; gen_index++) {
+                double deltaR2 = reco::deltaR2( jet_eta_ak7[ak7_index], 
+                                                jet_phi_ak7[ak7_index],
+                                                gen_eta[gen_index], 
+                                                gen_phi[gen_index]);
+                if (deltaR2 < r2min && deltaR2 < R0_*R0_) {
+                    r2min = deltaR2;
+                    jet_igenjet_ak7[ak7_index] = gen_index;
+                }
+            }
+        }
 	
         // Matching a GenParticle to this PFjet
         jet_igen_ak7[ak7_index] = -1; // is -1 if no matching W within dR < 0.7
@@ -780,7 +806,7 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 
             // Search for generated W with minimum distance to this PFjet   
             float r2min(999);
-            for (unsigned int gen_index = 0; gen_index != ngen; gen_index++) {
+            for (unsigned int gen_index = 0; gen_index != ngenparticles; gen_index++) {
 	      if (genparticle_id[gen_index]==24) {
                 double deltaR2 = reco::deltaR2( jet_eta_ak7[ak7_index], 
                                                 jet_phi_ak7[ak7_index],
@@ -830,15 +856,29 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 	    c2numpy_float64(&writer, mcweight);
 	    c2numpy_intc(&writer, njet_ak7);
 	    c2numpy_float64(&writer, p4.Pt());
+	    c2numpy_float64(&writer, p4.Pt()/jec);
 	    c2numpy_float64(&writer, p4.Eta());
 	    c2numpy_float64(&writer, p4.Phi());
 	    c2numpy_float64(&writer, p4.E());
+	    c2numpy_float64(&writer, p4.E()/jec);
 	    c2numpy_float64(&writer, sd_jet.m());
 	    c2numpy_float64(&writer, i_ak7jet->jetArea());
 	    c2numpy_float64(&writer, jec);	    
 	    c2numpy_float64(&writer, jet_tau21_ak7[ak7_index]);
 	    c2numpy_intc(&writer, jet_isW_ak7[ak7_index]);
 	    c2numpy_intc(&writer, jet_ncand_ak7[ak7_index]);
+	    if (jet_igenjet_ak7[ak7_index] > -1) {
+	      c2numpy_float64(&writer, gen_pt[jet_igenjet_ak7[ak7_index]]);
+	      c2numpy_float64(&writer, gen_eta[jet_igenjet_ak7[ak7_index]]);
+	      c2numpy_float64(&writer, gen_phi[jet_igenjet_ak7[ak7_index]]);
+	      c2numpy_float64(&writer, gen_E[jet_igenjet_ak7[ak7_index]]);
+	    }
+	    else{
+	      c2numpy_float64(&writer, -1);
+	      c2numpy_float64(&writer, -1);
+	      c2numpy_float64(&writer, -1);
+	      c2numpy_float64(&writer, -1);
+	    }	    
 	    c2numpy_float64(&writer, cand->pt());
 	    c2numpy_float64(&writer, cand->eta());
 	    c2numpy_float64(&writer, cand->phi());

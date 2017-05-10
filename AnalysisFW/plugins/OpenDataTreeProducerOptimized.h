@@ -121,7 +121,7 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     
     //---- TTree variables --------
     
-    static const UInt_t kMaxNjet = 64;
+    static const UInt_t kMaxNjet = 128;
     static const UInt_t kMaxNtrg = 32;
 
     // PF jets
@@ -146,6 +146,7 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     Float_t jet_jes_ak7[kMaxNjet];    
     Float_t jet_tau21_ak7[kMaxNjet];
     Int_t jet_igen_ak7[kMaxNjet];
+    Int_t jet_igenjet_ak7[kMaxNjet];
     Int_t jet_isW_ak7[kMaxNjet];
     Int_t jet_ncand_ak7[kMaxNjet];
     //Int_t ak7_to_ak5[kMaxNjet];
