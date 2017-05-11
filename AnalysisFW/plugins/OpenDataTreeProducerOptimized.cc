@@ -807,7 +807,7 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
             // Search for generated W with minimum distance to this PFjet   
             float r2min(999);
             for (unsigned int gen_index = 0; gen_index != ngenparticles; gen_index++) {
-	      if (genparticle_id[gen_index]==24) {
+	      if (abs(genparticle_id[gen_index])==24) {
                 double deltaR2 = reco::deltaR2( jet_eta_ak7[ak7_index], 
                                                 jet_phi_ak7[ak7_index],
                                                 genparticle_eta[gen_index], 
@@ -818,11 +818,13 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
                 }
 	      }
             }
-	    jet_isW_ak7[ak7_index] = (abs(genparticle_id[jet_igen_ak7[ak7_index]])==24
-				      && abs(genparticle_dauId1[jet_igen_ak7[ak7_index]])<6
-				      && abs(genparticle_dauId2[jet_igen_ak7[ak7_index]])<6				      
-				      && abs(genparticle_dauDR[jet_igen_ak7[ak7_index]])>0
-				      && abs(genparticle_dauDR[jet_igen_ak7[ak7_index]])<R0_);
+	    if (jet_igen_ak7[ak7_index] > -1) {
+	      jet_isW_ak7[ak7_index] = (abs(genparticle_id[jet_igen_ak7[ak7_index]])==24
+					&& abs(genparticle_dauId1[jet_igen_ak7[ak7_index]])<6
+					&& abs(genparticle_dauId2[jet_igen_ak7[ak7_index]])<6				      
+					&& abs(genparticle_dauDR[jet_igen_ak7[ak7_index]])>0
+					&& abs(genparticle_dauDR[jet_igen_ak7[ak7_index]])<R0_);
+	    }
         }
 	
         jet_ncand_ak7[ak7_index] = i_ak7jet->numberOfDaughters();
