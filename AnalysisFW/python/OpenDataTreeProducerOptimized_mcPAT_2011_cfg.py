@@ -6,16 +6,33 @@
 
 
 ## Skeleton process
-from PhysicsTools.PatAlgos.patTemplate_cfg import *
-import FWCore.Utilities.FileUtils as FileUtils
+# from PhysicsTools.PatAlgos.patTemplate_cfg import *
+# import FWCore.Utilities.FileUtils as FileUtils
+
+import FWCore.ParameterSet.Config as cms
+import os
 import sys
 
-process.load('Configuration.StandardSequences.Services_cff')
-process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+process = cms.Process('MakingBacon')
+
+#--------------------------------------------------------------------------------
+# Import of standard configurations
+#================================================================================
+process.load('FWCore/MessageService/MessageLogger_cfi')
+#process.load("Configuration.Geometry.GeometryIdeal_cff")
+process.load('Configuration/StandardSequences/GeometryDB_cff')
+process.load('Configuration/StandardSequences/MagneticField_38T_cff')
+
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+process.GlobalTag.globaltag = cms.string('94X_mc2017_realistic_v10')
+
+
+# process.load('Configuration.StandardSequences.Services_cff')
+# process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 # True : when running in OpenData virtual machine
 # False: when runing in lxplus 
-runOnVM = False
+# runOnVM = False
 
 # Local input
 #fileList = FileUtils.loadListFromFile(
@@ -25,30 +42,31 @@ runOnVM = False
 #)
 process.source.fileNames = cms.untracked.vstring([sys.argv[2]])
 
-if runOnVM:
-    process.GlobalTag.connect = cms.string('sqlite_file:/cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db')
+# if runOnVM:
+#     process.GlobalTag.connect = cms.string('sqlite_file:/cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db')
 
-# Global tag for Summer11LegDR-PU_S13_START53_LV6-v1
-process.GlobalTag.globaltag = cms.string('START53_LV6A1::All')
+# # Global tag for Summer11LegDR-PU_S13_START53_LV6-v1
+# process.GlobalTag.globaltag = cms.string('START53_LV6A1::All')
 
-# Select good vertices
-process.goodOfflinePrimaryVertices = cms.EDFilter(
-    "VertexSelector",
-    filter = cms.bool(False),
-    src = cms.InputTag("offlinePrimaryVertices"),
-    cut = cms.string("!isFake && ndof > 4 && abs(z) <= 24 && position.rho < 2")
-    )
+# Select good vertices  -- don't need vertices -- they are in miniAOD
+# process.goodOfflinePrimaryVertices = cms.EDFilter(
+#     "VertexSelector",
+#     filter = cms.bool(False),
+#     src = cms.InputTag("offlinePrimaryVertices"),
+#     cut = cms.string("!isFake && ndof > 4 && abs(z) <= 24 && position.rho < 2")
+#     )
 
 # -------- The Tracking failure filter ------#
-from RecoMET.METFilters.trackingFailureFilter_cfi import trackingFailureFilter
-process.trackingFailureFilter = trackingFailureFilter.clone()
-process.trackingFailureFilter.VertexSource = cms.InputTag('goodOfflinePrimaryVertices')
+# no such thing as tracking failures!
+# from RecoMET.METFilters.trackingFailureFilter_cfi import trackingFailureFilter
+# process.trackingFailureFilter = trackingFailureFilter.clone()
+# process.trackingFailureFilter.VertexSource = cms.InputTag('goodOfflinePrimaryVertices')
 
-# Load jet correction services for all jet algoritms
+# Load jet correction services for all jet algoritms, we don't need this right?
 process.load("JetMETCorrections.Configuration.JetCorrectionServicesAllAlgos_cff")
 
 ################### EDAnalyzer ##############################3
-process.ak5ak7 = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
+process.jetImageProducer = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
     ## numpy output                                                                                                          
     maxRows = cms.untracked.int32(10000000),
     ## jet collections ###########################
@@ -93,21 +111,18 @@ process.ak5ak7 = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
 )
 
 ############# hlt filter #########################
-process.hltFilter = cms.EDFilter('HLTHighLevel',
-    TriggerResultsTag  = cms.InputTag('TriggerResults','','HLT'),
-    HLTPaths           = cms.vstring('HLT_Jet*', 'HLT_DiJetAve*'),
-    eventSetupPathsKey = cms.string(''),
-    andOr              = cms.bool(True), #----- True = OR, False = AND between the HLTPaths
-    throw              = cms.bool(False)
-)
+# process.hltFilter = cms.EDFilter('HLTHighLevel',
+#     TriggerResultsTag  = cms.InputTag('TriggerResults','','HLT'),
+#     HLTPaths           = cms.vstring('HLT_Jet*', 'HLT_DiJetAve*'),
+#     eventSetupPathsKey = cms.string(''),
+#     andOr              = cms.bool(True), #----- True = OR, False = AND between the HLTPaths
+#     throw              = cms.bool(False)
+# )
 
 
 # Let it run
 process.p = cms.Path(
-    process.goodOfflinePrimaryVertices*
-    process.hltFilter *
-    process.trackingFailureFilter *
-    process.ak5ak7
+    process.jetImageProducer
 )
 
 

@@ -99,18 +99,18 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
   // Get the measure definition
   fastjet::contrib::NormalizedMeasure          normalizedMeasure        (beta_,R0_);
   fastjet::contrib::UnnormalizedMeasure        unnormalizedMeasure      (beta_);
-  fastjet::contrib::GeometricMeasure           geometricMeasure         (beta_);
+  // fastjet::contrib::GeometricMeasure           geometricMeasure         (beta_);
   fastjet::contrib::NormalizedCutoffMeasure    normalizedCutoffMeasure  (beta_,R0_,Rcutoff_);
   fastjet::contrib::UnnormalizedCutoffMeasure  unnormalizedCutoffMeasure(beta_,Rcutoff_);
-  fastjet::contrib::GeometricCutoffMeasure     geometricCutoffMeasure   (beta_,Rcutoff_);
+  // fastjet::contrib::GeometricCutoffMeasure     geometricCutoffMeasure   (beta_,Rcutoff_);
 
   fastjet::contrib::MeasureDefinition const * measureDef = 0;
   switch ( measureDefinition_ ) {
   case UnnormalizedMeasure : measureDef = &unnormalizedMeasure; break;
-  case GeometricMeasure    : measureDef = &geometricMeasure; break;
+  // case GeometricMeasure    : measureDef = &geometricMeasure; break;
   case NormalizedCutoffMeasure : measureDef = &normalizedCutoffMeasure; break;
   case UnnormalizedCutoffMeasure : measureDef = &unnormalizedCutoffMeasure; break;
-  case GeometricCutoffMeasure : measureDef = &geometricCutoffMeasure; break;
+  // case GeometricCutoffMeasure : measureDef = &geometricCutoffMeasure; break;
   case NormalizedMeasure : default : measureDef = &normalizedMeasure; break;
   } 
 
@@ -207,7 +207,7 @@ void OpenDataTreeProducerOptimized::beginJob() {
     mTree->Branch("ntrg", &ntrg, "ntrg/i");
     mTree->Branch("triggers", triggers, "triggers[ntrg]/O");
     mTree->Branch("triggernames", &triggernames);
-    mTree->Branch("prescales", prescales, "prescales[ntrg]/i");
+    //mTree->Branch("prescales", prescales, "prescales[ntrg]/i");
     mTree->Branch("met", &met, "met/F");
     mTree->Branch("sumet", &sumet, "sumet/F");
     mTree->Branch("rho", &rho, "rho/F");
@@ -365,11 +365,11 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
         triggers[itrig] = isAccepted;
 
         // Trigger prescales are retrieved using the trigger name
-        std::string trgName = hltConfig_.triggerName(triggerIndex_[itrig]);
-	const std::pair< int, int > prescalePair(hltConfig_.prescaleValues(event_obj, iSetup, trgName));
+        // std::string trgName = hltConfig_.triggerName(triggerIndex_[itrig]);
+	      // const std::pair< int, int > prescalePair(hltConfig_.prescaleValues(event_obj, iSetup, trgName));
 
         // Total prescale: PreL1*PreHLT 
-        prescales[itrig] = prescalePair.first*prescalePair.second;   
+        // prescales[itrig] = prescalePair.first*prescalePair.second;   
     }    
 
     // Rho
