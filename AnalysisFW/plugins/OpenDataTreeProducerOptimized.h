@@ -149,6 +149,10 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     Int_t jet_igenjet_ak7[kMaxNjet];
     Int_t jet_isW_ak7[kMaxNjet];
     Int_t jet_ncand_ak7[kMaxNjet];
+
+    edm::InputTag JetTag_;
+    edm::EDGetTokenT<edm::View<pat::Jet>> JetTok_;
+    
     //Int_t ak7_to_ak5[kMaxNjet];
 
     // Jet composition

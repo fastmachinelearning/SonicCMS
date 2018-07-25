@@ -40,7 +40,18 @@ process.GlobalTag.globaltag = cms.string('94X_mc2017_realistic_v10')
     #'CMS_MonteCarlo2011_Summer11LegDR_W1Jet_TuneZ2_7TeV-madgraph-tauola_AODSIM_PU_S13_START53_LV6-v1_00000_file_index.txt',
     #'CMS_MonteCarlo2011_Summer11LegDR_QCD_Pt-80to120_TuneZ2_7TeV_pythia6_AODSIM_PU_S13_START53_LV6-v1_00000_file_index.txt'
 #)
-process.source.fileNames = cms.untracked.vstring([sys.argv[2]])
+
+## https://cmsweb.cern.ch/das/request?view=list&limit=50&instance=prod%2Fglobal&input=dataset+dataset%3D%2FBulkGravTohhTohbbhbb_narrow_M-*_13TeV-madgraph%2FRunIISpring18MiniAOD-100X_upgrade2018_realistic_v10-v*%2FMINIAODSIM
+# process.source.fileNames = cms.untracked.vstring([ "/store/mc/RunIISpring18MiniAOD/BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph/MINIAODSIM/100X_upgrade2018_realistic_v10-v1/30000/24A0230C-B530-E811-ADE3-14187741120B.root" ])
+
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
+process.source = cms.Source("PoolSource",
+                            #fileNames = cms.untracked.vstring('/store/mc/RunIISummer16MiniAODv2/ZprimeToTT_M-4000_W-40_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/02DEA6C9-19B7-E611-B22D-A0000420FE80.root'),
+                            #fileNames = cms.untracked.vstring('/store/mc/RunIIFall17MiniAOD/QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8/MINIAODSIM/94X_mc2017_realistic_v10-v1/50000/EEF28E00-0CEA-E711-8257-02163E0160F1.root'),
+                            #fileNames = cms.untracked.vstring('/store/mc/RunIIFall17MiniAOD/QCD_HT2000toInf_TuneCP5_13TeV-madgraph-pythia8/MINIAODSIM/94X_mc2017_realistic_v10-v1/20000/46FB5EDE-F708-E811-A50F-0025905C53A4.root')
+                            fileNames = cms.untracked.vstring('file:BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph_24A0230C-B530-E811-ADE3-14187741120B.root')
+                            #skipEvents = cms.untracked.uint32(0),
+)
 
 # if runOnVM:
 #     process.GlobalTag.connect = cms.string('sqlite_file:/cvmfs/cms-opendata-conddb.cern.ch/START53_LV6A1.db')
@@ -63,12 +74,14 @@ process.source.fileNames = cms.untracked.vstring([sys.argv[2]])
 # process.trackingFailureFilter.VertexSource = cms.InputTag('goodOfflinePrimaryVertices')
 
 # Load jet correction services for all jet algoritms, we don't need this right?
-process.load("JetMETCorrections.Configuration.JetCorrectionServicesAllAlgos_cff")
+# process.load("JetMETCorrections.Configuration.JetCorrectionServicesAllAlgos_cff")
 
 ################### EDAnalyzer ##############################3
 process.jetImageProducer = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
     ## numpy output                                                                                                          
     maxRows = cms.untracked.int32(10000000),
+    #JetTag          = cms.InputTag('slimmedJetsPuppi'),
+    JetTag          = cms.InputTag('slimmedJetsAK8'),
     ## jet collections ###########################
     pfak7jets       = cms.InputTag('ak7PFJets'),
     pfak5jets       = cms.InputTag('ak5PFJets'),
@@ -141,4 +154,4 @@ process.TFileService = cms.Service("TFileService", fileName = cms.string('OpenDa
 # To suppress long output at the end of the job
 #process.options.wantSummary = False   
 
-del process.outpath
+# del process.outpath
