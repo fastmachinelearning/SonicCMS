@@ -15,6 +15,8 @@
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "fastjet/contrib/Njettiness.hh"
 
+#include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
+
 using namespace edm;
 using namespace reco;
 using namespace std;
@@ -150,9 +152,12 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     Int_t jet_isW_ak7[kMaxNjet];
     Int_t jet_ncand_ak7[kMaxNjet];
 
+
+    // Nhan's stuff
     edm::InputTag JetTag_;
     edm::EDGetTokenT<edm::View<pat::Jet>> JetTok_;
-    
+    tensorflow::GraphDef* graphDef_;
+
     //Int_t ak7_to_ak5[kMaxNjet];
 
     // Jet composition

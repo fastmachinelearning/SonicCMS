@@ -287,7 +287,12 @@ void OpenDataTreeProducerOptimized::endJob() {
 
 
 void OpenDataTreeProducerOptimized::beginRun(edm::Run const &iRun,
-                                     edm::EventSetup const &iSetup) {    
+                                     edm::EventSetup const &iSetup) { 
+
+  // load the graph 
+  tensorflow::setLogging();
+  graphDef_ = tensorflow::loadGraphDef("resnet50.pb");
+
 }
 
 
@@ -315,7 +320,7 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
     int jet_ctr = 0;
     for(const auto& i_jet : *(h_jets.product())){
       
-      //finish moment calcs
+      //jet calcs
       float jet_pt  =  i_jet.pt();
       float jet_phi =  i_jet.phi();
       float jet_eta =  i_jet.eta();
