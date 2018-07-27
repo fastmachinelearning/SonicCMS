@@ -70,21 +70,34 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
 void OpenDataTreeProducerOptimized::beginJob() {
         
     // load the graph 
-    std::cout << "[OpenDataTreeProducerOptimized::beginRun] loading the .pb files..." << std::endl;
+    std::cout << "[OpenDataTreeProducerOptimized::beginJob] Loading the .pb files..." << std::endl;
     tensorflow::setLogging();
-    graphDef_ = tensorflow::loadGraphDef("resnet50_classifier.pb");
-    // ReadBinaryProto(tensorflow::Env::Default(), "resnet50_classifier.pb", &graphDef_);
-    // graphDefClassifier_ = tensorflow::loadGraphDef("resnet50_classifier.pb");
     
-    std::cout << "node size = " << graphDef_->node_size() << std::endl;
-    for (int i = 0; i < graphDef_->node_size(); i++) {
-      std::cout << graphDef_->node(i).name() << std::endl;
+    graphDefFeaturizer_ = tensorflow::loadGraphDef("resnet50.pb");
+    std::cout << "featurizer node size = " << graphDefFeaturizer_->node_size() << std::endl;
+    // Don't print this out -- it's humongous
+    // for (int i = 0; i < graphDefFeaturizer_->node_size(); i++) {
+    //   std::cout << graphDefFeaturizer_->node(i).name() << std::endl;
+    //   // std::cout << "name = " << name << std::endl;
+    // }
+    auto shape0F = graphDefFeaturizer_->node().Get(0).attr().at("shape").shape();
+    std::cout << "featurizer shape0 size = " << shape0F.dim_size() << std::endl;
+    for (int i = 0; i < shape0F.dim_size(); i++) {
+      std::cout << shape0F.dim(i).size() << std::endl;
       // std::cout << "name = " << name << std::endl;
     }
-    auto shape0 = graphDef_->node().Get(0).attr().at("shape").shape();
-    std::cout << "shape0 size = " << shape0.dim_size() << std::endl;
-    for (int i = 0; i < shape0.dim_size(); i++) {
-      std::cout << shape0.dim(i).size() << std::endl;
+
+    // ReadBinaryProto(tensorflow::Env::Default(), "resnet50_classifier.pb", &graphDef_);
+    graphDefClassifier_ = tensorflow::loadGraphDef("resnet50_classifier.pb");
+    std::cout << "classifier node size = " << graphDefClassifier_->node_size() << std::endl;
+    for (int i = 0; i < graphDefClassifier_->node_size(); i++) {
+      std::cout << graphDefClassifier_->node(i).name() << std::endl;
+      // std::cout << "name = " << name << std::endl;
+    }
+    auto shape0C = graphDefClassifier_->node().Get(0).attr().at("shape").shape();
+    std::cout << "classifier hape0 size = " << shape0C.dim_size() << std::endl;
+    for (int i = 0; i < shape0C.dim_size(); i++) {
+      std::cout << shape0C.dim(i).size() << std::endl;
       // std::cout << "name = " << name << std::endl;
     }
     
@@ -158,55 +171,73 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 
     }
 
+    std::cout << "----------------------------------------------------------------------" << std::endl;
+    // --------------------------------------------------------------------
+    // Run the Featurizer
+    std::cout << " ====> Run the Featurizer..." << std::endl;
+    // Tensorflow part
+    std::cout << "Create featurizer session..." << std::endl;
+    tensorflow::Session* sessionF = tensorflow::createSession(graphDefFeaturizer_);
     // convert image to tensor
     tensorflow::Tensor inputImage(tensorflow::DT_FLOAT, { 1, 224, 224, 3 });
     // std::cout << "inputImage shape = " << inputImage.tensor<float,(4)>() << std::endl;
     auto input_map = inputImage.tensor<float, 4>();
     for (int itf = 0; itf < 224; itf++){
       for (int jtf = 0; jtf < 224; jtf++){
-        input_map(0,itf,jtf,0) = image2D[itf][jtf];
-        input_map(0,itf,jtf,1) = image2D[itf][jtf];
-        input_map(0,itf,jtf,2) = image2D[itf][jtf];
+        // input_map(0,itf,jtf,0) = image2D[itf][jtf];
+        // input_map(0,itf,jtf,1) = image2D[itf][jtf];
+        // input_map(0,itf,jtf,2) = image2D[itf][jtf];
+        input_map(0,itf,jtf,0) = (float) 0.1*itf + 0.1*jtf;
+        input_map(0,itf,jtf,1) = (float) 0.2*itf + 0.2*jtf;
+        input_map(0,itf,jtf,2) = (float) 0.3*itf + 0.3*jtf;
       }
     }
+    std::cout << "Featurizer input = " << inputImage.DebugString() << endl;
 
-    // (?, 1, 1, 2048)
+    std::vector<tensorflow::Tensor> featurizer_outputs;
+    tensorflow::Status statusF = sessionF->Run( {{"InputImage:0",inputImage}}, { "resnet_v1_50/pool5:0" }, {}, &featurizer_outputs);
+    if (!statusF.ok()) { std::cout << statusF.ToString() << std::endl; }
+    else{ std::cout << "Featurizer Status: Ok" << std::endl; }
+    std::cout << "featurizer_outputs vector size = " << featurizer_outputs.size() << std::endl;
+    std::cout << "featurizer_outputs vector = " << featurizer_outputs[0].DebugString() << std::endl;
+
+    time_t my_time2 = time(NULL);
+    printf("Post Featurizer Time %s", ctime(&my_time2));
+
+    std::cout << "Close the featurizer session..." << std::endl;
+    tensorflow::closeSession(sessionF);    
+
+
+    // --------------------------------------------------------------------
+    // Run the Classifier
+    std::cout << " ====> Run the Classifier..." << std::endl;
+    // Tensorflow part
+    std::cout << "Create classifier session..." << std::endl;
+    tensorflow::Session* sessionC = tensorflow::createSession(graphDefClassifier_);
+
     tensorflow::Tensor inputClassifer(tensorflow::DT_FLOAT, { 1, 1, 1, 2048 });
     auto input_map_classifier = inputClassifer.tensor<float,4>();
     for (int itf = 0; itf < 2048; itf++){
       input_map_classifier(0,0,0,itf) = (float) itf * 0.1;
     }
+    std::cout << "Classifier input = " << inputClassifer.DebugString() << endl;
 
-    std::cout << inputClassifer.DebugString() << endl;
-
-
-    // Tensorflow part
-    std::cout << "creating session..." << std::endl;
-    tensorflow::Session* session = tensorflow::createSession(graphDef_);
-    std::cout << "Now can run..." << std::endl;
-
-    time_t my_time2 = time(NULL);
-    printf("%s", ctime(&my_time2));
-
-    // std::vector<tensorflow::Tensor> outputs;
     std::vector<tensorflow::Tensor> outputs;
-    // tensorflow::Status status = session->Run( {{"prefix/InputImage:0",inputImage}}, { "prefix/resnet_v1_50/pool5:0" }, {}, &outputs);
-    tensorflow::Status status = session->Run( {{"Input:0",inputClassifer}}, { "resnet_v1_50/logits/Softmax:0" }, {}, &outputs);
-    if (!status.ok()) { std::cout << status.ToString() << std::endl; }
-    else{ std::cout << "status ok?!" << std::endl; }
-    
-    std::cout << "Ran tensor!" << std::endl;
-    // std::cout << "outputs = " << outputs << std::endl;
+    tensorflow::Status statusC = sessionC->Run( {{"Input:0",inputClassifer}}, { "resnet_v1_50/logits/Softmax:0" }, {}, &outputs);
+    if (!statusC.ok()) { std::cout << statusC.ToString() << std::endl; }
+    else{ std::cout << "Classifier Status: Ok" << std::endl; }
     // auto outputs_map_classifier = outputs[0].tensor<float,4>();
     std::cout << "output vector size = " << outputs.size() << std::endl;
-    // std::cout << "dim 0 output size = " << outputs[0].shape().dim_size(0) << std::endl; 
     std::cout << "output vector = " << outputs[0].DebugString() << std::endl;
 
     time_t my_time3 = time(NULL);
-    printf("%s", ctime(&my_time3));
+    printf("Post Classifer Time: %s", ctime(&my_time3));
 
-    std::cout << "close the session..." << std::endl;
-    tensorflow::closeSession(session);
+    std::cout << "Close the classifier session..." << std::endl;
+    tensorflow::closeSession(sessionC);    
+    // --------------------------------------------------------------------
+
+
 
 }
 

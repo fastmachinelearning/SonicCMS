@@ -38,7 +38,7 @@ class OpenDataTreeProducerOptimized : public edm::EDAnalyzer
     
     edm::InputTag JetTag_;
     edm::EDGetTokenT<edm::View<pat::Jet>> JetTok_;
-    tensorflow::GraphDef* graphDef_;
+    tensorflow::GraphDef* graphDefFeaturizer_;
     tensorflow::GraphDef* graphDefClassifier_;
     
 };
