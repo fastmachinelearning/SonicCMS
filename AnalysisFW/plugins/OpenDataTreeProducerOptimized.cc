@@ -56,6 +56,9 @@
 
 #include "RecoJets/JetAssociationProducers/src/JetTracksAssociatorAtVertex.h"
 
+#include "tensorflow/core/public/session.h"
+#include "tensorflow/core/graph/default_device.h"
+
 // #include "fastjet/contrib/SoftDrop.hh"
 
 OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet const &cfg) :
@@ -70,8 +73,29 @@ void OpenDataTreeProducerOptimized::beginJob() {
     std::cout << "[OpenDataTreeProducerOptimized::beginRun] loading the .pb files..." << std::endl;
     tensorflow::setLogging();
     graphDef_ = tensorflow::loadGraphDef("resnet50_classifier.pb");
+    // ReadBinaryProto(tensorflow::Env::Default(), "resnet50_classifier.pb", &graphDef_);
     // graphDefClassifier_ = tensorflow::loadGraphDef("resnet50_classifier.pb");
     
+    std::cout << "node size = " << graphDef_->node_size() << std::endl;
+    for (int i = 0; i < graphDef_->node_size(); i++) {
+      std::cout << graphDef_->node(i).name() << std::endl;
+      // std::cout << "name = " << name << std::endl;
+    }
+    auto shape0 = graphDef_->node().Get(0).attr().at("shape").shape();
+    std::cout << "shape0 size = " << shape0.dim_size() << std::endl;
+    for (int i = 0; i < shape0.dim_size(); i++) {
+      std::cout << shape0.dim(i).size() << std::endl;
+      // std::cout << "name = " << name << std::endl;
+    }
+    
+    // apparently the last node does not have a shape, so this is all commented out
+    // auto shapeN = graphDef_->node().Get(graphDef_->node_size()-1).attr().at("shape").shape();    
+    // std::cout << "shapeN size = " << shapeN.dim_size() << std::endl;
+    // for (int i = 0; i < shapeN.dim_size(); i++) {
+    //   std::cout << shapeN.dim(i).size() << std::endl;
+    //   // std::cout << "name = " << name << std::endl;
+    // }
+
     time_t my_time = time(NULL);
     printf("%s", ctime(&my_time));        
 }
@@ -153,6 +177,9 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
       input_map_classifier(0,0,0,itf) = (float) itf * 0.1;
     }
 
+    std::cout << inputClassifer.DebugString() << endl;
+
+
     // Tensorflow part
     std::cout << "creating session..." << std::endl;
     tensorflow::Session* session = tensorflow::createSession(graphDef_);
@@ -161,10 +188,19 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
     time_t my_time2 = time(NULL);
     printf("%s", ctime(&my_time2));
 
+    // std::vector<tensorflow::Tensor> outputs;
     std::vector<tensorflow::Tensor> outputs;
     // tensorflow::Status status = session->Run( {{"prefix/InputImage:0",inputImage}}, { "prefix/resnet_v1_50/pool5:0" }, {}, &outputs);
-    tensorflow::Status status = session->Run( {{"prefix/Input:0",inputClassifer}}, { "prefix/resnet_v1_50/logits/Softmax:0" }, {}, &outputs);
-    std::cout << "Does this work??" << std::endl;
+    tensorflow::Status status = session->Run( {{"Input:0",inputClassifer}}, { "resnet_v1_50/logits/Softmax:0" }, {}, &outputs);
+    if (!status.ok()) { std::cout << status.ToString() << std::endl; }
+    else{ std::cout << "status ok?!" << std::endl; }
+    
+    std::cout << "Ran tensor!" << std::endl;
+    // std::cout << "outputs = " << outputs << std::endl;
+    // auto outputs_map_classifier = outputs[0].tensor<float,4>();
+    std::cout << "output vector size = " << outputs.size() << std::endl;
+    // std::cout << "dim 0 output size = " << outputs[0].shape().dim_size(0) << std::endl; 
+    std::cout << "output vector = " << outputs[0].DebugString() << std::endl;
 
     time_t my_time3 = time(NULL);
     printf("%s", ctime(&my_time3));
