@@ -18,6 +18,7 @@
 <use   name="CondFormats/DataRecord"/>
 <use   name="CondFormats/JetMETObjects"/>
 <use   name="RecoJets/JetAssociationProducers"/>
+<use   name="PhysicsTools/TensorFlow"/>
 <export>
   <lib   name="1"/>
 </export>

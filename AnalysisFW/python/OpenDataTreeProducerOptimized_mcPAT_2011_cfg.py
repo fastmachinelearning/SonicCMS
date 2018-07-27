@@ -1,14 +1,5 @@
 
 # Forked from SMPJ Analysis Framework
-# https://twiki.cern.ch/twiki/bin/viewauth/CMS/SMPJAnalysisFW
-# https://github.com/cms-smpj/SMPJ/tree/v1.0
-# (further optimized to improve performance)
-
-
-## Skeleton process
-# from PhysicsTools.PatAlgos.patTemplate_cfg import *
-# import FWCore.Utilities.FileUtils as FileUtils
-
 import FWCore.ParameterSet.Config as cms
 import os
 import sys
@@ -144,9 +135,9 @@ process.p = cms.Path(
 
 # Change number of events here:
 #process.maxEvents.input = 1000
-process.maxEvents.input = -1
+process.maxEvents.input = 25
 
-process.MessageLogger.cerr.FwkReport.reportEvery = 500
+process.MessageLogger.cerr.FwkReport.reportEvery = 10
 
 # Output file
 process.TFileService = cms.Service("TFileService", fileName = cms.string('OpenDataTree_mc.root'))
