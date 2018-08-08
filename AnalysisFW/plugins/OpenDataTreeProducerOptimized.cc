@@ -13,8 +13,7 @@
 #include <cmath>
 #include <functional>
 #include <vector>
-#include <ctime>
-
+#include <chrono>
 
 // c2numpy convertion include
 #include "2011-jet-inclusivecrosssection-ntupleproduction-optimized/AnalysisFW/interface/c2numpy.h"
@@ -101,8 +100,6 @@ void OpenDataTreeProducerOptimized::beginJob() {
     //   std::cout << shapeN.dim(i).size() << std::endl;
     // }
 
-    time_t my_time = time(NULL);
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "Start time: " << ctime(&my_time);
 }
 
 void OpenDataTreeProducerOptimized::endJob() {
@@ -118,6 +115,8 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
   
     edm::Handle<edm::View<pat::Jet>> h_jets;
     event_obj.getByToken(JetTok_, h_jets);
+
+    auto t0 = std::chrono::high_resolution_clock::now();
 
     // create a jet image for the leading jet in the event
     // 224 x 224 image which is centered at the jet axis and +/- 1 unit in eta and phi
@@ -162,6 +161,9 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 
     }
 
+    auto t1 = std::chrono::high_resolution_clock::now();
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "Image time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+
     // --------------------------------------------------------------------
     // Run the Featurizer
     edm::LogInfo("OpenDataTreeProducerOptimized") << " ====> Run the Featurizer...";
@@ -190,8 +192,8 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
     edm::LogInfo("OpenDataTreeProducerOptimized") << "featurizer_outputs vector size = " << featurizer_outputs.size();
     edm::LogInfo("OpenDataTreeProducerOptimized") << "featurizer_outputs vector = " << featurizer_outputs[0].DebugString();
 
-    time_t my_time2 = time(NULL);
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "Post Featurizer Time " << ctime(&my_time2);
+    auto t2 = std::chrono::high_resolution_clock::now();
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "Featurizer time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 
     edm::LogInfo("OpenDataTreeProducerOptimized") << "Close the featurizer session...";
     tensorflow::closeSession(sessionF);    
@@ -219,8 +221,8 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
     edm::LogInfo("OpenDataTreeProducerOptimized") << "output vector size = " << outputs.size();
     edm::LogInfo("OpenDataTreeProducerOptimized") << "output vector = " << outputs[0].DebugString();
 
-    time_t my_time3 = time(NULL);
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "Post Classifer Time: " << ctime(&my_time3);
+    auto t3 = std::chrono::high_resolution_clock::now();
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "Classifier time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 
     edm::LogInfo("OpenDataTreeProducerOptimized") << "Close the classifier session...";
     tensorflow::closeSession(sessionC);    
