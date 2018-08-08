@@ -7,8 +7,8 @@ Download the model files, and the classifier outputs for resnet50
 ```
 cd python
 wget https://raw.githubusercontent.com/Lasagne/Recipes/master/examples/resnet50/imagenet_classes.txt
-wget https://www.dropbox.com/s/8p783l38z8cp160/resnet50.pb?dl=0
-wget https://www.dropbox.com/s/mycy3dh154kfgtd/resnet50_classifier.pb?dl=0
+wget -O resnet50.pb "https://www.dropbox.com/s/8p783l38z8cp160/resnet50.pb?dl=0"
+wget -O resnet50_classifier.pb "https://www.dropbox.com/s/mycy3dh154kfgtd/resnet50_classifier.pb?dl=0"
 cd ..
 ```
 
