@@ -138,6 +138,11 @@ process.p = cms.Path(
 process.maxEvents.input = 25
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 10
+process.MessageLogger.categories.append('OpenDataTreeProducerOptimized')
+process.MessageLogger.cerr.OpenDataTreeProducerOptimized = cms.untracked.PSet(
+    optionalPSet = cms.untracked.bool(True),
+    limit = cms.untracked.int32(10000000),
+)
 
 # Output file
 process.TFileService = cms.Service("TFileService", fileName = cms.string('OpenDataTree_mc.root'))

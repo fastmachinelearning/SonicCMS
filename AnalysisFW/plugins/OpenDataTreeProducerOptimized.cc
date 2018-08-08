@@ -7,17 +7,13 @@
 
 #include <iostream>
 #include <sstream>
-#include <istream>
 #include <fstream>
 #include <iomanip>
 #include <string>
 #include <cmath>
 #include <functional>
-#include "TTree.h"
 #include <vector>
-#include <cassert>
-#include <TLorentzVector.h>
-#include <time.h>
+#include <ctime>
 
 
 // c2numpy convertion include
@@ -29,6 +25,7 @@
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/Common/interface/TriggerNames.h"
 #include "FWCore/Common/interface/TriggerResultsByName.h"
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
@@ -70,35 +67,31 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
 void OpenDataTreeProducerOptimized::beginJob() {
         
     // load the graph 
-    std::cout << "[OpenDataTreeProducerOptimized::beginJob] Loading the .pb files..." << std::endl;
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "[OpenDataTreeProducerOptimized::beginJob] Loading the .pb files...";
     tensorflow::setLogging();
     
     graphDefFeaturizer_ = tensorflow::loadGraphDef("resnet50.pb");
-    std::cout << "featurizer node size = " << graphDefFeaturizer_->node_size() << std::endl;
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "featurizer node size = " << graphDefFeaturizer_->node_size();
     // Don't print this out -- it's humongous
     // for (int i = 0; i < graphDefFeaturizer_->node_size(); i++) {
     //   std::cout << graphDefFeaturizer_->node(i).name() << std::endl;
-    //   // std::cout << "name = " << name << std::endl;
     // }
     auto shape0F = graphDefFeaturizer_->node().Get(0).attr().at("shape").shape();
-    std::cout << "featurizer shape0 size = " << shape0F.dim_size() << std::endl;
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "featurizer shape0 size = " << shape0F.dim_size();
     for (int i = 0; i < shape0F.dim_size(); i++) {
-      std::cout << shape0F.dim(i).size() << std::endl;
-      // std::cout << "name = " << name << std::endl;
+      edm::LogInfo("OpenDataTreeProducerOptimized") << shape0F.dim(i).size();
     }
 
     // ReadBinaryProto(tensorflow::Env::Default(), "resnet50_classifier.pb", &graphDef_);
     graphDefClassifier_ = tensorflow::loadGraphDef("resnet50_classifier.pb");
-    std::cout << "classifier node size = " << graphDefClassifier_->node_size() << std::endl;
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "classifier node size = " << graphDefClassifier_->node_size();
     for (int i = 0; i < graphDefClassifier_->node_size(); i++) {
-      std::cout << graphDefClassifier_->node(i).name() << std::endl;
-      // std::cout << "name = " << name << std::endl;
+      edm::LogInfo("OpenDataTreeProducerOptimized") << graphDefClassifier_->node(i).name();
     }
     auto shape0C = graphDefClassifier_->node().Get(0).attr().at("shape").shape();
-    std::cout << "classifier hape0 size = " << shape0C.dim_size() << std::endl;
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "classifier hape0 size = " << shape0C.dim_size();
     for (int i = 0; i < shape0C.dim_size(); i++) {
-      std::cout << shape0C.dim(i).size() << std::endl;
-      // std::cout << "name = " << name << std::endl;
+      edm::LogInfo("OpenDataTreeProducerOptimized") << shape0C.dim(i).size();
     }
     
     // apparently the last node does not have a shape, so this is all commented out
@@ -106,11 +99,10 @@ void OpenDataTreeProducerOptimized::beginJob() {
     // std::cout << "shapeN size = " << shapeN.dim_size() << std::endl;
     // for (int i = 0; i < shapeN.dim_size(); i++) {
     //   std::cout << shapeN.dim(i).size() << std::endl;
-    //   // std::cout << "name = " << name << std::endl;
     // }
 
     time_t my_time = time(NULL);
-    printf("%s", ctime(&my_time));        
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "Start time: " << ctime(&my_time);
 }
 
 void OpenDataTreeProducerOptimized::endJob() {
@@ -150,7 +142,6 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
         float i_pt = i_part->pt();
         float i_phi = i_part->phi();
         float i_eta = i_part->eta();
-        //std::cout << "daughter pt = " << i_pt << std::endl;
         
         float dphi = i_phi - jet_phi;
         if (dphi > M_PI) dphi -= 2*M_PI;
@@ -171,16 +162,14 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
 
     }
 
-    std::cout << "----------------------------------------------------------------------" << std::endl;
     // --------------------------------------------------------------------
     // Run the Featurizer
-    std::cout << " ====> Run the Featurizer..." << std::endl;
+    edm::LogInfo("OpenDataTreeProducerOptimized") << " ====> Run the Featurizer...";
     // Tensorflow part
-    std::cout << "Create featurizer session..." << std::endl;
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "Create featurizer session...";
     tensorflow::Session* sessionF = tensorflow::createSession(graphDefFeaturizer_);
     // convert image to tensor
     tensorflow::Tensor inputImage(tensorflow::DT_FLOAT, { 1, 224, 224, 3 });
-    // std::cout << "inputImage shape = " << inputImage.tensor<float,(4)>() << std::endl;
     auto input_map = inputImage.tensor<float, 4>();
     for (int itf = 0; itf < 224; itf++){
       for (int jtf = 0; jtf < 224; jtf++){
@@ -192,27 +181,27 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
         input_map(0,itf,jtf,2) = (float) 0.3*itf + 0.3*jtf;
       }
     }
-    std::cout << "Featurizer input = " << inputImage.DebugString() << endl;
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "Featurizer input = " << inputImage.DebugString() << endl;
 
     std::vector<tensorflow::Tensor> featurizer_outputs;
     tensorflow::Status statusF = sessionF->Run( {{"InputImage:0",inputImage}}, { "resnet_v1_50/pool5:0" }, {}, &featurizer_outputs);
-    if (!statusF.ok()) { std::cout << statusF.ToString() << std::endl; }
-    else{ std::cout << "Featurizer Status: Ok" << std::endl; }
-    std::cout << "featurizer_outputs vector size = " << featurizer_outputs.size() << std::endl;
-    std::cout << "featurizer_outputs vector = " << featurizer_outputs[0].DebugString() << std::endl;
+    if (!statusF.ok()) { edm::LogInfo("OpenDataTreeProducerOptimized") << statusF.ToString(); }
+    else{ edm::LogInfo("OpenDataTreeProducerOptimized") << "Featurizer Status: Ok"; }
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "featurizer_outputs vector size = " << featurizer_outputs.size();
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "featurizer_outputs vector = " << featurizer_outputs[0].DebugString();
 
     time_t my_time2 = time(NULL);
-    printf("Post Featurizer Time %s", ctime(&my_time2));
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "Post Featurizer Time " << ctime(&my_time2);
 
-    std::cout << "Close the featurizer session..." << std::endl;
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "Close the featurizer session...";
     tensorflow::closeSession(sessionF);    
 
 
     // --------------------------------------------------------------------
     // Run the Classifier
-    std::cout << " ====> Run the Classifier..." << std::endl;
+    edm::LogInfo("OpenDataTreeProducerOptimized") << " ====> Run the Classifier...";
     // Tensorflow part
-    std::cout << "Create classifier session..." << std::endl;
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "Create classifier session...";
     tensorflow::Session* sessionC = tensorflow::createSession(graphDefClassifier_);
 
     tensorflow::Tensor inputClassifer(tensorflow::DT_FLOAT, { 1, 1, 1, 2048 });
@@ -220,20 +209,20 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
     for (int itf = 0; itf < 2048; itf++){
       input_map_classifier(0,0,0,itf) = (float) itf * 0.1;
     }
-    std::cout << "Classifier input = " << inputClassifer.DebugString() << endl;
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "Classifier input = " << inputClassifer.DebugString() << endl;
 
     std::vector<tensorflow::Tensor> outputs;
     tensorflow::Status statusC = sessionC->Run( {{"Input:0",inputClassifer}}, { "resnet_v1_50/logits/Softmax:0" }, {}, &outputs);
-    if (!statusC.ok()) { std::cout << statusC.ToString() << std::endl; }
-    else{ std::cout << "Classifier Status: Ok" << std::endl; }
+    if (!statusC.ok()) { edm::LogInfo("OpenDataTreeProducerOptimized") << statusC.ToString(); }
+    else{ edm::LogInfo("OpenDataTreeProducerOptimized") << "Classifier Status: Ok"; }
     // auto outputs_map_classifier = outputs[0].tensor<float,4>();
-    std::cout << "output vector size = " << outputs.size() << std::endl;
-    std::cout << "output vector = " << outputs[0].DebugString() << std::endl;
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "output vector size = " << outputs.size();
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "output vector = " << outputs[0].DebugString();
 
     time_t my_time3 = time(NULL);
-    printf("Post Classifer Time: %s", ctime(&my_time3));
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "Post Classifer Time: " << ctime(&my_time3);
 
-    std::cout << "Close the classifier session..." << std::endl;
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "Close the classifier session...";
     tensorflow::closeSession(sessionC);    
     // --------------------------------------------------------------------
 
