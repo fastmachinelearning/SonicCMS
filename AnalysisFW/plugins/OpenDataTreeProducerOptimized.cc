@@ -16,7 +16,7 @@
 #include <chrono>
 
 // c2numpy convertion include
-#include "2011-jet-inclusivecrosssection-ntupleproduction-optimized/AnalysisFW/interface/c2numpy.h"
+#include "Jet2011/AnalysisFW/interface/c2numpy.h"
 #include "OpenDataTreeProducerOptimized.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/ESHandle.h"
