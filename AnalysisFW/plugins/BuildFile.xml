@@ -18,7 +18,7 @@
 <use   name="CondFormats/L1TObjects"/>
 <use   name="CondFormats/DataRecord"/>
 <use   name="CondFormats/JetMETObjects"/>
-<use   name="2011-jet-inclusivecrosssection-ntupleproduction-optimized/AnalysisFW"/>
+<use   name="Jet2011/AnalysisFW"/>
 <use   name="PhysicsTools/TensorFlow"/>
 <use   name="fastjet"/>
 <use   name="fastjet-contrib"/>
