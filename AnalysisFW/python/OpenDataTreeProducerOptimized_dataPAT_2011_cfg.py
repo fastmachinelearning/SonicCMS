@@ -54,8 +54,8 @@ process.trackingFailureFilter.VertexSource = cms.InputTag('goodOfflinePrimaryVer
 # Load jet correction services for all jet algoritms
 process.load("JetMETCorrections.Configuration.JetCorrectionServicesAllAlgos_cff")
 
-################### EDAnalyzer ##############################
-process.ak5ak7 = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
+################### EDProducer ##############################
+process.ak5ak7 = cms.EDProducer('OpenDataTreeProducerOptimized',
     ## numpy output                                                                                   
     maxRows = cms.untracked.int32(10000000),                            
     ## jet collections ###########################

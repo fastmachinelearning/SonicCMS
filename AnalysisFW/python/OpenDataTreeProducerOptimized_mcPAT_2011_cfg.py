@@ -67,8 +67,8 @@ process.source = cms.Source("PoolSource",
 # Load jet correction services for all jet algoritms, we don't need this right?
 # process.load("JetMETCorrections.Configuration.JetCorrectionServicesAllAlgos_cff")
 
-################### EDAnalyzer ##############################3
-process.jetImageProducer = cms.EDAnalyzer('OpenDataTreeProducerOptimized',
+################### EDProducer ##############################
+process.jetImageProducer = cms.EDProducer('OpenDataTreeProducerOptimized',
     ## numpy output                                                                                                          
     maxRows = cms.untracked.int32(10000000),
     #JetTag          = cms.InputTag('slimmedJetsPuppi'),

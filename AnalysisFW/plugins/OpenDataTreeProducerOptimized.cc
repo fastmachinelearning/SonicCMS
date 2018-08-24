@@ -1,9 +1,6 @@
-
-
 // Forked from SMPJ Analysis Framework
 // https://twiki.cern.ch/twiki/bin/viewauth/CMS/SMPJAnalysisFW
 // https://github.com/cms-smpj/SMPJ/tree/v1.0
-
 
 #include <iostream>
 #include <sstream>
@@ -17,7 +14,9 @@
 
 // c2numpy convertion include
 #include "Jet2011/AnalysisFW/interface/c2numpy.h"
-#include "OpenDataTreeProducerOptimized.h"
+#include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/global/EDProducer.h"
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -25,11 +24,16 @@
 #include "FWCore/Common/interface/TriggerNames.h"
 #include "FWCore/Common/interface/TriggerResultsByName.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include "FWCore/ServiceRegistry/interface/Service.h"
 
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "DataFormats/HLTReco/interface/TriggerEvent.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
 #include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/Math/interface/deltaR.h"
+#include "DataFormats/PatCandidates/interface/Jet.h"
+#include "DataFormats/PatCandidates/interface/JetCorrFactors.h"
 #include "DataFormats/JetReco/interface/Jet.h"
 #include "DataFormats/JetReco/interface/PFJet.h"
 #include "DataFormats/JetReco/interface/PFJetCollection.h"
@@ -47,24 +51,47 @@
 #include "SimDataFormats/GeneratorProducts/interface/GenRunInfoProduct.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 
+#include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include "JetMETCorrections/Objects/interface/JetCorrector.h"
+#include "CondFormats/JetMETObjects/interface/JetCorrectionUncertainty.h"
 #include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
 #include "JetMETCorrections/Objects/interface/JetCorrectionsRecord.h"
 
 #include "RecoJets/JetAssociationProducers/src/JetTracksAssociatorAtVertex.h"
 
+#include "fastjet/contrib/Njettiness.hh"
+
+#include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/graph/default_device.h"
 
-// #include "fastjet/contrib/SoftDrop.hh"
+using namespace edm;
+using namespace reco;
+using namespace std;
+using namespace trigger;
+
+class OpenDataTreeProducerOptimized : public edm::global::EDProducer<>
+{
+  public:
+
+    explicit OpenDataTreeProducerOptimized(edm::ParameterSet const& cfg);
+    void produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const& iSetup) const;
+    ~OpenDataTreeProducerOptimized() override;
+
+  private:
+
+    edm::InputTag JetTag_;
+    edm::EDGetTokenT<edm::View<pat::Jet>> JetTok_;
+    tensorflow::GraphDef* graphDefFeaturizer_;
+    tensorflow::GraphDef* graphDefClassifier_;
+
+};
 
 OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet const &cfg) :
   JetTag_(cfg.getParameter<edm::InputTag>("JetTag")),
   JetTok_(consumes<edm::View<pat::Jet>>(JetTag_))
 {
-}
-
-void OpenDataTreeProducerOptimized::beginJob() {
-        
     // load the graph 
     edm::LogInfo("OpenDataTreeProducerOptimized") << "[OpenDataTreeProducerOptimized::beginJob] Loading the .pb files...";
     tensorflow::setLogging();
@@ -88,7 +115,7 @@ void OpenDataTreeProducerOptimized::beginJob() {
       edm::LogInfo("OpenDataTreeProducerOptimized") << graphDefClassifier_->node(i).name();
     }
     auto shape0C = graphDefClassifier_->node().Get(0).attr().at("shape").shape();
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "classifier hape0 size = " << shape0C.dim_size();
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "classifier shape0 size = " << shape0C.dim_size();
     for (int i = 0; i < shape0C.dim_size(); i++) {
       edm::LogInfo("OpenDataTreeProducerOptimized") << shape0C.dim(i).size();
     }
@@ -102,19 +129,10 @@ void OpenDataTreeProducerOptimized::beginJob() {
 
 }
 
-void OpenDataTreeProducerOptimized::endJob() {
-}
-
-
-void OpenDataTreeProducerOptimized::beginRun(edm::Run const &iRun,edm::EventSetup const &iSetup) { 
-}
-
-
-void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
-                                    edm::EventSetup const &iSetup) {
+void OpenDataTreeProducerOptimized::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const &iSetup) const {
   
     edm::Handle<edm::View<pat::Jet>> h_jets;
-    event_obj.getByToken(JetTok_, h_jets);
+    iEvent.getByToken(JetTok_, h_jets);
 
     auto t0 = std::chrono::high_resolution_clock::now();
 
@@ -229,12 +247,6 @@ void OpenDataTreeProducerOptimized::analyze(edm::Event const &event_obj,
     // --------------------------------------------------------------------
 
 
-
-}
-
-
-
-void OpenDataTreeProducerOptimized::endRun(edm::Run const &iRun, edm::EventSetup const &iSetup) {
 
 }
 
