@@ -80,6 +80,11 @@ class OpenDataTreeProducerOptimized : public edm::global::EDProducer<>
     ~OpenDataTreeProducerOptimized() override;
 
   private:
+    void loadModel();
+    tensorflow::Tensor createImage(const edm::View<pat::Jet>& jets) const;
+    std::vector<tensorflow::Tensor> runFeaturizer(const tensorflow::Tensor& input) const;
+    tensorflow::Tensor createFeatureList(const tensorflow::Tensor& input) const;
+    std::vector<tensorflow::Tensor> runClassifier(const tensorflow::Tensor& input) const;
 
     edm::InputTag JetTag_;
     edm::EDGetTokenT<edm::View<pat::Jet>> JetTok_;
@@ -92,11 +97,15 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
   JetTag_(cfg.getParameter<edm::InputTag>("JetTag")),
   JetTok_(consumes<edm::View<pat::Jet>>(JetTag_))
 {
+    loadModel();
+}
+
+void OpenDataTreeProducerOptimized::loadModel(){
     // load the graph 
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "[OpenDataTreeProducerOptimized::beginJob] Loading the .pb files...";
+    std::stringstream msg;
+    msg << "[loadModel] Loading the .pb files...\n";
     tensorflow::setLogging();
 
-    std::stringstream msg;
     graphDefFeaturizer_ = tensorflow::loadGraphDef("resnet50.pb");
     msg << "featurizer node size = " << graphDefFeaturizer_->node_size() << "\n";
     // Don't print this out -- it's humongous
@@ -108,9 +117,7 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
     for (int i = 0; i < shape0F.dim_size(); i++) {
       msg << shape0F.dim(i).size() << "\n";
     }
-    edm::LogInfo("OpenDataTreeProducerOptimized") << msg.str();
 
-    msg.str("");
     // ReadBinaryProto(tensorflow::Env::Default(), "resnet50_classifier.pb", &graphDef_);
     graphDefClassifier_ = tensorflow::loadGraphDef("resnet50_classifier.pb");
     msg << "classifier node size = " << graphDefClassifier_->node_size() << "\n";
@@ -130,16 +137,9 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
     // for (int i = 0; i < shapeN.dim_size(); i++) {
     //   std::cout << shapeN.dim(i).size() << std::endl;
     // }
-
 }
 
-void OpenDataTreeProducerOptimized::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const &iSetup) const {
-  
-    edm::Handle<edm::View<pat::Jet>> h_jets;
-    iEvent.getByToken(JetTok_, h_jets);
-
-    auto t0 = std::chrono::high_resolution_clock::now();
-
+tensorflow::Tensor OpenDataTreeProducerOptimized::createImage(const edm::View<pat::Jet>& jets) const {
     // create a jet image for the leading jet in the event
     // 224 x 224 image which is centered at the jet axis and +/- 1 unit in eta and phi
     float image2D[224][224];
@@ -149,7 +149,7 @@ void OpenDataTreeProducerOptimized::produce(edm::StreamID, edm::Event& iEvent, e
     }
     
     int jet_ctr = 0;
-    for(const auto& i_jet : *(h_jets.product())){
+    for(const auto& i_jet : jets){
       
       //jet calcs
       float jet_pt  =  i_jet.pt();
@@ -183,15 +183,6 @@ void OpenDataTreeProducerOptimized::produce(edm::StreamID, edm::Event& iEvent, e
 
     }
 
-    auto t1 = std::chrono::high_resolution_clock::now();
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "Image time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
-
-    // --------------------------------------------------------------------
-    // Run the Featurizer
-    edm::LogInfo("OpenDataTreeProducerOptimized") << " ====> Run the Featurizer...";
-    // Tensorflow part
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "Create featurizer session...";
-    tensorflow::Session* sessionF = tensorflow::createSession(graphDefFeaturizer_);
     // convert image to tensor
     tensorflow::Tensor inputImage(tensorflow::DT_FLOAT, { 1, 224, 224, 3 });
     auto input_map = inputImage.tensor<float, 4>();
@@ -202,58 +193,97 @@ void OpenDataTreeProducerOptimized::produce(edm::StreamID, edm::Event& iEvent, e
         input_map(0,itf,jtf,2) = image2D[itf][jtf];
       }
     }
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "Featurizer input = " << inputImage.DebugString() << endl;
 
+    return inputImage;
+}
+
+std::vector<tensorflow::Tensor> OpenDataTreeProducerOptimized::runFeaturizer(const tensorflow::Tensor& inputImage) const {
+    std::stringstream msg;
+    msg << " ====> Run the Featurizer...\n";
+    // Tensorflow part
+    msg << "Create featurizer session...\n";
+    tensorflow::Session* sessionF = tensorflow::createSession(graphDefFeaturizer_);
+    msg << "Featurizer input = " << inputImage.DebugString() << "\n";
+    edm::LogInfo("OpenDataTreeProducerOptimized") << msg.str();
+
+    msg.str("");
     std::vector<tensorflow::Tensor> featurizer_outputs;
     tensorflow::Status statusF = sessionF->Run( {{"InputImage:0",inputImage}}, { "resnet_v1_50/pool5:0" }, {}, &featurizer_outputs);
-    if (!statusF.ok()) { edm::LogInfo("OpenDataTreeProducerOptimized") << statusF.ToString(); }
-    else{ edm::LogInfo("OpenDataTreeProducerOptimized") << "Featurizer Status: Ok"; }
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "featurizer_outputs vector size = " << featurizer_outputs.size();
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "featurizer_outputs vector = " << featurizer_outputs[0].DebugString();
+    if (!statusF.ok()) { msg << statusF.ToString() << "\n"; }
+    else{ msg << "Featurizer Status: Ok\n"; }
+    msg << "featurizer_outputs vector size = " << featurizer_outputs.size() << "\n";
+    msg << "featurizer_outputs vector = " << featurizer_outputs[0].DebugString() << "\n";
+
+    msg << "Close the featurizer session..."  << "\n";
+    tensorflow::closeSession(sessionF);
+    edm::LogInfo("OpenDataTreeProducerOptimized") << msg.str();
+
+    return featurizer_outputs;
+}
+
+tensorflow::Tensor OpenDataTreeProducerOptimized::createFeatureList(const tensorflow::Tensor& input) const {
+    tensorflow::Tensor inputClassifier(tensorflow::DT_FLOAT, { 1, 1, 1, 2048 });
+    auto input_map_classifier = inputClassifier.tensor<float,4>();
+    auto feature_list = input.tensor<float,4>();
+    for (int itf = 0; itf < 2048; itf++){
+      input_map_classifier(0,0,0,itf) = feature_list(0,0,0,itf);
+    }
+    return inputClassifier;
+}
+
+std::vector<tensorflow::Tensor> OpenDataTreeProducerOptimized::runClassifier(const tensorflow::Tensor& inputClassifier) const {
+    std::stringstream msg;
+    msg << " ====> Run the Classifier...\n";
+    // Tensorflow part
+    msg << "Create classifier session...\n";
+    tensorflow::Session* sessionC = tensorflow::createSession(graphDefClassifier_);
+
+    msg << "Classifier input = " << inputClassifier.DebugString() << "\n";
+
+    msg.str("");
+    std::vector<tensorflow::Tensor> outputs;
+    tensorflow::Status statusC = sessionC->Run( {{"Input:0",inputClassifier}}, { "resnet_v1_50/logits/Softmax:0" }, {}, &outputs);
+    if (!statusC.ok()) { msg << statusC.ToString() << "\n"; }
+    else{ msg << "Classifier Status: Ok"  << "\n"; }
+    // auto outputs_map_classifier = outputs[0].tensor<float,4>();
+    msg << "output vector size = " << outputs.size() << "\n";
+    msg << "output vector = " << outputs[0].DebugString() << "\n";
+
+    msg << "Close the classifier session..." << "\n";
+    tensorflow::closeSession(sessionC);
+    edm::LogInfo("OpenDataTreeProducerOptimized") << msg.str();
+
+    return outputs;
+}
+
+void OpenDataTreeProducerOptimized::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const &iSetup) const {
+    edm::Handle<edm::View<pat::Jet>> h_jets;
+    iEvent.getByToken(JetTok_, h_jets);
+
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    tensorflow::Tensor inputImage = createImage(*h_jets.product());
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "Image time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+
+    // --------------------------------------------------------------------
+    // Run the Featurizer
+    std::vector<tensorflow::Tensor> featurizer_outputs = runFeaturizer(inputImage);
 
     auto t2 = std::chrono::high_resolution_clock::now();
     edm::LogInfo("OpenDataTreeProducerOptimized") << "Featurizer time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "Close the featurizer session...";
-    tensorflow::closeSession(sessionF);    
-
-
     // --------------------------------------------------------------------
     // Run the Classifier
-    edm::LogInfo("OpenDataTreeProducerOptimized") << " ====> Run the Classifier...";
-    // Tensorflow part
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "Create classifier session...";
-    tensorflow::Session* sessionC = tensorflow::createSession(graphDefClassifier_);
-
-    tensorflow::Tensor inputClassifier(tensorflow::DT_FLOAT, { 1, 1, 1, 2048 });
-    auto input_map_classifier = inputClassifier.tensor<float,4>();
-    auto feature_list = featurizer_outputs[0].tensor<float,4>();
-    for (int itf = 0; itf < 2048; itf++){
-      input_map_classifier(0,0,0,itf) = feature_list(0,0,0,itf);
-    }
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "Classifier input = " << inputClassifier.DebugString() << endl;
-
-    std::vector<tensorflow::Tensor> outputs;
-    tensorflow::Status statusC = sessionC->Run( {{"Input:0",inputClassifier}}, { "resnet_v1_50/logits/Softmax:0" }, {}, &outputs);
-    if (!statusC.ok()) { edm::LogInfo("OpenDataTreeProducerOptimized") << statusC.ToString(); }
-    else{ edm::LogInfo("OpenDataTreeProducerOptimized") << "Classifier Status: Ok"; }
-    // auto outputs_map_classifier = outputs[0].tensor<float,4>();
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "output vector size = " << outputs.size();
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "output vector = " << outputs[0].DebugString();
+    tensorflow::Tensor inputClassifier = createFeatureList(featurizer_outputs[0]);
+    std::vector<tensorflow::Tensor> outputs = runClassifier(inputClassifier);
 
     auto t3 = std::chrono::high_resolution_clock::now();
     edm::LogInfo("OpenDataTreeProducerOptimized") << "Classifier time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
-
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "Close the classifier session...";
-    tensorflow::closeSession(sessionC);    
-    // --------------------------------------------------------------------
-
-
-
 }
 
 OpenDataTreeProducerOptimized::~OpenDataTreeProducerOptimized() {
 }
-
 
 DEFINE_FWK_MODULE(OpenDataTreeProducerOptimized);
