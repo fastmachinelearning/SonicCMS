@@ -95,30 +95,34 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
     // load the graph 
     edm::LogInfo("OpenDataTreeProducerOptimized") << "[OpenDataTreeProducerOptimized::beginJob] Loading the .pb files...";
     tensorflow::setLogging();
-    
+
+    std::stringstream msg;
     graphDefFeaturizer_ = tensorflow::loadGraphDef("resnet50.pb");
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "featurizer node size = " << graphDefFeaturizer_->node_size();
+    msg << "featurizer node size = " << graphDefFeaturizer_->node_size() << "\n";
     // Don't print this out -- it's humongous
     // for (int i = 0; i < graphDefFeaturizer_->node_size(); i++) {
     //   std::cout << graphDefFeaturizer_->node(i).name() << std::endl;
     // }
     auto shape0F = graphDefFeaturizer_->node().Get(0).attr().at("shape").shape();
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "featurizer shape0 size = " << shape0F.dim_size();
+    msg << "featurizer shape0 size = " << shape0F.dim_size() << "\n";
     for (int i = 0; i < shape0F.dim_size(); i++) {
-      edm::LogInfo("OpenDataTreeProducerOptimized") << shape0F.dim(i).size();
+      msg << shape0F.dim(i).size() << "\n";
     }
+    edm::LogInfo("OpenDataTreeProducerOptimized") << msg.str();
 
+    msg.str("");
     // ReadBinaryProto(tensorflow::Env::Default(), "resnet50_classifier.pb", &graphDef_);
     graphDefClassifier_ = tensorflow::loadGraphDef("resnet50_classifier.pb");
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "classifier node size = " << graphDefClassifier_->node_size();
+    msg << "classifier node size = " << graphDefClassifier_->node_size() << "\n";
     for (int i = 0; i < graphDefClassifier_->node_size(); i++) {
-      edm::LogInfo("OpenDataTreeProducerOptimized") << graphDefClassifier_->node(i).name();
+      msg << graphDefClassifier_->node(i).name() << "\n";
     }
     auto shape0C = graphDefClassifier_->node().Get(0).attr().at("shape").shape();
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "classifier shape0 size = " << shape0C.dim_size();
+    msg << "classifier shape0 size = " << shape0C.dim_size() << "\n";
     for (int i = 0; i < shape0C.dim_size(); i++) {
-      edm::LogInfo("OpenDataTreeProducerOptimized") << shape0C.dim(i).size();
+      msg << shape0C.dim(i).size() << "\n";
     }
+    edm::LogInfo("OpenDataTreeProducerOptimized") << msg.str();
     
     // apparently the last node does not have a shape, so this is all commented out
     // auto shapeN = graphDef_->node().Get(graphDef_->node_size()-1).attr().at("shape").shape();    
