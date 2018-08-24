@@ -197,12 +197,9 @@ void OpenDataTreeProducerOptimized::produce(edm::StreamID, edm::Event& iEvent, e
     auto input_map = inputImage.tensor<float, 4>();
     for (int itf = 0; itf < 224; itf++){
       for (int jtf = 0; jtf < 224; jtf++){
-        // input_map(0,itf,jtf,0) = image2D[itf][jtf];
-        // input_map(0,itf,jtf,1) = image2D[itf][jtf];
-        // input_map(0,itf,jtf,2) = image2D[itf][jtf];
-        input_map(0,itf,jtf,0) = (float) 0.1*itf + 0.1*jtf;
-        input_map(0,itf,jtf,1) = (float) 0.2*itf + 0.2*jtf;
-        input_map(0,itf,jtf,2) = (float) 0.3*itf + 0.3*jtf;
+        input_map(0,itf,jtf,0) = image2D[itf][jtf];
+        input_map(0,itf,jtf,1) = image2D[itf][jtf];
+        input_map(0,itf,jtf,2) = image2D[itf][jtf];
       }
     }
     edm::LogInfo("OpenDataTreeProducerOptimized") << "Featurizer input = " << inputImage.DebugString() << endl;
@@ -228,15 +225,16 @@ void OpenDataTreeProducerOptimized::produce(edm::StreamID, edm::Event& iEvent, e
     edm::LogInfo("OpenDataTreeProducerOptimized") << "Create classifier session...";
     tensorflow::Session* sessionC = tensorflow::createSession(graphDefClassifier_);
 
-    tensorflow::Tensor inputClassifer(tensorflow::DT_FLOAT, { 1, 1, 1, 2048 });
-    auto input_map_classifier = inputClassifer.tensor<float,4>();
+    tensorflow::Tensor inputClassifier(tensorflow::DT_FLOAT, { 1, 1, 1, 2048 });
+    auto input_map_classifier = inputClassifier.tensor<float,4>();
+    auto feature_list = featurizer_outputs[0].tensor<float,4>();
     for (int itf = 0; itf < 2048; itf++){
-      input_map_classifier(0,0,0,itf) = (float) itf * 0.1;
+      input_map_classifier(0,0,0,itf) = feature_list(0,0,0,itf);
     }
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "Classifier input = " << inputClassifer.DebugString() << endl;
+    edm::LogInfo("OpenDataTreeProducerOptimized") << "Classifier input = " << inputClassifier.DebugString() << endl;
 
     std::vector<tensorflow::Tensor> outputs;
-    tensorflow::Status statusC = sessionC->Run( {{"Input:0",inputClassifer}}, { "resnet_v1_50/logits/Softmax:0" }, {}, &outputs);
+    tensorflow::Status statusC = sessionC->Run( {{"Input:0",inputClassifier}}, { "resnet_v1_50/logits/Softmax:0" }, {}, &outputs);
     if (!statusC.ok()) { edm::LogInfo("OpenDataTreeProducerOptimized") << statusC.ToString(); }
     else{ edm::LogInfo("OpenDataTreeProducerOptimized") << "Classifier Status: Ok"; }
     // auto outputs_map_classifier = outputs[0].tensor<float,4>();
