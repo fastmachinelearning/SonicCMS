@@ -1,8 +1,15 @@
-
+from FWCore.ParameterSet.VarParsing import VarParsing
 # Forked from SMPJ Analysis Framework
 import FWCore.ParameterSet.Config as cms
 import os
 import sys
+
+options = VarParsing("jet")
+options.register("remote", False, VarParsing.multiplicity.singleton, VarParsing.varType.bool)
+options.register("address", "", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+options.register("port", -1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
+options.register("timeout", 30, VarParsing.multiplicity.singleton, VarParsing.varType.int)
+options.parseArguments()
 
 process = cms.Process('MakingBacon')
 
@@ -113,6 +120,13 @@ process.jetImageProducer = cms.EDProducer('OpenDataTreeProducerOptimized',
     # PF Candidates
     pfCandidates     = cms.InputTag("particleFlow","","RECO"),
 )
+
+if options.remote:
+    process.jetImageProducer.ServerParams = cms.PSet(
+        address = cms.string(options.address),
+        port = cms.int32(options.port),
+        timeout = cms.uint32(options.timeout),
+    )
 
 ############# hlt filter #########################
 # process.hltFilter = cms.EDFilter('HLTHighLevel',

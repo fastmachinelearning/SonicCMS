@@ -14,6 +14,7 @@
 
 // c2numpy convertion include
 #include "Jet2011/AnalysisFW/interface/c2numpy.h"
+#include "Jet2011/AnalysisFW/interface/TFClient.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/global/EDProducer.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -90,14 +91,25 @@ class OpenDataTreeProducerOptimized : public edm::global::EDProducer<>
     edm::EDGetTokenT<edm::View<pat::Jet>> JetTok_;
     tensorflow::GraphDef* graphDefFeaturizer_;
     tensorflow::GraphDef* graphDefClassifier_;
-
+    TFClient client_;
+    bool remote_;
 };
 
 OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet const &cfg) :
   JetTag_(cfg.getParameter<edm::InputTag>("JetTag")),
   JetTok_(consumes<edm::View<pat::Jet>>(JetTag_))
 {
-    loadModel();
+    if(cfg.exists("ServerParams")){
+        //in remote version, model is already loaded on the server
+        remote_ = true;
+        const auto& scfg = cfg.getParameter<edm::ParameterSet>("ServerParams");
+        client_.setSession(scfg.getParameter<std::string>("address"),scfg.getParameter<int>("port"),scfg.getParameter<unsigned>("timeout"));
+        edm::LogInfo("OpenDataTreeProducerOptimized") << "Connected to remote server";
+    }
+    else {
+        remote_ = false;
+        loadModel();
+    }
 }
 
 void OpenDataTreeProducerOptimized::loadModel(){
@@ -267,20 +279,28 @@ void OpenDataTreeProducerOptimized::produce(edm::StreamID, edm::Event& iEvent, e
     auto t1 = std::chrono::high_resolution_clock::now();
     edm::LogInfo("OpenDataTreeProducerOptimized") << "Image time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
 
-    // --------------------------------------------------------------------
-    // Run the Featurizer
-    std::vector<tensorflow::Tensor> featurizer_outputs = runFeaturizer(inputImage);
+    if(remote_){
+        // run the inference on the remote server and get back the result
+        bool result = client_.predict(inputImage);
+        auto t2 = std::chrono::high_resolution_clock::now();
+        edm::LogInfo("OpenDataTreeProducerOptimized") << "Remote prediction = " << result << ", time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    }
+    else {
+        // --------------------------------------------------------------------
+        // Run the Featurizer
+        std::vector<tensorflow::Tensor> featurizer_outputs = runFeaturizer(inputImage);
 
-    auto t2 = std::chrono::high_resolution_clock::now();
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "Featurizer time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+        auto t2 = std::chrono::high_resolution_clock::now();
+        edm::LogInfo("OpenDataTreeProducerOptimized") << "Featurizer time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 
-    // --------------------------------------------------------------------
-    // Run the Classifier
-    tensorflow::Tensor inputClassifier = createFeatureList(featurizer_outputs[0]);
-    std::vector<tensorflow::Tensor> outputs = runClassifier(inputClassifier);
+        // --------------------------------------------------------------------
+        // Run the Classifier
+        tensorflow::Tensor inputClassifier = createFeatureList(featurizer_outputs[0]);
+        std::vector<tensorflow::Tensor> outputs = runClassifier(inputClassifier);
 
-    auto t3 = std::chrono::high_resolution_clock::now();
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "Classifier time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+        auto t3 = std::chrono::high_resolution_clock::now();
+        edm::LogInfo("OpenDataTreeProducerOptimized") << "Classifier time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+    }
 }
 
 OpenDataTreeProducerOptimized::~OpenDataTreeProducerOptimized() {
