@@ -19,6 +19,16 @@ cd CMSSW_10_2_0/src
 cmsenv
 ```
 
+There is a separate script to connect to the AML server:
+```
+cd Jet2011
+./setup_aml.sh -i -r
+```
+The script has several options (the separate options `-i` and `-r` allow installing only once, but then deploying multiple times):
+* `-i`: install miniconda and aml-real-time-ai
+* `-r`: run aml server setup script
+* `-p [file]`: name of server params output json file (default=service_params.json)  
+
 ## Creating the working area
 
 This step is only needed the first time you run this program:
