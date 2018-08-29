@@ -12,8 +12,6 @@
 #include <vector>
 #include <chrono>
 
-// c2numpy convertion include
-#include "Jet2011/AnalysisFW/interface/c2numpy.h"
 #include "Jet2011/AnalysisFW/interface/TFClient.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/global/EDProducer.h"
