@@ -36,11 +36,11 @@ cd AnalysisFW/python
 Now, the producer can run in either local or remote mode.
 * Local mode:
 ```
-cmsRun OpenDataTreeProducerOptimized_mcPAT_2011_cfg.py
+cmsRun jetImageTest_mc_cfg.py
 ```
 * Remote mode:
 ```
-cmsRun OpenDataTreeProducerOptimized_mcPAT_2011_cfg.py remote=1 params=$CMSSW_BASE/src/Jet2011/service_params.json
+cmsRun jetImageTest_mc_cfg.py remote=1 params=$CMSSW_BASE/src/Jet2011/service_params.json
 ```
 
 The remote mode timeout is set to 30 seconds by default. It can be changed e.g. to 10 seconds by adding the argument `timeout=10`.

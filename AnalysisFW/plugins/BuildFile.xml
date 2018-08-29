@@ -1,27 +1,11 @@
-<library   file="*.cc" name="OpenDataTuplesOptimized">
-<use   name="RecoMET/METAlgorithms"/>
-<use   name="JetMETCorrections/Algorithms"/>
-<use   name="RecoJets/JetAlgorithms"/>
+<library   file="*.cc" name="JetImageProducer">
 <use   name="DataFormats/JetReco"/>
-<use   name="DataFormats/VertexReco"/>
 <use   name="DataFormats/Candidate"/>
-<use   name="DataFormats/Common"/>
-<use   name="DataFormats/HepMCCandidate"/>
-<use   name="DataFormats/TrackCandidate"/>
-<use   name="DataFormats/HLTReco"/>
-<use   name="JetMETCorrections/Objects"/>
+<use   name="DataFormats/PatCandidates"/>
 <use   name="FWCore/Framework"/>
 <use   name="FWCore/PluginManager"/>
-<use   name="FWCore/ServiceRegistry"/>
-<use   name="HLTrigger/HLTcore"/>
-<use   name="L1Trigger/GlobalTriggerAnalyzer"/>
-<use   name="CondFormats/L1TObjects"/>
-<use   name="CondFormats/DataRecord"/>
-<use   name="CondFormats/JetMETObjects"/>
 <use   name="Jet2011/AnalysisFW"/>
 <use   name="PhysicsTools/TensorFlow"/>
-<use   name="fastjet"/>
-<use   name="fastjet-contrib"/>
 <flags   EDM_PLUGIN="1"/>
 </library>
 

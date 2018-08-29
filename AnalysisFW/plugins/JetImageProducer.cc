@@ -20,63 +20,24 @@
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
-#include "FWCore/Common/interface/TriggerNames.h"
-#include "FWCore/Common/interface/TriggerResultsByName.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
-#include "FWCore/ServiceRegistry/interface/Service.h"
 
-#include "DataFormats/Common/interface/TriggerResults.h"
-#include "DataFormats/HLTReco/interface/TriggerEvent.h"
-#include "DataFormats/VertexReco/interface/Vertex.h"
-#include "DataFormats/VertexReco/interface/VertexFwd.h"
-#include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/Math/interface/deltaR.h"
 #include "DataFormats/PatCandidates/interface/Jet.h"
-#include "DataFormats/PatCandidates/interface/JetCorrFactors.h"
 #include "DataFormats/JetReco/interface/Jet.h"
-#include "DataFormats/JetReco/interface/PFJet.h"
-#include "DataFormats/JetReco/interface/PFJetCollection.h"
-#include "DataFormats/JetReco/interface/GenJet.h"
-#include "DataFormats/JetReco/interface/GenJetCollection.h"
-#include "DataFormats/JetReco/interface/JetExtendedAssociation.h"
-#include "DataFormats/JetReco/interface/JetID.h"
-#include "DataFormats/METReco/interface/PFMET.h"
-#include "DataFormats/METReco/interface/PFMETCollection.h"
-#include "DataFormats/BeamSpot/interface/BeamSpot.h"
-#include "DataFormats/TrackReco/interface/TrackFwd.h"
 #include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
-
-#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
-#include "SimDataFormats/GeneratorProducts/interface/GenRunInfoProduct.h"
-#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
-
-#include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
-#include "CommonTools/UtilAlgos/interface/TFileService.h"
-#include "JetMETCorrections/Objects/interface/JetCorrector.h"
-#include "CondFormats/JetMETObjects/interface/JetCorrectionUncertainty.h"
-#include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
-#include "JetMETCorrections/Objects/interface/JetCorrectionsRecord.h"
-
-#include "RecoJets/JetAssociationProducers/src/JetTracksAssociatorAtVertex.h"
-
-#include "fastjet/contrib/Njettiness.hh"
 
 #include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/graph/default_device.h"
 
-using namespace edm;
-using namespace reco;
-using namespace std;
-using namespace trigger;
-
-class OpenDataTreeProducerOptimized : public edm::global::EDProducer<>
+class JetImageProducer : public edm::global::EDProducer<>
 {
   public:
 
-    explicit OpenDataTreeProducerOptimized(edm::ParameterSet const& cfg);
+    explicit JetImageProducer(edm::ParameterSet const& cfg);
     void produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const& iSetup) const;
-    ~OpenDataTreeProducerOptimized() override;
+    ~JetImageProducer() override;
 
   private:
     void loadModel();
@@ -93,7 +54,7 @@ class OpenDataTreeProducerOptimized : public edm::global::EDProducer<>
     bool remote_;
 };
 
-OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet const &cfg) :
+JetImageProducer::JetImageProducer(edm::ParameterSet const &cfg) :
   JetTag_(cfg.getParameter<edm::InputTag>("JetTag")),
   JetTok_(consumes<edm::View<pat::Jet>>(JetTag_))
 {
@@ -102,7 +63,7 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
         remote_ = true;
         const auto& scfg = cfg.getParameter<edm::ParameterSet>("ServerParams");
         client_.setSession(scfg.getParameter<std::string>("address"),scfg.getParameter<int>("port"),scfg.getParameter<unsigned>("timeout"));
-        edm::LogInfo("OpenDataTreeProducerOptimized") << "Connected to remote server";
+        edm::LogInfo("JetImageProducer") << "Connected to remote server";
     }
     else {
         remote_ = false;
@@ -110,7 +71,7 @@ OpenDataTreeProducerOptimized::OpenDataTreeProducerOptimized(edm::ParameterSet c
     }
 }
 
-void OpenDataTreeProducerOptimized::loadModel(){
+void JetImageProducer::loadModel(){
     // load the graph 
     std::stringstream msg;
     msg << "[loadModel] Loading the .pb files...\n";
@@ -139,7 +100,7 @@ void OpenDataTreeProducerOptimized::loadModel(){
     for (int i = 0; i < shape0C.dim_size(); i++) {
       msg << shape0C.dim(i).size() << "\n";
     }
-    edm::LogInfo("OpenDataTreeProducerOptimized") << msg.str();
+    edm::LogInfo("JetImageProducer") << msg.str();
     
     // apparently the last node does not have a shape, so this is all commented out
     // auto shapeN = graphDef_->node().Get(graphDef_->node_size()-1).attr().at("shape").shape();    
@@ -149,7 +110,7 @@ void OpenDataTreeProducerOptimized::loadModel(){
     // }
 }
 
-tensorflow::Tensor OpenDataTreeProducerOptimized::createImage(const edm::View<pat::Jet>& jets) const {
+tensorflow::Tensor JetImageProducer::createImage(const edm::View<pat::Jet>& jets) const {
     // create a jet image for the leading jet in the event
     // 224 x 224 image which is centered at the jet axis and +/- 1 unit in eta and phi
     float image2D[224][224];
@@ -207,14 +168,14 @@ tensorflow::Tensor OpenDataTreeProducerOptimized::createImage(const edm::View<pa
     return inputImage;
 }
 
-std::vector<tensorflow::Tensor> OpenDataTreeProducerOptimized::runFeaturizer(const tensorflow::Tensor& inputImage) const {
+std::vector<tensorflow::Tensor> JetImageProducer::runFeaturizer(const tensorflow::Tensor& inputImage) const {
     std::stringstream msg;
     msg << " ====> Run the Featurizer...\n";
     // Tensorflow part
     msg << "Create featurizer session...\n";
     tensorflow::Session* sessionF = tensorflow::createSession(graphDefFeaturizer_);
     msg << "Featurizer input = " << inputImage.DebugString() << "\n";
-    edm::LogInfo("OpenDataTreeProducerOptimized") << msg.str();
+    edm::LogInfo("JetImageProducer") << msg.str();
 
     msg.str("");
     std::vector<tensorflow::Tensor> featurizer_outputs;
@@ -226,12 +187,12 @@ std::vector<tensorflow::Tensor> OpenDataTreeProducerOptimized::runFeaturizer(con
 
     msg << "Close the featurizer session..."  << "\n";
     tensorflow::closeSession(sessionF);
-    edm::LogInfo("OpenDataTreeProducerOptimized") << msg.str();
+    edm::LogInfo("JetImageProducer") << msg.str();
 
     return featurizer_outputs;
 }
 
-tensorflow::Tensor OpenDataTreeProducerOptimized::createFeatureList(const tensorflow::Tensor& input) const {
+tensorflow::Tensor JetImageProducer::createFeatureList(const tensorflow::Tensor& input) const {
     tensorflow::Tensor inputClassifier(tensorflow::DT_FLOAT, { 1, 1, 1, 2048 });
     auto input_map_classifier = inputClassifier.tensor<float,4>();
     auto feature_list = input.tensor<float,4>();
@@ -241,7 +202,7 @@ tensorflow::Tensor OpenDataTreeProducerOptimized::createFeatureList(const tensor
     return inputClassifier;
 }
 
-std::vector<tensorflow::Tensor> OpenDataTreeProducerOptimized::runClassifier(const tensorflow::Tensor& inputClassifier) const {
+std::vector<tensorflow::Tensor> JetImageProducer::runClassifier(const tensorflow::Tensor& inputClassifier) const {
     std::stringstream msg;
     msg << " ====> Run the Classifier...\n";
     // Tensorflow part
@@ -261,12 +222,12 @@ std::vector<tensorflow::Tensor> OpenDataTreeProducerOptimized::runClassifier(con
 
     msg << "Close the classifier session..." << "\n";
     tensorflow::closeSession(sessionC);
-    edm::LogInfo("OpenDataTreeProducerOptimized") << msg.str();
+    edm::LogInfo("JetImageProducer") << msg.str();
 
     return outputs;
 }
 
-void OpenDataTreeProducerOptimized::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const &iSetup) const {
+void JetImageProducer::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const &iSetup) const {
     edm::Handle<edm::View<pat::Jet>> h_jets;
     iEvent.getByToken(JetTok_, h_jets);
 
@@ -275,13 +236,13 @@ void OpenDataTreeProducerOptimized::produce(edm::StreamID, edm::Event& iEvent, e
     tensorflow::Tensor inputImage = createImage(*h_jets.product());
 
     auto t1 = std::chrono::high_resolution_clock::now();
-    edm::LogInfo("OpenDataTreeProducerOptimized") << "Image time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+    edm::LogInfo("JetImageProducer") << "Image time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
 
     if(remote_){
         // run the inference on the remote server and get back the result
         bool result = client_.predict(inputImage);
         auto t2 = std::chrono::high_resolution_clock::now();
-        edm::LogInfo("OpenDataTreeProducerOptimized") << "Remote prediction = " << result << ", time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+        edm::LogInfo("JetImageProducer") << "Remote prediction = " << result << ", time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
     }
     else {
         // --------------------------------------------------------------------
@@ -289,7 +250,7 @@ void OpenDataTreeProducerOptimized::produce(edm::StreamID, edm::Event& iEvent, e
         std::vector<tensorflow::Tensor> featurizer_outputs = runFeaturizer(inputImage);
 
         auto t2 = std::chrono::high_resolution_clock::now();
-        edm::LogInfo("OpenDataTreeProducerOptimized") << "Featurizer time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+        edm::LogInfo("JetImageProducer") << "Featurizer time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 
         // --------------------------------------------------------------------
         // Run the Classifier
@@ -297,11 +258,11 @@ void OpenDataTreeProducerOptimized::produce(edm::StreamID, edm::Event& iEvent, e
         std::vector<tensorflow::Tensor> outputs = runClassifier(inputClassifier);
 
         auto t3 = std::chrono::high_resolution_clock::now();
-        edm::LogInfo("OpenDataTreeProducerOptimized") << "Classifier time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+        edm::LogInfo("JetImageProducer") << "Classifier time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
     }
 }
 
-OpenDataTreeProducerOptimized::~OpenDataTreeProducerOptimized() {
+JetImageProducer::~JetImageProducer() {
 }
 
-DEFINE_FWK_MODULE(OpenDataTreeProducerOptimized);
+DEFINE_FWK_MODULE(JetImageProducer);
