@@ -4,6 +4,7 @@ crab.log
 *.root
 *.pyc
 __init__.py
-*JSON.txt
-*index.txt
-
+*.txt
+*.log
+*.pb
+*.json
