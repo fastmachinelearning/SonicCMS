@@ -29,6 +29,28 @@ The script has several options (the separate options `-i` and `-r` allow install
 * `-r`: run aml server setup script
 * `-p [file]`: name of server params output json file (default=service_params.json)  
 
+This script, if successful (and if executed with the `-r` option), will create a JSON file with the address and port for the remote server.
+
+To get the various input files (the data file comes from [this file list](https://cmsweb.cern.ch/das/request?view=list&limit=50&instance=prod%2Fglobal&input=dataset+dataset%3D%2FBulkGravTohhTohbbhbb_narrow_M-*_13TeV-madgraph%2FRunIISpring18MiniAOD-100X_upgrade2018_realistic_v10-v*%2FMINIAODSIM)):
+```
+./download.sh
+cd AnalysisFW/python
+```
+
+Now, the producer can run in either local or remote mode.
+* Local mode:
+```
+cmsRun OpenDataTreeProducerOptimized_mcPAT_2011_cfg.py
+```
+* Remote mode:
+```
+cmsRun OpenDataTreeProducerOptimized_mcPAT_2011_cfg.py remote=1 params=$CMSSW_BASE/src/Jet2011/service_params.json
+```
+
+The remote mode timeout is set to 30 seconds by default. It can be changed e.g. to 10 seconds by adding the argument `timeout=10`.
+If a server parameter JSON is not available, the server address and port can be specified using the arguments
+`address=1.1.1.1` and `port=22`.
+
 ## Creating the working area
 
 This step is only needed the first time you run this program:
