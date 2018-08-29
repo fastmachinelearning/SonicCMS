@@ -1,15 +1,22 @@
 from FWCore.ParameterSet.VarParsing import VarParsing
 # Forked from SMPJ Analysis Framework
 import FWCore.ParameterSet.Config as cms
-import os
-import sys
+import os, sys, json
 
-options = VarParsing("jet")
+options = VarParsing("analysis")
 options.register("remote", False, VarParsing.multiplicity.singleton, VarParsing.varType.bool)
 options.register("address", "", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("port", -1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("timeout", 30, VarParsing.multiplicity.singleton, VarParsing.varType.int)
+options.register("params", "", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.parseArguments()
+
+if len(options.params)>0 and options.remote:
+    with open(options.params,'r') as pfile:
+        pdict = json.load(pfile)
+    options.address = pdict["address"]
+    options.port = int(pdict["port"])
+    print("server = "+options.address+":"+str(options.port))
 
 process = cms.Process('MakingBacon')
 
