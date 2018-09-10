@@ -15,11 +15,12 @@ cd CMSSW_10_2_0/src
 cmsenv
 ```
 
-There is a separate script to connect to the AML server:
+There is a separate script to set up the `miniconda` and `aml-real-time-ai` python libraries:
 ```
 cd Jet2011
-./setup_aml.sh -i -r
+./setup_aml.sh
 ```
+
 The script has several options (the separate options `-i` and `-r` allow installing only once, but then deploying multiple times):
 * `-i`: install miniconda and aml-real-time-ai
 * `-r`: run aml server setup script
@@ -33,6 +34,26 @@ To get the various input files (the data file comes from [this file list](https:
 cd AnalysisFW/python
 ```
 
+With the `miniconda` and `aml-real-time-ai` libraries installed, the `condapython3` executable can be used to run python scripts
+that depend on them (to avoid confusion between the CMSSW and `miniconda` environments, a subshell is used).
+
+The script `configure_aml.py` is used to create and register a model and start the associated service. The options of this script are:
+* `-h`, `--help`: show this help message and exit
+* `-p PARAMS`, `--params=PARAMS`: name of service & model params output json file (default = service_model_params.json)
+* `-m MODEL`, `--model=MODEL`: use model with provided name (default = )
+* `-r`, `--recreate`: recreate model (instead of use existing model)
+* `-s SERVICE`, `--service=SERVICE`: use service with provided name (default = )
+* `-d`, `--delete`: delete service and/or model (instead of starting)
+* `-v`, `--verbose`: turn on informational printouts
+
+To get started, using an existing model:
+```
+condapython3 configure_aml.py -m resnet50-model-nvt -s quickstart-service
+```
+Follow the prompts on screen until the script is complete.
+(The `model_id` is kept in the JSON output file for future uses.
+If you want to reuse the `model_id` in the JSON output file, simply omit the `-m MODEL` argument.)
+
 Now, the producer can run in either local or remote mode.
 * Local mode:
 ```
@@ -40,9 +61,14 @@ cmsRun jetImageTest_mc_cfg.py
 ```
 * Remote mode:
 ```
-cmsRun jetImageTest_mc_cfg.py remote=1 params=$CMSSW_BASE/src/Jet2011/service_params.json
+cmsRun jetImageTest_mc_cfg.py remote=1 params=$CMSSW_BASE/src/Jet2011/AnalysisFW/python/service_model_params.json
 ```
 
 The remote mode timeout is set to 30 seconds by default. It can be changed e.g. to 10 seconds by adding the argument `timeout=10`.
 If a server parameter JSON is not available, the server address and port can be specified using the arguments
 `address=1.1.1.1` and `port=22`.
+
+Once you are finished, you can delete the service (and/or model):
+```
+condapython3 configure_aml.py -d -s quickstart-service
+```

@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [ -z "$CMSSW_BASE" ]; then
+	echo "Use of this script requires $CMSSW_BASE"
+	exit 1
+fi
+
+PYFILE="$1"
+shift
+
+if [ -z "$PYFILE" ]; then
+	echo "No python script specified"
+	exit 1
+fi
+
+# run script, forwarding all arguments
+source $CMSSW_BASE/../miniconda3/etc/profile.d/conda.sh
+conda activate amlrealtimeai
+python3 "$PYFILE" "$@"

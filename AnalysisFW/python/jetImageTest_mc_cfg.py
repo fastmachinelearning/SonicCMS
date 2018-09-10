@@ -57,7 +57,12 @@ process.maxEvents.input = 25
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 10
 process.MessageLogger.categories.append('JetImageProducer')
-process.MessageLogger.cerr.OpenDataTreeProducerOptimized = cms.untracked.PSet(
+process.MessageLogger.cerr.JetImageProducer = cms.untracked.PSet(
+    optionalPSet = cms.untracked.bool(True),
+    limit = cms.untracked.int32(10000000),
+)
+process.MessageLogger.categories.append('TFClient')
+process.MessageLogger.cerr.TFClient = cms.untracked.PSet(
     optionalPSet = cms.untracked.bool(True),
     limit = cms.untracked.int32(10000000),
 )
