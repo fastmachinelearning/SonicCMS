@@ -38,6 +38,7 @@ process.source = cms.Source("PoolSource",
 ################### EDProducer ##############################
 process.jetImageProducer = cms.EDProducer('JetImageProducer',
     JetTag          = cms.InputTag('slimmedJetsAK8'),
+    topN = cms.uint32(5),
 )
 
 if options.remote:

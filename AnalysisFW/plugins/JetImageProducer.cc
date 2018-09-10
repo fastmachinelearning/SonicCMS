@@ -11,6 +11,7 @@
 #include <functional>
 #include <vector>
 #include <chrono>
+#include <map>
 
 #include "Jet2011/AnalysisFW/interface/TFClient.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -41,6 +42,7 @@ class JetImageProducer : public edm::global::EDProducer<>
 
   private:
     void loadModel();
+	void findTopN(const tensorflow::Tensor& scores, unsigned n=5) const;
     tensorflow::Tensor createImage(const edm::View<pat::Jet>& jets) const;
     std::vector<tensorflow::Tensor> runFeaturizer(const tensorflow::Tensor& input) const;
     tensorflow::Tensor createFeatureList(const tensorflow::Tensor& input) const;
@@ -52,11 +54,14 @@ class JetImageProducer : public edm::global::EDProducer<>
     tensorflow::GraphDef* graphDefClassifier_;
     TFClient client_;
     bool remote_;
+	unsigned topN_;
+	std::vector<std::string> imageList_;
 };
 
 JetImageProducer::JetImageProducer(edm::ParameterSet const &cfg) :
   JetTag_(cfg.getParameter<edm::InputTag>("JetTag")),
-  JetTok_(consumes<edm::View<pat::Jet>>(JetTag_))
+  JetTok_(consumes<edm::View<pat::Jet>>(JetTag_)),
+  topN_(cfg.getParameter<unsigned>("topN"))
 {
     if(cfg.exists("ServerParams")){
         //in remote version, model is already loaded on the server
@@ -69,6 +74,15 @@ JetImageProducer::JetImageProducer(edm::ParameterSet const &cfg) :
         remote_ = false;
         loadModel();
     }
+
+	//load score list
+	std::ifstream ifile("imagenet_classes.txt");
+	if(ifile.is_open()){
+		std::string line;
+		while(std::getline(ifile,line)){
+			imageList_.push_back(line);
+		}
+	}
 }
 
 void JetImageProducer::loadModel(){
@@ -108,6 +122,28 @@ void JetImageProducer::loadModel(){
     // for (int i = 0; i < shapeN.dim_size(); i++) {
     //   std::cout << shapeN.dim(i).size() << std::endl;
     // }
+}
+
+void JetImageProducer::findTopN(const tensorflow::Tensor& scores, unsigned n) const {
+	auto score_list = scores.flat<float>();
+	auto dim = score_list.dimensions()[0];
+
+	//match score to type by index, then put in largest-first map
+	std::map<float,std::string,std::greater<float>> score_map;
+	for(unsigned i = 0; i < std::min((unsigned)dim,(unsigned)imageList_.size()); ++i){
+		score_map.emplace(score_list(i),imageList_[i]);
+	}
+
+	//get top n
+	std::stringstream msg;
+	msg << "Scores:\n";
+	unsigned counter = 0;
+	for(const auto& item: score_map){
+		msg << item.second << " : " << item.first << "\n";
+		++counter;
+		if(counter>=n) break;
+	}
+	edm::LogInfo("JetImageProducer") << msg.str();
 }
 
 tensorflow::Tensor JetImageProducer::createImage(const edm::View<pat::Jet>& jets) const {
@@ -182,9 +218,9 @@ std::vector<tensorflow::Tensor> JetImageProducer::runFeaturizer(const tensorflow
     tensorflow::Status statusF = sessionF->Run( {{"InputImage:0",inputImage}}, { "resnet_v1_50/pool5:0" }, {}, &featurizer_outputs);
     if (!statusF.ok()) { msg << statusF.ToString() << "\n"; }
     else{ msg << "Featurizer Status: Ok\n"; }
-    msg << "featurizer_outputs vector size = " << featurizer_outputs.size() << "\n";
+/*    msg << "featurizer_outputs vector size = " << featurizer_outputs.size() << "\n";
     msg << "featurizer_outputs vector = " << featurizer_outputs[0].DebugString() << "\n";
-
+*/
     msg << "Close the featurizer session..."  << "\n";
     tensorflow::closeSession(sessionF);
     edm::LogInfo("JetImageProducer") << msg.str();
@@ -238,9 +274,11 @@ void JetImageProducer::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetu
     auto t1 = std::chrono::high_resolution_clock::now();
     edm::LogInfo("JetImageProducer") << "Image time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
 
+	tensorflow::Tensor outputScores;
+
     if(remote_){
         // run the inference on the remote server and get back the result
-        bool result = client_.predict(inputImage);
+        bool result = client_.predict(inputImage,outputScores);
         auto t2 = std::chrono::high_resolution_clock::now();
         edm::LogInfo("JetImageProducer") << "Remote prediction = " << result << ", time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
     }
@@ -256,10 +294,14 @@ void JetImageProducer::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetu
         // Run the Classifier
         tensorflow::Tensor inputClassifier = createFeatureList(featurizer_outputs[0]);
         std::vector<tensorflow::Tensor> outputs = runClassifier(inputClassifier);
+		outputScores = outputs[0];
 
         auto t3 = std::chrono::high_resolution_clock::now();
         edm::LogInfo("JetImageProducer") << "Classifier time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
     }
+
+	//check the results
+	findTopN(outputScores,topN_);
 }
 
 JetImageProducer::~JetImageProducer() {

@@ -45,7 +45,7 @@ class TFClient {
 		}
 		
 		//input is "image" in proto form
-		bool predict(tensorflow::Tensor& img) const {
+		bool predict(tensorflow::Tensor& img, tensorflow::Tensor& result) const {
 			//convert to proto
 			tensorflow::TensorProto proto;
 			img.AsProtoTensorContent(&proto);
@@ -69,12 +69,13 @@ class TFClient {
 			//check result
 			if(status.ok()){
 				protomap& outputs = *response.mutable_outputs();
+				result.FromProto(outputs["output_alias"]);
 				std::stringstream msg;
 				msg << "Classifier Status: Ok\n";
-				msg << "\n";
+/*				msg << "\n";
 				msg << "output vector size = " << outputs.size() << "\n";
 				msg << "output vector = " << outputs["output_alias"].DebugString() << "\n";
-				edm::LogInfo("TFClient") << msg.str();
+*/				edm::LogInfo("TFClient") << msg.str();
 				return true;
 			}
 			else{
