@@ -71,8 +71,9 @@ class TFClient {
 				protomap& outputs = *response.mutable_outputs();
 				std::stringstream msg;
 				msg << "Classifier Status: Ok\n";
+				msg << "\n";
 				msg << "output vector size = " << outputs.size() << "\n";
-				msg << "output vector = " << outputs["images"].DebugString() << "\n";
+				msg << "output vector = " << outputs["output_alias"].DebugString() << "\n";
 				edm::LogInfo("TFClient") << msg.str();
 				return true;
 			}

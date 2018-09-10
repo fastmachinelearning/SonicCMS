@@ -27,11 +27,6 @@ def define_model(model_name,verbose=False):
     from amlrealtimeai import resnet50
     import amlrealtimeai.resnet50.utils
 
-    # Input images as a two-dimensional tensor containing an arbitrary number of images represented a strings
-    in_images = tf.placeholder(tf.string)
-    image_tensors = resnet50.utils.preprocess_array(in_images)
-    if verbose: print(image_tensors.shape)
-
     # Featurizer
     from amlrealtimeai.resnet50.model import LocalQuantizedResNet50
     model_path = os.path.expandvars('$CMSSW_BASE/src/Jet2011/AnalysisFW/python')
@@ -49,7 +44,6 @@ def define_model(model_name,verbose=False):
     service_def_path = os.path.join(save_path, 'service_def_'+model_name+'.zip')
 
     service_def = ServiceDefinition()
-    service_def.pipeline.append(TensorflowStage(tf.Session(), in_images, image_tensors))
     service_def.pipeline.append(BrainWaveStage(model))
     service_def.pipeline.append(TensorflowStage(tf.Session(), model.classifier_input, model.classifier_output))
     service_def.save(service_def_path)

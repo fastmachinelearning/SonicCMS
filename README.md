@@ -35,7 +35,7 @@ The script `configure_aml.py` is used to create and register a model and start t
 
 To get started, using an existing model:
 ```
-condapython3 configure_aml.py -m resnet50-model-nvt -s quickstart-service
+condapython3 configure_aml.py -m resnet50-model-kjp-float -s quickstart-service
 ```
 Follow the prompts on screen until the script is complete.
 
