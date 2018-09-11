@@ -176,7 +176,7 @@ tensorflow::Tensor JetImageProducer::createImage(const edm::View<pat::Jet>& jets
         if (dphi < -1.*M_PI) dphi += 2*M_PI;
         float deta = i_eta - jet_eta;
 
-        if ( deta > 1. || deta < -1. || dphi > 1. || dphi < 1.) continue; // outside of the image, shouldn't happen for AK8 jet!
+        if ( deta > 1. || deta < -1. || dphi > 1. || dphi < -1.) continue; // outside of the image, shouldn't happen for AK8 jet!
         int eta_pixel_index =  (int) ((deta + 1.)/pixel_width);
         int phi_pixel_index =  (int) ((dphi + 1.)/pixel_width);
         image2D[eta_pixel_index][phi_pixel_index] += i_pt/jet_pt;
