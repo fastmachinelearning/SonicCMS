@@ -39,6 +39,7 @@ process.source = cms.Source("PoolSource",
 process.jetImageProducer = cms.EDProducer('JetImageProducer',
     JetTag          = cms.InputTag('slimmedJetsAK8'),
     topN = cms.uint32(5),
+    saveImage = cms.bool(False),
 )
 
 if options.remote:

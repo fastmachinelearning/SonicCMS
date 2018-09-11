@@ -43,7 +43,7 @@ class JetImageProducer : public edm::global::EDProducer<>
   private:
     void loadModel();
 	void findTopN(const tensorflow::Tensor& scores, unsigned n=5) const;
-    tensorflow::Tensor createImage(const edm::View<pat::Jet>& jets) const;
+    tensorflow::Tensor createImage(const edm::View<pat::Jet>& jets, const edm::Event& iEvent) const;
     std::vector<tensorflow::Tensor> runFeaturizer(const tensorflow::Tensor& input) const;
     tensorflow::Tensor createFeatureList(const tensorflow::Tensor& input) const;
     std::vector<tensorflow::Tensor> runClassifier(const tensorflow::Tensor& input) const;
@@ -53,7 +53,7 @@ class JetImageProducer : public edm::global::EDProducer<>
     tensorflow::GraphDef* graphDefFeaturizer_;
     tensorflow::GraphDef* graphDefClassifier_;
     TFClient client_;
-    bool remote_;
+    bool saveImage_, remote_;
 	unsigned topN_;
 	std::vector<std::string> imageList_;
 };
@@ -61,6 +61,7 @@ class JetImageProducer : public edm::global::EDProducer<>
 JetImageProducer::JetImageProducer(edm::ParameterSet const &cfg) :
   JetTag_(cfg.getParameter<edm::InputTag>("JetTag")),
   JetTok_(consumes<edm::View<pat::Jet>>(JetTag_)),
+  saveImage_(cfg.getParameter<bool>("saveImage")),
   topN_(cfg.getParameter<unsigned>("topN"))
 {
     if(cfg.exists("ServerParams")){
@@ -146,13 +147,14 @@ void JetImageProducer::findTopN(const tensorflow::Tensor& scores, unsigned n) co
 	edm::LogInfo("JetImageProducer") << msg.str();
 }
 
-tensorflow::Tensor JetImageProducer::createImage(const edm::View<pat::Jet>& jets) const {
+tensorflow::Tensor JetImageProducer::createImage(const edm::View<pat::Jet>& jets, const edm::Event& iEvent) const {
     // create a jet image for the leading jet in the event
     // 224 x 224 image which is centered at the jet axis and +/- 1 unit in eta and phi
-    float image2D[224][224];
-    float pixel_width = 2./224.;
-    for (int ii = 0; ii < 224; ii++){
-      for (int ij = 0; ij < 224; ij++){ image2D[ii][ij] = 0.; }
+    const unsigned width = 224;
+    float image2D[width][width];
+    float pixel_width = 2./float(width);
+    for (unsigned ii = 0; ii < width; ii++){
+      for (unsigned ij = 0; ij < width; ij++){ image2D[ii][ij] = 0.; }
     }
     
     int jet_ctr = 0;
@@ -162,7 +164,7 @@ tensorflow::Tensor JetImageProducer::createImage(const edm::View<pat::Jet>& jets
       float jet_pt  =  i_jet.pt();
       float jet_phi =  i_jet.phi();
       float jet_eta =  i_jet.eta();
-
+	
       for(unsigned k = 0; k < i_jet.numberOfDaughters(); ++k){
 
         const reco::Candidate* i_part = i_jet.daughter(k);
@@ -176,7 +178,7 @@ tensorflow::Tensor JetImageProducer::createImage(const edm::View<pat::Jet>& jets
         if (dphi < -1.*M_PI) dphi += 2*M_PI;
         float deta = i_eta - jet_eta;
 
-        if ( deta > 1. || deta < -1. || dphi > 1. || dphi < 1.) continue; // outside of the image, shouldn't happen for AK8 jet!
+        if ( deta > 1. || deta < -1. || dphi > 1. || dphi < -1.) continue; // outside of the image, shouldn't happen for AK8 jet!
         int eta_pixel_index =  (int) ((deta + 1.)/pixel_width);
         int phi_pixel_index =  (int) ((dphi + 1.)/pixel_width);
         image2D[eta_pixel_index][phi_pixel_index] += i_pt/jet_pt;
@@ -190,11 +192,29 @@ tensorflow::Tensor JetImageProducer::createImage(const edm::View<pat::Jet>& jets
 
     }
 
+    // optionally output image to jpeg
+    if(saveImage_){
+      std::stringstream img_name;
+      const auto& aux = iEvent.eventAuxiliary();
+      img_name << "jet_" << jet_ctr << "_run" << aux.run() << "_lumi" << aux.luminosityBlock() << "_event" << aux.event() << ".txt";
+      std::ofstream ofile(img_name.str());
+      if(ofile.is_open()){
+        std::stringstream img_text;
+        for (unsigned itf = 0; itf < width; itf++){
+          for (unsigned jtf = 0; jtf < width; jtf++){
+            img_text << image2D[itf][jtf] << " ";
+          }
+          img_text << "\n";
+        }
+        ofile << img_text.str();
+      }
+    }
+
     // convert image to tensor
-    tensorflow::Tensor inputImage(tensorflow::DT_FLOAT, { 1, 224, 224, 3 });
+    tensorflow::Tensor inputImage(tensorflow::DT_FLOAT, { 1, width, width, 3 });
     auto input_map = inputImage.tensor<float, 4>();
-    for (int itf = 0; itf < 224; itf++){
-      for (int jtf = 0; jtf < 224; jtf++){
+    for (unsigned itf = 0; itf < width; itf++){
+      for (unsigned jtf = 0; jtf < width; jtf++){
         input_map(0,itf,jtf,0) = image2D[itf][jtf];
         input_map(0,itf,jtf,1) = image2D[itf][jtf];
         input_map(0,itf,jtf,2) = image2D[itf][jtf];
@@ -253,9 +273,9 @@ std::vector<tensorflow::Tensor> JetImageProducer::runClassifier(const tensorflow
     if (!statusC.ok()) { msg << statusC.ToString() << "\n"; }
     else{ msg << "Classifier Status: Ok"  << "\n"; }
     // auto outputs_map_classifier = outputs[0].tensor<float,4>();
-    msg << "output vector size = " << outputs.size() << "\n";
+/*    msg << "output vector size = " << outputs.size() << "\n";
     msg << "output vector = " << outputs[0].DebugString() << "\n";
-
+*/
     msg << "Close the classifier session..." << "\n";
     tensorflow::closeSession(sessionC);
     edm::LogInfo("JetImageProducer") << msg.str();
@@ -269,7 +289,7 @@ void JetImageProducer::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetu
 
     auto t0 = std::chrono::high_resolution_clock::now();
 
-    tensorflow::Tensor inputImage = createImage(*h_jets.product());
+    tensorflow::Tensor inputImage = createImage(*h_jets.product(),iEvent);
 
     auto t1 = std::chrono::high_resolution_clock::now();
     edm::LogInfo("JetImageProducer") << "Image time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
