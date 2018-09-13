@@ -128,5 +128,5 @@ ln -s $CMSSWTF $AMLDIR/tensorflow
 # get the analysis code
 cd $CMSSW_BASE/src
 git cms-init
-git clone git@github.com:kpedro88/2011-jet-inclusivecrosssection-ntupleproduction-optimized Jet2011 -b "kjp/1020_azureml"
+git clone git@github.com:hls-fpga-machine-learning/SonicCMS -b "kjp/1020_azureml"
 scram b -j 8

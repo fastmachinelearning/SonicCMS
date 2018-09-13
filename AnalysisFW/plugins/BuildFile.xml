@@ -4,7 +4,7 @@
 <use   name="DataFormats/PatCandidates"/>
 <use   name="FWCore/Framework"/>
 <use   name="FWCore/PluginManager"/>
-<use   name="Jet2011/AnalysisFW"/>
+<use   name="SonicCMS/AnalysisFW"/>
 <use   name="PhysicsTools/TensorFlow"/>
 <flags   EDM_PLUGIN="1"/>
 </library>

@@ -29,7 +29,7 @@ def define_model(model_name,verbose=False):
 
     # Featurizer
     from amlrealtimeai.resnet50.model import LocalQuantizedResNet50
-    model_path = os.path.expandvars('$CMSSW_BASE/src/Jet2011/AnalysisFW/python')
+    model_path = os.path.expandvars('$CMSSW_BASE/src/SonicCMS/AnalysisFW/python')
     model = LocalQuantizedResNet50(model_path)
     if verbose: print(model.version)
 

@@ -1,4 +1,4 @@
-# CMS Jet Image inference testing
+# SONIC (Services for Optimal Network Inference on Coprocessors) for CMS
 
 Source code was originally forked from the SMPJ Analysis Framework: 
 https://twiki.cern.ch/twiki/bin/viewauth/CMS/SMPJAnalysisFW  
@@ -8,7 +8,7 @@ https://github.com/cms-smpj/SMPJ/tree/v1.0/
 
 For this branch, please use the following script to set up the work area and associated tools (`grpc`,`tensorflow-serving`,`miniconda`,`aml-real-time-ai`):
 ```
-wget https://raw.githubusercontent.com/kpedro88/2011-jet-inclusivecrosssection-ntupleproduction-optimized/kjp/1020_azureml/setup.sh
+wget https://raw.githubusercontent.com/hls-fpga-machine-learning/SonicCMS/kjp/1020_azureml/setup.sh
 chmod +x setup.sh
 ./setup.sh
 cd CMSSW_10_2_0/src
@@ -49,7 +49,7 @@ cmsRun jetImageTest_mc_cfg.py
 ```
 * Remote mode:
 ```
-cmsRun jetImageTest_mc_cfg.py remote=1 params=$CMSSW_BASE/src/Jet2011/AnalysisFW/python/service_model_params.json
+cmsRun jetImageTest_mc_cfg.py remote=1 params=$CMSSW_BASE/src/SonicCMS/AnalysisFW/python/service_model_params.json
 ```
 
 The remote mode timeout is set to 30 seconds by default. It can be changed e.g. to 10 seconds by adding the argument `timeout=10`.
