@@ -18,7 +18,7 @@ class TFClientLocal : public TFClientBase {
 		TFClientLocal(const std::string& featurizer_file, const std::string& classifier_file);
 		
 		//input is "image" in tensor form
-		bool predict(const tensorflow::Tensor& img, tensorflow::Tensor& result, unsigned dataID) const override;
+		void predict(unsigned dataID, const tensorflow::Tensor* img, tensorflow::Tensor* result, edm::WaitingTaskWithArenaHolder holder) override;
 		
 	private:
 		void loadModel(const std::string& featurizer_file, const std::string& classifier_file);

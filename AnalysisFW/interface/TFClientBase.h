@@ -2,6 +2,7 @@
 #define TFCLIENTBASE_H
 
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include "FWCore/Concurrency/interface/WaitingTaskWithArenaHolder.h"
 
 #include "tensorflow/core/framework/tensor.h"
 
@@ -14,9 +15,7 @@ class TFClientBase {
 		virtual ~TFClientBase() {}
 		
 		//input is "image" in tensor form
-		virtual bool predict(const tensorflow::Tensor& img, tensorflow::Tensor& result, unsigned dataID) const {
-			return true;
-		}
+		virtual void predict(unsigned dataID, const tensorflow::Tensor* img, tensorflow::Tensor* result, edm::WaitingTaskWithArenaHolder holder) {}
 };
 
 #endif

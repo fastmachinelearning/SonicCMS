@@ -97,12 +97,12 @@ tensorflow::Tensor TFClientLocal::createFeatureList(const tensorflow::Tensor& in
 }
 
 //input is "image" in tensor form
-bool TFClientLocal::predict(const tensorflow::Tensor& img, tensorflow::Tensor& result, unsigned dataID) const {
+void TFClientLocal::predict(unsigned dataID, const tensorflow::Tensor* img, tensorflow::Tensor* result, edm::WaitingTaskWithArenaHolder holder) {
 	auto t1 = std::chrono::high_resolution_clock::now();
 
 	// --------------------------------------------------------------------
 	// Run the Featurizer
-	const auto& featurizer_outputs = runFeaturizer(img);
+	const auto& featurizer_outputs = runFeaturizer(*img);
 
 	auto t2 = std::chrono::high_resolution_clock::now();
 	edm::LogInfo("TFClientLocal") << "Featurizer time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
@@ -110,11 +110,13 @@ bool TFClientLocal::predict(const tensorflow::Tensor& img, tensorflow::Tensor& r
 	// --------------------------------------------------------------------
 	// Run the Classifier
 	const auto& inputClassifier = createFeatureList(featurizer_outputs[0]);
-	const auto& outputs = runClassifier(inputClassifier);
-	result = outputs[0];
+	auto outputs = runClassifier(inputClassifier);
+	result = &outputs[0];
 
 	auto t3 = std::chrono::high_resolution_clock::now();
 	edm::LogInfo("TFClientLocal") << "Classifier time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 	
-	return true;
+	//finish
+	std::exception_ptr exceptionPtr;
+	holder.doneWaiting(exceptionPtr);
 }

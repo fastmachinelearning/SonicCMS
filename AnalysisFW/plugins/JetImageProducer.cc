@@ -24,6 +24,7 @@
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include "FWCore/Framework/src/PreallocationConfiguration.h"
 
 #include "DataFormats/Math/interface/deltaR.h"
 #include "DataFormats/PatCandidates/interface/Jet.h"
@@ -32,10 +33,26 @@
 
 #include "tensorflow/core/framework/tensor.h"
 
-class JetImageProducer : public edm::global::EDProducer<>
+class JetImageCache {
+	public:
+		const tensorflow::Tensor& input() const { return input_; }
+		tensorflow::Tensor& input() { return input_; }
+
+		const tensorflow::Tensor& output() const { return output_; }
+		tensorflow::Tensor& output() { return output_; }
+
+	private:
+		tensorflow::Tensor input_;
+		tensorflow::Tensor output_;
+};
+
+class JetImageProducer : public edm::global::EDProducer<edm::ExternalWork,edm::StreamCache<JetImageCache>>
 {
 	public:
 		explicit JetImageProducer(edm::ParameterSet const& cfg);
+		void preallocate(edm::PreallocationConfiguration const& iPrealloc) override;
+		std::unique_ptr<JetImageCache> beginStream(edm::StreamID) const override;
+		void acquire(edm::StreamID iStream, edm::Event const& iEvent, edm::EventSetup const& iSetup, edm::WaitingTaskWithArenaHolder holder) const override;
 		void produce(edm::StreamID iStream, edm::Event& iEvent, edm::EventSetup const& iSetup) const;
 		~JetImageProducer() override;
 
@@ -45,34 +62,50 @@ class JetImageProducer : public edm::global::EDProducer<>
 
 		edm::InputTag JetTag_;
 		edm::EDGetTokenT<edm::View<pat::Jet>> JetTok_;
-		std::unique_ptr<TFClientBase> client_;
 		unsigned topN_;
+		bool remote_;
+		edm::ParameterSet extraParams_;
+		std::unique_ptr<TFClientBase> client_;
+		std::string imageListFile_;
 		std::vector<std::string> imageList_;
 };
 
 JetImageProducer::JetImageProducer(edm::ParameterSet const &cfg) :
 	JetTag_(cfg.getParameter<edm::InputTag>("JetTag")),
 	JetTok_(consumes<edm::View<pat::Jet>>(JetTag_)),
-	topN_(cfg.getParameter<unsigned>("topN"))
+	topN_(cfg.getParameter<unsigned>("topN")),
+	remote_(cfg.getParameter<bool>("remote")),
+	extraParams_(cfg.getParameter<edm::ParameterSet>("ExtraParams")),
+	imageListFile_(cfg.getParameter<std::string>("imageList"))
 {
-	if(cfg.exists("ServerParams")){
-		//in remote version, model is already loaded on the server
-		const auto& scfg = cfg.getParameter<edm::ParameterSet>("ServerParams");
-		client_ = std::make_unique<TFClientRemote>(scfg.getParameter<std::string>("address"),scfg.getParameter<int>("port"),scfg.getParameter<unsigned>("timeout"));
-		edm::LogInfo("JetImageProducer") << "Connected to remote server";
-	}
-	else {
-		client_ = std::make_unique<TFClientLocal>("resnet50.pb","resnet50_classifier.pb");
-	}
-
 	//load score list
-	std::ifstream ifile("imagenet_classes.txt");
+	std::ifstream ifile(imageListFile_);
 	if(ifile.is_open()){
 		std::string line;
 		while(std::getline(ifile,line)){
 			imageList_.push_back(line);
 		}
 	}
+}
+
+void JetImageProducer::preallocate(edm::PreallocationConfiguration const& iPrealloc) {
+	if(remote_){
+		//in remote version, model is already loaded on the server
+		client_ = std::make_unique<TFClientRemote>(
+			iPrealloc.numberOfStreams(),
+			extraParams_.getParameter<std::string>("address"),
+			extraParams_.getParameter<int>("port"),
+			extraParams_.getParameter<unsigned>("timeout")
+		);
+		edm::LogInfo("JetImageProducer") << "Connected to remote server";
+	}
+	else {
+		client_ = std::make_unique<TFClientLocal>(extraParams_.getParameter<std::string>("featurizer"),extraParams_.getParameter<std::string>("classifier"));
+	}
+}
+
+std::unique_ptr<JetImageCache> JetImageProducer::beginStream(edm::StreamID) const {
+	return std::make_unique<JetImageCache>();
 }
 
 void JetImageProducer::findTopN(const tensorflow::Tensor& scores, unsigned n) const {
@@ -151,23 +184,30 @@ tensorflow::Tensor JetImageProducer::createImage(const edm::View<pat::Jet>& jets
 	return inputImage;
 }
 
-void JetImageProducer::produce(edm::StreamID iStream, edm::Event& iEvent, edm::EventSetup const &iSetup) const {
+void JetImageProducer::acquire(edm::StreamID iStream, edm::Event const& iEvent, edm::EventSetup const& iSetup, edm::WaitingTaskWithArenaHolder holder) const {
+	//input data from event
 	edm::Handle<edm::View<pat::Jet>> h_jets;
 	iEvent.getByToken(JetTok_, h_jets);
 
+	//reset cache of input and output
+	JetImageCache* streamCacheData = streamCache(iStream);
+	streamCacheData->output() = tensorflow::Tensor();
+	
 	auto t0 = std::chrono::high_resolution_clock::now();
 
-	tensorflow::Tensor inputImage = createImage(*h_jets.product());
+	streamCacheData->input() = createImage(*h_jets.product());
 
 	auto t1 = std::chrono::high_resolution_clock::now();
 	edm::LogInfo("JetImageProducer") << "Image time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
 
 	// run the inference on remote or local
-	tensorflow::Tensor outputScores;
-	client_->predict(inputImage,outputScores,iStream);
+	client_->predict(iStream.value(),&streamCacheData->input(),&streamCacheData->output(),holder);
+}
 
+void JetImageProducer::produce(edm::StreamID iStream, edm::Event& iEvent, edm::EventSetup const &iSetup) const {
+	JetImageCache* streamCacheData = streamCache(iStream);
 	//check the results
-	findTopN(outputScores,topN_);
+	findTopN(streamCacheData->output(),topN_);
 }
 
 JetImageProducer::~JetImageProducer() {

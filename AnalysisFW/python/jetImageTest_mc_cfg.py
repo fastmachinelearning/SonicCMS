@@ -39,13 +39,21 @@ process.source = cms.Source("PoolSource",
 process.jetImageProducer = cms.EDProducer('JetImageProducer',
     JetTag = cms.InputTag('slimmedJetsAK8'),
     topN = cms.uint32(5),
+    imageList = cms.string("imagenet_classes.txt"),
 )
 
 if options.remote:
-    process.jetImageProducer.ServerParams = cms.PSet(
+    process.jetImageProducer.remote = cms.bool(True)
+    process.jetImageProducer.ExtraParams = cms.PSet(
         address = cms.string(options.address),
         port = cms.int32(options.port),
         timeout = cms.uint32(options.timeout),
+    )
+else:
+    process.jetImageProducer.remote = cms.bool(False)
+    process.jetImageProducer.ExtraParams = cms.PSet(
+        featurizer = cms.string("resnet50.pb"),
+        classifier = cms.string("resnet50_classifier.pb"),
     )
 
 # Let it run
@@ -56,7 +64,7 @@ process.p = cms.Path(
 # Change number of events here:
 process.maxEvents.input = 25
 
-process.MessageLogger.cerr.FwkReport.reportEvery = 10
+process.MessageLogger.cerr.FwkReport.reportEvery = 1
 keep_msgs = ['JetImageProducer','TFClientRemote','TFClientLocal']
 for msg in keep_msgs:
     process.MessageLogger.categories.append(msg)
