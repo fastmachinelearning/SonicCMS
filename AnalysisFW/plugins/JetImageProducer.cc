@@ -36,7 +36,7 @@ class JetImageProducer : public edm::global::EDProducer<>
 {
 	public:
 		explicit JetImageProducer(edm::ParameterSet const& cfg);
-		void produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const& iSetup) const;
+		void produce(edm::StreamID iStream, edm::Event& iEvent, edm::EventSetup const& iSetup) const;
 		~JetImageProducer() override;
 
 	private:
@@ -151,7 +151,7 @@ tensorflow::Tensor JetImageProducer::createImage(const edm::View<pat::Jet>& jets
 	return inputImage;
 }
 
-void JetImageProducer::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const &iSetup) const {
+void JetImageProducer::produce(edm::StreamID iStream, edm::Event& iEvent, edm::EventSetup const &iSetup) const {
 	edm::Handle<edm::View<pat::Jet>> h_jets;
 	iEvent.getByToken(JetTok_, h_jets);
 
@@ -164,7 +164,7 @@ void JetImageProducer::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetu
 
 	// run the inference on remote or local
 	tensorflow::Tensor outputScores;
-	client_->predict(inputImage,outputScores);
+	client_->predict(inputImage,outputScores,iStream);
 
 	//check the results
 	findTopN(outputScores,topN_);

@@ -11,9 +11,7 @@
 
 using grpc::Channel;
 using grpc::ClientContext;
-using grpc::ClientReader;
-using grpc::ClientReaderWriter;
-using grpc::ClientWriter;
+using grpc::CompletionQueue;
 using grpc::Status;
 
 using tensorflow::serving::PredictRequest;
@@ -24,6 +22,7 @@ typedef google::protobuf::Map<std::string, tensorflow::TensorProto> protomap;
 
 //based on: tensorflow_serving/example/inception_client.cc
 //and also: https://github.com/Azure/aml-real-time-ai/blob/master/pythonlib/amlrealtimeai/client.py
+//and also: https://github.com/grpc/grpc/blob/v1.14.1/examples/cpp/helloworld/greeter_async_client.cc
 TFClientRemote::TFClientRemote(const std::string& address, int port, unsigned timeout) :
 	TFClientBase(),
 	channel_(grpc::CreateChannel(address+":"+std::to_string(port),grpc::InsecureChannelCredentials())),
@@ -32,7 +31,7 @@ TFClientRemote::TFClientRemote(const std::string& address, int port, unsigned ti
 { }
 
 //input is "image" in tensor form
-bool TFClientRemote::predict(const tensorflow::Tensor& img, tensorflow::Tensor& result) const {
+bool TFClientRemote::predict(const tensorflow::Tensor& img, tensorflow::Tensor& result, unsigned dataID) const {
 	//convert to proto
 	tensorflow::TensorProto proto;
 	img.AsProtoTensorContent(&proto);
@@ -41,29 +40,39 @@ bool TFClientRemote::predict(const tensorflow::Tensor& img, tensorflow::Tensor& 
 	PredictRequest predictRequest;
 	PredictResponse response;
 	ClientContext context;
+	CompletionQueue cq;
 	
 	//setup input
 	protomap& inputs = *predictRequest.mutable_inputs();
 	inputs["images"] = proto;
-	
+
 	//setup timeout
 	std::chrono::system_clock::time_point deadline = std::chrono::system_clock::now() + std::chrono::seconds(timeout_);
 	context.set_deadline(deadline);
 	
 	//make prediction request
-	Status status = stub_->Predict(&context, predictRequest, &response);
-	
+	auto rpc = stub_->AsyncPredict(&context, predictRequest, &cq);
+
+	//setup reply, status, unique tag
+	Status status;
+	rpc->Finish(&response,&status,(void*)dataID);
+
+	//block until completion
+	void* tag;
+	bool ok = false;
+	cq.Next(&tag,&ok);
+
 	//check result
-	if(status.ok()){
+	if(ok and status.ok() and tag==(void*)dataID){
 		protomap& outputs = *response.mutable_outputs();
 		result.FromProto(outputs["output_alias"]);
 		std::stringstream msg;
 		msg << "Classifier Status: Ok\n";
-		edm::LogInfo("TFClient") << msg.str();
+		edm::LogInfo("TFClientRemote") << msg.str();
 		return true;
 	}
 	else{
-		edm::LogInfo("TFClient") << "gRPC call return code: " << status.error_code() << ", msg: " << status.error_message();
+		edm::LogInfo("TFClientRemote") << "gRPC call return code: " << status.error_code() << ", msg: " << status.error_message();
 		return false;
 	}
 }

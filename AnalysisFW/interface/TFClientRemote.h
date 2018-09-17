@@ -19,7 +19,7 @@ class TFClientRemote : public TFClientBase {
 		TFClientRemote(const std::string& address, int port, unsigned timeout);
 		
 		//input is "image" in tensor form
-		bool predict(const tensorflow::Tensor& img, tensorflow::Tensor& result) const override;
+		bool predict(const tensorflow::Tensor& img, tensorflow::Tensor& result, unsigned dataID) const override;
 		
 	private:
 		std::shared_ptr<grpc::Channel> channel_;

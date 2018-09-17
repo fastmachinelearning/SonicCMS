@@ -97,7 +97,7 @@ tensorflow::Tensor TFClientLocal::createFeatureList(const tensorflow::Tensor& in
 }
 
 //input is "image" in tensor form
-bool TFClientLocal::predict(const tensorflow::Tensor& img, tensorflow::Tensor& result) const {
+bool TFClientLocal::predict(const tensorflow::Tensor& img, tensorflow::Tensor& result, unsigned dataID) const {
 	auto t1 = std::chrono::high_resolution_clock::now();
 
 	// --------------------------------------------------------------------

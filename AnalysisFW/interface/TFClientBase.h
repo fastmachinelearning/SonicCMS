@@ -14,7 +14,7 @@ class TFClientBase {
 		virtual ~TFClientBase() {}
 		
 		//input is "image" in tensor form
-		virtual bool predict(const tensorflow::Tensor& img, tensorflow::Tensor& result) const {
+		virtual bool predict(const tensorflow::Tensor& img, tensorflow::Tensor& result, unsigned dataID) const {
 			return true;
 		}
 };
