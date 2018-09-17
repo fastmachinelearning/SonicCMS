@@ -4,6 +4,7 @@
 <use   name="FWCore/PluginManager"/>
 <use   name="PhysicsTools/TensorFlow"/>
 <use   name="grpc"/>
+<use   name="tensorflow-cc"/>
 <use   name="tensorflow-serving"/>
 <export>
   <lib   name="1"/>

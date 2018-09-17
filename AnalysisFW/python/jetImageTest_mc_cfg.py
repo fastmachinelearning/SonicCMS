@@ -32,12 +32,12 @@ process.GlobalTag.globaltag = cms.string('100X_upgrade2018_realistic_v10')
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
 process.source = cms.Source("PoolSource",
-                            fileNames = cms.untracked.vstring('file:store_mc_RunIISpring18MiniAOD_BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph_MINIAODSIM_100X_upgrade2018_realistic_v10-v1_30000_24A0230C-B530-E811-ADE3-14187741120B.root')
+    fileNames = cms.untracked.vstring('file:store_mc_RunIISpring18MiniAOD_BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph_MINIAODSIM_100X_upgrade2018_realistic_v10-v1_30000_24A0230C-B530-E811-ADE3-14187741120B.root')
 )
 
 ################### EDProducer ##############################
 process.jetImageProducer = cms.EDProducer('JetImageProducer',
-    JetTag          = cms.InputTag('slimmedJetsAK8'),
+    JetTag = cms.InputTag('slimmedJetsAK8'),
     topN = cms.uint32(5),
 )
 
@@ -57,13 +57,12 @@ process.p = cms.Path(
 process.maxEvents.input = 25
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 10
-process.MessageLogger.categories.append('JetImageProducer')
-process.MessageLogger.cerr.JetImageProducer = cms.untracked.PSet(
-    optionalPSet = cms.untracked.bool(True),
-    limit = cms.untracked.int32(10000000),
-)
-process.MessageLogger.categories.append('TFClient')
-process.MessageLogger.cerr.TFClient = cms.untracked.PSet(
-    optionalPSet = cms.untracked.bool(True),
-    limit = cms.untracked.int32(10000000),
-)
+keep_msgs = ['JetImageProducer','TFClientRemote','TFClientLocal']
+for msg in keep_msgs:
+    process.MessageLogger.categories.append(msg)
+    setattr(process.MessageLogger.cerr,msg,
+        cms.untracked.PSet(
+            optionalPSet = cms.untracked.bool(True),
+            limit = cms.untracked.int32(10000000),
+        )
+    )
