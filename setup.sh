@@ -8,6 +8,8 @@ cd ${CMSSWVER}
 # cmsenv
 eval `scramv1 runtime -sh`
 
+unset PYTHONPATH
+CMSSWTF=$(dirname $(python3 -c "import tensorflow; print(tensorflow.__file__)"))
 WORK=$CMSSW_BASE/work
 mkdir $WORK
 cd $WORK
@@ -56,7 +58,7 @@ scram setup grpc
 # download and build tensorflow_serving w/ cmake
 INSTALLDIR=work/local/tensorflow_serving
 cd $WORK
-git clone https://github.com/kpedro88/inception_cmake
+git clone https://github.com/hls-fpga-machine-learning/inception_cmake
 cd inception_cmake
 git submodule update --init
 cd serving
@@ -108,10 +110,8 @@ scram setup tensorflow-serving
 
 # setup for conda environment (kept separate from CMSSW)
 cd $CMSSW_BASE/..
-CMSSWTF=$(dirname $(python3 -c "import tensorflow; print(tensorflow.__file__)"))
 
 # setup miniconda
-unset PYTHONPATH
 wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh -b -p $CMSSW_BASE/../miniconda3
 source /uscms_data/d3/pedrok/phase2/brainwave/test/miniconda3/etc/profile.d/conda.sh
