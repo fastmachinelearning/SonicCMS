@@ -62,7 +62,8 @@ void JetImageData::waitForNext(){
 		inputs["images"] = proto_;
 
 		//setup timeout
-		std::chrono::system_clock::time_point deadline = std::chrono::system_clock::now() + std::chrono::seconds(timeout_);
+		auto t1 = std::chrono::high_resolution_clock::now();
+		std::chrono::system_clock::time_point deadline = t1 + std::chrono::seconds(timeout_);
 		context.set_deadline(deadline);
 		
 		//make prediction request
@@ -77,6 +78,9 @@ void JetImageData::waitForNext(){
 		bool ok = false;
 		cq.Next(&tag,&ok);
 
+		auto t2 = std::chrono::high_resolution_clock::now();
+		edm::LogInfo("TFClientRemote") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+		
 		//check result
 		std::exception_ptr exceptionPtr;
 		if(ok and status.ok() and tag==(void*)(dataID_+1)){
