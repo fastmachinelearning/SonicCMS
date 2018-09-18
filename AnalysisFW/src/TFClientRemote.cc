@@ -37,6 +37,34 @@ JetImageData::~JetImageData() {
 	}
 }
 
+void JetImageData::predict(tensorflow::serving::PredictionService::Stub* stub, unsigned timeout, const tensorflow::Tensor* img) {
+	//convert to proto
+	tensorflow::TensorProto proto;
+	img->AsProtoTensorContent(&proto);
+	
+	//setup input
+	protomap& inputs = *request_.mutable_inputs();
+	inputs["images"] = proto;
+
+	//setup timeout
+	grpc::ClientContext context;
+	std::chrono::system_clock::time_point deadline = std::chrono::system_clock::now() + std::chrono::seconds(timeout);
+	context.set_deadline(deadline);
+	
+	//make prediction request
+	rpc_ = stub->AsyncPredict(&context, request_, &cq_);
+
+	//setup reply, status, unique tag (+1 b/c dataID starts at 0)
+	rpc_->Finish(&response_,&status_,(void*)(dataID_+1));
+	
+	//activate thread to wait for response, and return
+	{
+		std::lock_guard<std::mutex> guard(mutex_);
+		hasCall_ = true;
+	}
+	cond_.notify_one();
+}
+
 void JetImageData::waitForNext(){
 	while(!stop_){
 		//wait for condition
@@ -62,6 +90,7 @@ void JetImageData::waitForNext(){
 		else{
 			edm::LogInfo("TFClientRemote") << "gRPC call return code: " << status_.error_code() << ", msg: " << status_.error_message();
 		}
+		hasCall_ = false;
 		holder_.doneWaiting(exceptionPtr);
 	}
 }
@@ -79,45 +108,10 @@ TFClientRemote::TFClientRemote(unsigned numStreams, const std::string& address, 
 
 //input is "image" in tensor form
 void TFClientRemote::predict(unsigned dataID, const tensorflow::Tensor* img, tensorflow::Tensor* result, edm::WaitingTaskWithArenaHolder holder) {
-	//setup cache
+	//get cache
 	auto& streamData = streamData_.at(dataID);
 	streamData.dataID_ = dataID;
-	streamData.cq_ = CompletionQueue();
-	streamData.request_ = PredictRequest();
-	streamData.response_ = PredictResponse();
-	streamData.status_ = Status();
 	streamData.output_ = result;
 	streamData.holder_ = std::move(holder);
-
-	//convert to proto
-	tensorflow::TensorProto proto;
-	img->AsProtoTensorContent(&proto);
-	
-	//items for grpc request
-	PredictRequest& predictRequest = streamData.request_;
-	PredictResponse& response = streamData.response_;
-	ClientContext& context(streamData.context_);
-	CompletionQueue& cq = streamData.cq_;
-	
-	//setup input
-	protomap& inputs = *predictRequest.mutable_inputs();
-	inputs["images"] = proto;
-
-	//setup timeout
-	std::chrono::system_clock::time_point deadline = std::chrono::system_clock::now() + std::chrono::seconds(timeout_);
-	context.set_deadline(deadline);
-	
-	//make prediction request
-	streamData.rpc_ = stub_->AsyncPredict(&context, predictRequest, &cq);
-
-	//setup reply, status, unique tag (+1 b/c dataID starts at 0)
-	Status& status = streamData.status_;
-	streamData.rpc_->Finish(&response,&status,(void*)(dataID+1));
-	
-	//activate thread to wait for response, and return
-	{
-		std::lock_guard<std::mutex> guard(streamData.mutex_);
-		streamData.hasCall_ = true;
-	}
-	streamData.cond_.notify_one();
+	streamData.predict(stub_.get(),timeout_,img);
 }
