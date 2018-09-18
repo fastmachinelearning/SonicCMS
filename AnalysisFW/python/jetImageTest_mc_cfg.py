@@ -9,6 +9,8 @@ options.register("address", "", VarParsing.multiplicity.singleton, VarParsing.va
 options.register("port", -1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("timeout", 30, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("params", "", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+options.register("threads", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
+options.register("streams", 0, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.parseArguments()
 
 if len(options.params)>0 and options.remote:
@@ -74,3 +76,9 @@ for msg in keep_msgs:
             limit = cms.untracked.int32(10000000),
         )
     )
+
+if options.threads>0:
+    if not hasattr(process,"options"):
+        process.options = cms.untracked.PSet()
+    process.options.numberOfThreads = cms.untracked.uint32(options.threads)
+    process.options.numberOfStreams = cms.untracked.uint32(options.streams if options.streams>0 else 0)
