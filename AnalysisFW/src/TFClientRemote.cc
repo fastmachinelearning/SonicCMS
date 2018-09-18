@@ -34,6 +34,7 @@ JetImageData::JetImageData() :
 
 JetImageData::~JetImageData() {
 	stop_ = true;
+	cond_.notify_one();
 	if(thread_){
 		thread_->join();
 		thread_.reset();
@@ -41,13 +42,14 @@ JetImageData::~JetImageData() {
 }
 
 void JetImageData::waitForNext(){
-	while(!stop_){
+	while(true){
 		//wait for condition
 		{
 			std::unique_lock<std::mutex> lk(mutex_);
-			cond_.wait(lk, [this](){return hasCall_;});
+			cond_.wait(lk, [this](){return (hasCall_ or stop_);});
 			lk.unlock();
 		}
+		if(stop_) break;
 
 		//items for grpc request
 		PredictRequest request;
