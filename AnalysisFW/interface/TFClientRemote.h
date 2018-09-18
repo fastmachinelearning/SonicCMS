@@ -20,14 +20,10 @@ class JetImageData {
 		JetImageData();
 		~JetImageData();
 		
-		void predict(tensorflow::serving::PredictionService::Stub* stub, unsigned timeout, const tensorflow::Tensor* img);
-		
 		unsigned dataID_;
-		grpc::CompletionQueue cq_;
-		tensorflow::serving::PredictRequest request_;
-		tensorflow::serving::PredictResponse response_;
-		grpc::Status status_;
-		std::unique_ptr<grpc::ClientAsyncResponseReader<tensorflow::serving::PredictResponse>> rpc_;
+		unsigned timeout_;
+		tensorflow::serving::PredictionService::Stub* stub_;
+		tensorflow::TensorProto proto_;
 		tensorflow::Tensor* output_;
 		edm::WaitingTaskWithArenaHolder holder_;
 
