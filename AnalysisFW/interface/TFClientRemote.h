@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+#include <atomic>
 
 #include "grpc++/create_channel.h"
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
@@ -35,7 +36,7 @@ class JetImageData {
 	private:
 		void waitForNext();
 		
-		bool stop_;
+		std::atomic<bool> stop_;
 		std::unique_ptr<std::thread> thread_;
 };
 
