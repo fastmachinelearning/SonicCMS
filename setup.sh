@@ -114,10 +114,12 @@ cd $CMSSW_BASE/..
 # setup miniconda
 wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh -b -p $CMSSW_BASE/../miniconda3
-source /uscms_data/d3/pedrok/phase2/brainwave/test/miniconda3/etc/profile.d/conda.sh
+source $CMSSW_BASE/../miniconda3/etc/profile.d/conda.sh
 
 # setup aml
 git clone https://github.com/Azure/aml-real-time-ai
+# temporarily remove jupyter b/c issue with conda and pip
+sed -i '/jupyter/d' aml-real-time-ai/environment.yml
 miniconda3/bin/conda env create -f aml-real-time-ai/environment.yml
 
 # to get working version
@@ -128,5 +130,5 @@ ln -s $CMSSWTF $AMLDIR/tensorflow
 # get the analysis code
 cd $CMSSW_BASE/src
 git cms-init
-git clone git@github.com:hls-fpga-machine-learning/SonicCMS -b "kjp/1020_azureml"
+git clone https://github.com/hls-fpga-machine-learning/SonicCMS -b "kjp/1020_azureml_ew"
 scram b -j 8

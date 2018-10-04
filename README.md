@@ -8,7 +8,7 @@ https://github.com/cms-smpj/SMPJ/tree/v1.0/
 
 For this branch, please use the following script to set up the work area and associated tools (`grpc`,`tensorflow-serving`,`miniconda`,`aml-real-time-ai`):
 ```
-wget https://raw.githubusercontent.com/hls-fpga-machine-learning/SonicCMS/kjp/1020_azureml/setup.sh
+wget https://raw.githubusercontent.com/hls-fpga-machine-learning/SonicCMS/kjp/1020_azureml_ew/setup.sh
 chmod +x setup.sh
 ./setup.sh
 cd CMSSW_10_2_0/src
