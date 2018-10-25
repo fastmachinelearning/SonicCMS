@@ -5,7 +5,6 @@
 #include <sstream>
 #include <chrono>
 
-#include "tensorflow/core/public/session.h"
 #include "tensorflow/core/graph/default_device.h"
 
 TFClientLocal::TFClientLocal(const std::string& featurizer_file, const std::string& classifier_file) : TFClientBase() {
@@ -38,26 +37,54 @@ void TFClientLocal::loadModel(const std::string& featurizer_file, const std::str
       msg << shape0C.dim(i).size() << "\n";
     }
     edm::LogInfo("TFClientLocal") << msg.str();
+
+	auto t1 = std::chrono::high_resolution_clock::now();
+
+	msg.str("");
+    msg << "Create featurizer session...\n";
+    sessionF_ = tensorflow::createSession(graphDefFeaturizer_);
+    edm::LogInfo("TFClientLocal") << msg.str();
+
+	auto t2 = std::chrono::high_resolution_clock::now();
+	edm::LogInfo("TFClientLocal") << "Featurizer session time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+
+	msg.str("");
+    msg << "Create classifier session...\n";
+    sessionC_ = tensorflow::createSession(graphDefClassifier_);
+    edm::LogInfo("TFClientLocal") << msg.str();
+
+	auto t3 = std::chrono::high_resolution_clock::now();
+	edm::LogInfo("TFClientLocal") << "Classifier session time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+}
+
+TFClientLocal::~TFClientLocal() {
+    std::stringstream msg;
+	if(sessionF_) {
+		msg.str("");
+	    msg << "Close the featurizer session..."  << "\n";
+		tensorflow::closeSession(sessionF_);
+	    edm::LogInfo("TFClientLocal") << msg.str();
+	}
+	if(sessionC_) {
+		msg.str("");
+	    msg << "Close the classifier session..."  << "\n";
+		tensorflow::closeSession(sessionC_);
+	    edm::LogInfo("TFClientLocal") << msg.str();
+	}
 }
 
 std::vector<tensorflow::Tensor> TFClientLocal::runFeaturizer(const tensorflow::Tensor& inputImage) const {
     std::stringstream msg;
     msg << " ====> Run the Featurizer...\n";
     // Tensorflow part
-    msg << "Create featurizer session...\n";
-    tensorflow::Session* sessionF = tensorflow::createSession(graphDefFeaturizer_);
     msg << "Featurizer input = " << inputImage.DebugString() << "\n";
     edm::LogInfo("JetImageProducer") << msg.str();
 
     msg.str("");
     std::vector<tensorflow::Tensor> featurizer_outputs;
-    tensorflow::Status statusF = sessionF->Run( {{"InputImage:0",inputImage}}, { "resnet_v1_50/pool5:0" }, {}, &featurizer_outputs);
+    tensorflow::Status statusF = sessionF_->Run( {{"InputImage:0",inputImage}}, { "resnet_v1_50/pool5:0" }, {}, &featurizer_outputs);
     if (!statusF.ok()) { msg << statusF.ToString() << "\n"; }
     else{ msg << "Featurizer Status: Ok\n"; }
-
-    msg << "Close the featurizer session..."  << "\n";
-    tensorflow::closeSession(sessionF);
-    edm::LogInfo("TFClientLocal") << msg.str();
 
     return featurizer_outputs;
 }
@@ -78,10 +105,6 @@ std::vector<tensorflow::Tensor> TFClientLocal::runClassifier(const tensorflow::T
     else{ msg << "Classifier Status: Ok"  << "\n"; }
     msg << "output vector size = " << outputs.size() << "\n";
     msg << "output vector = " << outputs[0].DebugString() << "\n";
-
-    msg << "Close the classifier session..." << "\n";
-    tensorflow::closeSession(sessionC);
-    edm::LogInfo("TFClientLocal") << msg.str();
 
     return outputs;
 }
