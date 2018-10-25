@@ -146,7 +146,7 @@ void TFClientLocal::predict(unsigned dataID, const tensorflow::Tensor* img, tens
 	// Run the Classifier
 	const auto& inputClassifier = createFeatureList(featurizer_outputs[0]);
 	auto outputs = runClassifier(inputClassifier,sessionC_[dataID]);
-	result = &outputs[0];
+	*result = outputs[0];
 
 	auto t3 = std::chrono::high_resolution_clock::now();
 	edm::LogInfo("TFClientLocal") << "Classifier time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
