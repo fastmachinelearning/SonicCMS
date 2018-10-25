@@ -16,7 +16,7 @@ class TFClientLocal : public TFClientBase {
 	public:
 		//constructors (timeout in seconds)
 		TFClientLocal() : TFClientBase() {}
-		TFClientLocal(const std::string& featurizer_file, const std::string& classifier_file);
+		TFClientLocal(unsigned numStreams, const std::string& featurizer_file, const std::string& classifier_file);
 		~TFClientLocal();
 		
 		//input is "image" in tensor form
@@ -24,15 +24,16 @@ class TFClientLocal : public TFClientBase {
 		
 	private:
 		void loadModel(const std::string& featurizer_file, const std::string& classifier_file);
-		std::vector<tensorflow::Tensor> runFeaturizer(const tensorflow::Tensor& inputImage) const;
-		std::vector<tensorflow::Tensor> runClassifier(const tensorflow::Tensor& inputClassifier) const;
+		void createSessions(unsigned dataID);
+		std::vector<tensorflow::Tensor> runFeaturizer(const tensorflow::Tensor& inputImage, tensorflow::Session* sessionF) const;
+		std::vector<tensorflow::Tensor> runClassifier(const tensorflow::Tensor& inputClassifier, tensorflow::Session* sessionC) const;
 		tensorflow::Tensor createFeatureList(const tensorflow::Tensor& input) const;
 		
 		//members
 		tensorflow::GraphDef* graphDefFeaturizer_ = nullptr;
 		tensorflow::GraphDef* graphDefClassifier_ = nullptr;
-		tensorflow::Session* sessionF_ = nullptr;
-		tensorflow::Session* sessionC_ = nullptr;
+		std::vector<tensorflow::Session*> sessionF_ = {};
+		std::vector<tensorflow::Session*> sessionC_ = {};
 };
 
 #endif

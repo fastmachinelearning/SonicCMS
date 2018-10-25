@@ -100,7 +100,11 @@ void JetImageProducer::preallocate(edm::PreallocationConfiguration const& iPreal
 		edm::LogInfo("JetImageProducer") << "Connected to remote server";
 	}
 	else {
-		client_ = std::make_unique<TFClientLocal>(extraParams_.getParameter<std::string>("featurizer"),extraParams_.getParameter<std::string>("classifier"));
+		client_ = std::make_unique<TFClientLocal>(
+			iPrealloc.numberOfStreams(),
+			extraParams_.getParameter<std::string>("featurizer"),
+			extraParams_.getParameter<std::string>("classifier")
+		);
 	}
 }
 
