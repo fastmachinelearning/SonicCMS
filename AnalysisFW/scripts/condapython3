@@ -16,5 +16,5 @@ fi
 # run script, forwarding all arguments
 unset PYTHONPATH
 source $CMSSW_BASE/../miniconda3/etc/profile.d/conda.sh
-conda activate amlrealtimeai
+conda activate myamlenv
 python3 "$PYFILE" "$@"

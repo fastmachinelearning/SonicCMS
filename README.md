@@ -6,7 +6,7 @@ https://github.com/cms-smpj/SMPJ/tree/v1.0/
 
 ## Updated instructions
 
-For this branch, please use the following script to set up the work area and associated tools (`grpc`,`tensorflow-serving`,`miniconda`,`aml-real-time-ai`):
+For this branch, please use the following script to set up the work area and associated tools (`grpc`,`tensorflow-serving`,`miniconda`,`azureml`):
 ```
 wget https://raw.githubusercontent.com/hls-fpga-machine-learning/SonicCMS/kjp/1020_azureml_ew/setup.sh
 chmod +x setup.sh
@@ -21,11 +21,12 @@ To get the various input files (the data file comes from [this file list](https:
 cd AnalysisFW/python
 ```
 
-With the `miniconda` and `aml-real-time-ai` libraries installed, the `condapython3` executable can be used to run python scripts
+With the `miniconda` and `azureml` libraries installed, the `condapython3` executable can be used to run python scripts
 that depend on them (to avoid confusion between the CMSSW and `miniconda` environments, a subshell is used).
 
 The script `configure_aml.py` is used to create and register a model and start the associated service. The options of this script are:
 * `-h`, `--help`: show this help message and exit
+* `-w WORKSPACE`, `--workspace=WORKSPACE`: name of workspace json file (default = workspace.json)
 * `-p PARAMS`, `--params=PARAMS`: name of service & model params output json file (default = service_model_params.json)
 * `-m MODEL`, `--model=MODEL`: use model with provided name (default = )
 * `-r`, `--recreate`: recreate model (instead of use existing model)
@@ -35,7 +36,7 @@ The script `configure_aml.py` is used to create and register a model and start t
 
 To get started, using an existing model:
 ```
-condapython3 configure_aml.py -m resnet50-model-kjp-float -s quickstart-service
+condapython3 configure_aml.py -m resnet50-model-kjp-float -s imagenet-infer
 ```
 Follow the prompts on screen until the script is complete.
 

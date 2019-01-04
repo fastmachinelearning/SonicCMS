@@ -115,17 +115,20 @@ cd $CMSSW_BASE/..
 wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh -b -p $CMSSW_BASE/../miniconda3
 source $CMSSW_BASE/../miniconda3/etc/profile.d/conda.sh
+conda activate
 
-# setup aml
-git clone https://github.com/Azure/aml-real-time-ai
-# temporarily remove jupyter b/c issue with conda and pip
-sed -i '/jupyter/d' aml-real-time-ai/environment.yml
-miniconda3/bin/conda env create -f aml-real-time-ai/environment.yml
+# setup aml env
+conda create -y -n myamlenv Python=3.6 cython numpy
+conda activate myamlenv
+pip install --upgrade azureml-sdk[notebooks,automl,contrib] azureml-dataprep
 
 # to get working version
-AMLDIR=miniconda3/envs/amlrealtimeai/lib/python3.6/site-packages
+AMLDIR=miniconda3/envs/myamlenv/lib/python3.6/site-packages
 mv $AMLDIR/tensorflow $AMLDIR/tensorflow-bak
 ln -s $CMSSWTF $AMLDIR/tensorflow
+
+# really terrible hack to make remote login work
+sed -i 's/use_device_code=False/use_device_code=True/' $CMSSW_BASE/../miniconda3/envs/myamlenv/lib/python3.6/site-packages/azureml/_base_sdk_common/common.py
 
 # get the analysis code
 cd $CMSSW_BASE/src
