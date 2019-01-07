@@ -33,7 +33,7 @@ def define_model(model_name,verbose=False):
 
     # Featurizer
     model_path = os.path.expandvars('$CMSSW_BASE/src/SonicCMS/AnalysisFW/python')
-    model = QuantizedResNet50(model_path, is_frozen = True)
+    model = QuantizedResnet50(model_path, is_frozen = True)
     if verbose: print(model.version)
 
     # Classifier
@@ -42,7 +42,7 @@ def define_model(model_name,verbose=False):
     if verbose: print(model.classifier_input.shape)
 
     # service definition
-    from amlrealtimeai.pipeline import ServiceDefinition, TensorflowStage, BrainWaveStage
+    from azureml.contrib.brainwave.pipeline import ModelDefinition, TensorflowStage, BrainWaveStage
 
     save_path = model_path
     model_def_path = os.path.join(save_path, 'model_def_'+model_name+'.zip')
@@ -57,7 +57,6 @@ def define_model(model_name,verbose=False):
     return model_def_path
 
 parser = OptionParser()
-parser.add_option("-w", "--workspace", dest="workspace", default="workspace.json", help="name of workspace json file (default = %default)")
 parser.add_option("-p", "--params", dest="params", default="service_model_params.json", help="name of service & model params output json file (default = %default)")
 parser.add_option("-m", "--model", dest="model", default="", help="use model with provided name (default = %default)")
 parser.add_option("-r", "--recreate", dest="recreate", default=False, action="store_true", help="recreate model (instead of use existing model)")
@@ -74,13 +73,8 @@ subscription_id = "80defacd-509e-410c-9812-6e52ed6a0016"
 resource_group = "CMS_FPGA_Resources"
 workspace_name = "Fermilab"
 
-if os.path.isfile(options.workspace):
-    # get workspace from json
-    ws = Workspace.from_config(path=options.workspace)
-else:
-    # create workspace, save json for later
-    ws = Workspace(subscription_id = subscription_id, resource_group = resource_group, workspace_name = workspace_name)
-    ws.write_config(options.workspace)
+# create workspace, save json for later
+ws = Workspace(subscription_id = subscription_id, resource_group = resource_group, workspace_name = workspace_name)
 
 model_name = options.model
 service_name = options.service

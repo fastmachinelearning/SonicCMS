@@ -26,7 +26,6 @@ that depend on them (to avoid confusion between the CMSSW and `miniconda` enviro
 
 The script `configure_aml.py` is used to create and register a model and start the associated service. The options of this script are:
 * `-h`, `--help`: show this help message and exit
-* `-w WORKSPACE`, `--workspace=WORKSPACE`: name of workspace json file (default = workspace.json)
 * `-p PARAMS`, `--params=PARAMS`: name of service & model params output json file (default = service_model_params.json)
 * `-m MODEL`, `--model=MODEL`: use model with provided name (default = )
 * `-r`, `--recreate`: recreate model (instead of use existing model)
