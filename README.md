@@ -45,11 +45,11 @@ This script creates a JSON file with the address and port for the remote server,
 Now, the producer can run in either local or remote mode.
 * Local mode:
 ```
-cmsRun jetImageTest_mc_cfg.py
+cmsRun jetImageTest_mc_cfg.py maxEvents=25
 ```
 * Remote mode:
 ```
-cmsRun jetImageTest_mc_cfg.py remote=1 params=$CMSSW_BASE/src/SonicCMS/AnalysisFW/python/service_model_params.json
+cmsRun jetImageTest_mc_cfg.py remote=1 params=$CMSSW_BASE/src/SonicCMS/AnalysisFW/python/service_model_params.json maxEvents=25
 ```
 
 The remote mode timeout is set to 30 seconds by default. It can be changed e.g. to 10 seconds by adding the argument `timeout=10`.
