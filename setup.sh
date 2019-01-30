@@ -134,4 +134,7 @@ sed -i 's/use_device_code=False/use_device_code=True/' $CMSSW_BASE/../miniconda3
 cd $CMSSW_BASE/src
 git cms-init
 git clone https://github.com/hls-fpga-machine-learning/SonicCMS -b "kjp/1020_azureml_ew"
+git clone https://github.com/kpedro88/CondorProduction Condor/Production
 scram b -j 8
+cd SonicCMS/AnalysisFW/batch
+python $CMSSW_BASE/src/Condor/Production/python/linkScripts.py

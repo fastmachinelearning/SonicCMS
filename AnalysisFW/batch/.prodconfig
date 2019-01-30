@@ -1,0 +1,6 @@
+[manage]
+dir = .
+[caches]
+$CMSSW_BASE/test = 1
+$CMSSW_BASE/work/grpc = 1
+$CMSSW_BASE/work/inception_cmake = 1

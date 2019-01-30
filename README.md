@@ -56,6 +56,14 @@ The remote mode timeout is set to 30 seconds by default. It can be changed e.g. 
 If a server parameter JSON is not available, the server address and port can be specified using the arguments
 `address=1.1.1.1` and `port=22`.
 
+Batch job submission via HTCondor is supported, with the [CondorProduction](https://github.com/kpedro88/CondorProduction) package
+used to handle job submission and management. Example commands:
+```
+cd $CMSSW_BASE/src/SonicCMS/AnalysisFW/batch
+python $CMSSW_BASE/src/Condor/Production/python/cacheAll.py
+python submitJobs.py -p -s -i /store/mc/RunIISpring18MiniAOD/BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph/MINIAODSIM/100X_upgrade2018_realistic_v10-v1/30000/24A0230C-B530-E811-ADE3-14187741120B.root -o root://cmseos.fnal.gov//store/user/pedrok/sonic -J test1N1 -N 1 -A "remote=1 params=service_model_params.json maxEvents=5000"
+```
+
 Once you are finished (if using remote mode), you can delete the service (and/or model):
 ```
 condapython3 configure_aml.py -d -s quickstart-service
