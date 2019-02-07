@@ -52,12 +52,6 @@ if [[ "$INFILE" == "root://"* ]]; then
 	INFILE=file:data/${FN}
 fi
 
-# check tools
-ls -lth $CMSSW_BASE/external/slc6_amd64_gcc700/lib
-scram tool info grpc
-scram tool info tensorflow-serving
-ldd $CMSSW_BASE/lib/slc6_amd64_gcc700/pluginJetImageProducer.so
-
 # run CMSSW
 LOG=log_${JOBNAME}_${PROCESS}.log
 ARGS=$(cat $_CONDOR_SCRATCH_DIR/args_${JOBNAME}_${PROCESS}.txt)
