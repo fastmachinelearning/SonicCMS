@@ -1,4 +1,4 @@
-import os,json
+import os,json,shutil
 from optparse import OptionParser
 from azureml.core import Workspace
 from azureml.core.model import Model
@@ -45,7 +45,7 @@ def define_model(model_name,verbose=False):
     from azureml.contrib.brainwave.pipeline import ModelDefinition, TensorflowStage, BrainWaveStage
 
     save_path = model_path
-    model_def_path = os.path.join(save_path, 'model_def_'+model_name+'.zip')
+    model_def_path = os.path.join(save_path, 'data/model_def_'+model_name+'.zip')
 
     model_def = ModelDefinition()
     with tf.Session() as sess:
@@ -54,6 +54,8 @@ def define_model(model_name,verbose=False):
         model_def.save(model_def_path)
     if verbose: print(model_def_path)
     
+    # cleanup
+    shutil.move("msfprn50","data")
     return model_def_path
 
 parser = OptionParser()

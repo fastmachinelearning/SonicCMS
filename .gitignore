@@ -11,3 +11,9 @@ __init__.py
 *.zip
 *.png
 *.pdf
+/AnalysisFW/python/data/
+*.tar.gz
+*.stdout
+*.stderr
+*.condor
+

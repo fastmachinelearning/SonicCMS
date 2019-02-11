@@ -33,7 +33,10 @@ JetImageData::JetImageData() :
 }
 
 JetImageData::~JetImageData() {
-	stop_ = true;
+	{
+		std::lock_guard<std::mutex> guard(mutex_);
+		stop_ = true;
+	}
 	cond_.notify_one();
 	if(thread_){
 		thread_->join();
@@ -47,53 +50,54 @@ void JetImageData::waitForNext(){
 		{
 			std::unique_lock<std::mutex> lk(mutex_);
 			cond_.wait(lk, [this](){return (hasCall_ or stop_);});
-			lk.unlock();
-		}
-		if(stop_) break;
+			if(stop_) break;
 
-		//items for grpc request
-		PredictRequest request;
-		PredictResponse response;
-		ClientContext context;
-		CompletionQueue cq;
+			//do everything inside lock
 
-		//setup input
-		protomap& inputs = *request.mutable_inputs();
-		inputs["images"] = proto_;
+			//items for grpc request
+			PredictRequest request;
+			PredictResponse response;
+			ClientContext context;
+			CompletionQueue cq;
 
-		//setup timeout
-		auto t1 = std::chrono::high_resolution_clock::now();
-		std::chrono::system_clock::time_point deadline = t1 + std::chrono::seconds(timeout_);
-		context.set_deadline(deadline);
+			//setup input
+			protomap& inputs = *request.mutable_inputs();
+			inputs["images"] = proto_;
+
+			//setup timeout
+			auto t1 = std::chrono::high_resolution_clock::now();
+			std::chrono::system_clock::time_point deadline = t1 + std::chrono::seconds(timeout_);
+			context.set_deadline(deadline);
 		
-		//make prediction request
-		auto rpc = stub_->AsyncPredict(&context, request, &cq);
+			//make prediction request
+			auto rpc = stub_->AsyncPredict(&context, request, &cq);
 
-		//setup reply, status, unique tag (+1 b/c dataID starts at 0)
-		Status status;
-		rpc->Finish(&response,&status,(void*)(dataID_+1));
+			//setup reply, status, unique tag (+1 b/c dataID starts at 0)
+			Status status;
+			rpc->Finish(&response,&status,(void*)(dataID_+1));
 
-		//wait until completion
-		void* tag;
-		bool ok = false;
-		cq.Next(&tag,&ok);
+			//wait until completion
+			void* tag;
+			bool ok = false;
+			cq.Next(&tag,&ok);
 
-		auto t2 = std::chrono::high_resolution_clock::now();
-		edm::LogInfo("TFClientRemote") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+			auto t2 = std::chrono::high_resolution_clock::now();
+			edm::LogInfo("TFClientRemote") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 		
-		//check result
-		std::exception_ptr exceptionPtr;
-		if(ok and status.ok() and tag==(void*)(dataID_+1)){
-			protomap& outputs = *response.mutable_outputs();
-			output_->FromProto(outputs["output_alias"]);
-			std::stringstream msg;
-			edm::LogInfo("TFClientRemote") << "Classifier Status: Ok\n";
+			//check result
+			std::exception_ptr exceptionPtr;
+			if(ok and status.ok() and tag==(void*)(dataID_+1)){
+				protomap& outputs = *response.mutable_outputs();
+				output_->FromProto(outputs["output_alias"]);
+				std::stringstream msg;
+				edm::LogInfo("TFClientRemote") << "Classifier Status: Ok\n";
+			}
+			else{
+				edm::LogInfo("TFClientRemote") << "gRPC call return code: " << status.error_code() << ", msg: " << status.error_message();
+			}
+			hasCall_ = false;
+			holder_.doneWaiting(exceptionPtr);
 		}
-		else{
-			edm::LogInfo("TFClientRemote") << "gRPC call return code: " << status.error_code() << ", msg: " << status.error_message();
-		}
-		hasCall_ = false;
-		holder_.doneWaiting(exceptionPtr);
 	}
 }
 
@@ -112,18 +116,20 @@ TFClientRemote::TFClientRemote(unsigned numStreams, const std::string& address, 
 void TFClientRemote::predict(unsigned dataID, const tensorflow::Tensor* img, tensorflow::Tensor* result, edm::WaitingTaskWithArenaHolder holder) {
 	//get cache
 	auto& streamData = streamData_.at(dataID);
-	streamData.stub_ = stub_.get();
-	streamData.dataID_ = dataID;
-	streamData.timeout_ = timeout_;
-	streamData.output_ = result;
-	streamData.holder_ = std::move(holder);
-	
-	//convert to proto
-	img->AsProtoTensorContent(&streamData.proto_);
-	
-	//activate thread to wait for response, and return
+
+	//do all read/writes inside lock to ensure cache synchronization
 	{
 		std::lock_guard<std::mutex> guard(streamData.mutex_);
+		streamData.stub_ = stub_.get();
+		streamData.dataID_ = dataID;
+		streamData.timeout_ = timeout_;
+		streamData.output_ = result;
+		streamData.holder_ = std::move(holder);
+	
+		//convert to proto
+		img->AsProtoTensorContent(&streamData.proto_);
+	
+		//activate thread to wait for response, and return
 		streamData.hasCall_ = true;
 	}
 	streamData.cond_.notify_one();
