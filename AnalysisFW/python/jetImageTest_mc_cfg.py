@@ -4,13 +4,16 @@ import FWCore.ParameterSet.Config as cms
 import os, sys, json
 
 options = VarParsing("analysis")
-options.register("remote", False, VarParsing.multiplicity.singleton, VarParsing.varType.bool)
-options.register("address", "", VarParsing.multiplicity.singleton, VarParsing.varType.string)
-options.register("port", -1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
+options.register("remote", True, VarParsing.multiplicity.singleton, VarParsing.varType.bool)
+options.register("address", "18.4.112.82", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+options.register("port", 8001, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("timeout", 30, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("params", "", VarParsing.multiplicity.singleton, VarParsing.varType.string)
-options.register("threads", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
-options.register("streams", 0, VarParsing.multiplicity.singleton, VarParsing.varType.int)
+options.register("threads", 10, VarParsing.multiplicity.singleton, VarParsing.varType.int)
+options.register("streams", 0,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
+options.register("batchsize", 10,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
+#options.register("modelname","resnet50_netdef", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+options.register("modelname","resnet50_ensemble", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.parseArguments()
 
 if len(options.params)>0 and options.remote:
@@ -34,7 +37,7 @@ process.GlobalTag.globaltag = cms.string('100X_upgrade2018_realistic_v10')
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents) )
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:data/store_mc_RunIISpring18MiniAOD_BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph_MINIAODSIM_100X_upgrade2018_realistic_v10-v1_30000_24A0230C-B530-E811-ADE3-14187741120B.root')
+    fileNames = cms.untracked.vstring('file:test.root')
 )
 
 if len(options.inputFiles)>0: process.source.fileNames = options.inputFiles
@@ -43,6 +46,9 @@ if len(options.inputFiles)>0: process.source.fileNames = options.inputFiles
 process.jetImageProducer = cms.EDProducer('JetImageProducer',
     JetTag = cms.InputTag('slimmedJetsAK8'),
     topN = cms.uint32(5),
+    NIn  = cms.uint32(224*224*3),
+    NOut = cms.uint32(1000),
+    batchSize = cms.uint32(options.batchsize),
     imageList = cms.string("imagenet_classes.txt"),
 )
 
@@ -52,6 +58,7 @@ if options.remote:
         address = cms.string(options.address),
         port = cms.int32(options.port),
         timeout = cms.uint32(options.timeout),
+        modelname = cms.string(options.modelname)
     )
 else:
     process.jetImageProducer.remote = cms.bool(False)

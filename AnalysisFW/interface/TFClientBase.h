@@ -15,7 +15,7 @@ class TFClientBase {
 		virtual ~TFClientBase() {}
 		
 		//input is "image" in tensor form
-		virtual void predict(unsigned dataID, const tensorflow::Tensor* img, tensorflow::Tensor* result, edm::WaitingTaskWithArenaHolder holder) {}
+		virtual void predict(unsigned dataID, const float* img, float* result, edm::WaitingTaskWithArenaHolder holder) {}
 };
 
 #endif
