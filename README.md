@@ -8,10 +8,9 @@ https://github.com/cms-smpj/SMPJ/tree/v1.0/
 
 For this branch, please use the following script to set up the work area and associated tools (`grpc`,`tensorflow-serving`,`miniconda`,`azureml`):
 ```
-wget https://raw.githubusercontent.com/hls-fpga-machine-learning/SonicCMS/kjp/1020_azureml_ew/setup.sh
 chmod +x setup.sh
 ./setup.sh
-cd CMSSW_10_2_0/src
+cd CMSSW_10_6_1_patch3/src
 cmsenv
 ```
 
@@ -21,31 +20,6 @@ To get the various input files (the data file comes from [this file list](https:
 cd AnalysisFW/python
 ```
 
-With the `miniconda` and `azureml` libraries installed, the `condapython3` executable can be used to run python scripts
-that depend on them (to avoid confusion between the CMSSW and `miniconda` environments, a subshell is used).
-
-The script `configure_aml.py` is used to create and register a model and start the associated service. The options of this script are:
-* `-h`, `--help`: show this help message and exit
-* `-p PARAMS`, `--params=PARAMS`: name of service & model params output json file (default = service_model_params.json)
-* `-m MODEL`, `--model=MODEL`: use model with provided name (default = )
-* `-r`, `--recreate`: recreate model (instead of use existing model)
-* `-s SERVICE`, `--service=SERVICE`: use service with provided name (default = )
-* `-d`, `--delete`: delete service and/or model (instead of starting)
-* `-v`, `--verbose`: turn on informational printouts
-
-To get started, using an existing model:
-```
-condapython3 configure_aml.py -m resnet50-model-kjp-float -s imagenet-infer
-```
-Follow the prompts on screen until the script is complete.
-
-This script creates a JSON file with the address and port for the remote server, and the `model_id`.
-(If you want to reuse the `model_id` in the JSON output file, simply omit the `-m MODEL` argument.)
-
-Now, the producer can run in either local or remote mode.
-* Local mode:
-```
-cmsRun jetImageTest_mc_cfg.py maxEvents=25
 ```
 * Remote mode:
 ```
