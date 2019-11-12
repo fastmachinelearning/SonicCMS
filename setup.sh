@@ -42,10 +42,7 @@ export OpenCV_DIR="$PWD/opencv/build/"
 export CURL_DIR="$PWD/curl/install/lib64/cmake/CURL/"
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=../install
 
-#You may need updated versions of below
-#export OpenCV_DIR="/data/t3home000/pharris/sonic2/tensorrt-inference-server/build/opencv/build/"
-#export Protobuf_DIR="protobuf/lib64/cmake/protobuf/"
-#
+#You may need something from below
 #in  trtis-clients/tmp/trtis-clients-cache-Release.cmake modified for workspace /data/t3home000/pharris/sonic2/tensorrt-inference-server/build/../../workspace/
 cd ../
 cp -r install ${CMSSW_BASE}/work/local/tensorrtis
