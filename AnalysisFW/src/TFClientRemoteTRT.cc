@@ -51,28 +51,17 @@ void JetImageData::waitForNext(){
 	    }
 	    ctx->SetRunOptions(*options);
 
-	    auto t1 = std::chrono::high_resolution_clock::now();
-	    std::vector<std::vector<float> > image_data;
-	    for(unsigned i0 = 0; i0 < batchSize_; i0++) { 
-	      std::vector<float> image;
-	      for(unsigned i1 = 0; i1 < ninput_; i1++) {
-		image.emplace_back(input_[ninput_*i0+i1]);
-	      }
-	      image_data.emplace_back(image);
-	    }
-	    
 	    const std::vector<std::shared_ptr<nic::InferContext::Input>>& inputs = ctx->Inputs();
 	    std::shared_ptr<nic::InferContext::Input> input = inputs[0];
 	    input->Reset();
 	    
 	    auto t2 = std::chrono::high_resolution_clock::now();
-	    auto time1 = std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count(); 
-	    edm::LogInfo("TFClientRemoteTRT") << "==> time to setup image " << (time1) << std::endl;
 	    std::vector<int64_t> input_shape;
 	    input_shape.push_back(15);
 	    input->SetShape(input_shape);
 	    for(unsigned i0 = 0; i0 < batchSize_; i0++) {
-	      nic::Error err1 = input->SetRaw(reinterpret_cast<const uint8_t*>(&image_data[i0]),image_data[i0].size() * sizeof(float_t));
+	      //nic::Error err1 = input->SetRaw(reinterpret_cast<const uint8_t*>(&image_data[i0]),image_data[i0].size() * sizeof(float_t));
+	      nic::Error err1 = input->SetRaw(reinterpret_cast<const uint8_t*>(&input_[0]),ninput_ * sizeof(float_t));
 	    }
 	    auto t3 = std::chrono::high_resolution_clock::now();
 	    auto time2 = std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();

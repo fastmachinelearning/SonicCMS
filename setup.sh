@@ -37,6 +37,9 @@ cd build
 cmake -D CMAKE_BUILD_TYPE=Release ../
 make -j7
 cd ..
+source $CMSSW_BASE/../miniconda3/etc/profile.d/conda.sh
+conda activate
+pip install --upgrade wheel setuptools grpcio-tools
 export Protobuf_DIR="$PWD/protobuf/lib64/cmake/protobuf/"
 export OpenCV_DIR="$PWD/opencv/build/"
 export CURL_DIR="$PWD/curl/install/lib64/cmake/CURL/"

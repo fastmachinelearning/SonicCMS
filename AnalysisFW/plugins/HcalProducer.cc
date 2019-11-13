@@ -120,7 +120,7 @@ void HcalProducer::findTopN(const float *scores, unsigned n) const {
        ++counter;
 		if(counter>=n) break;
      }
-     edm::LogInfo("HcalProducer") << msg.str();
+     //edm::LogInfo("HcalProducer") << msg.str();
    }
 }
 //Make some random channel
@@ -147,7 +147,6 @@ void HcalProducer::acquire(edm::StreamID iStream, edm::Event const& iEvent, edm:
 
 	//reset cache of input and output
 	HcalCache* streamCacheData = streamCache(iStream);
-	std::cout << "--> Making Objects" << std::endl;
 	auto t0 = std::chrono::high_resolution_clock::now();
 	float *lImg  = new float[ninput_*batchSize_];
 	createChannels(lImg);
@@ -159,6 +158,8 @@ void HcalProducer::acquire(edm::StreamID iStream, edm::Event const& iEvent, edm:
 	float *lOutput = new float[noutput_*batchSize_];
 	streamCacheData->output(lOutput);
 	client_->predict(iStream.value(),streamCacheData->input(),streamCacheData->output(),holder);
+	auto t2 = std::chrono::high_resolution_clock::now();
+	edm::LogInfo("HcalProducer") << "Image pred: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 }
 
 void HcalProducer::produce(edm::StreamID iStream, edm::Event& iEvent, edm::EventSetup const &iSetup) const {
