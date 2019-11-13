@@ -16,6 +16,13 @@ cd $WORK
 LOCAL=$WORK/local
 mkdir $LOCAL
 
+# setup miniconda
+wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh -b -p $CMSSW_BASE/../miniconda3
+source $CMSSW_BASE/../miniconda3/etc/profile.d/conda.sh
+conda activate
+pip install --upgrade wheel setuptools grpcio-tools
+
 # download and build tensor-rt-inference server
 git clone https://github.com/NVIDIA/tensorrt-inference-server.git
 cd tensorrt-inference-server
@@ -33,36 +40,49 @@ export PATH=/cvmfs/sft.cern.ch/lcg/contrib/CMake/3.7.0/Linux-x86_64/bin/:${PATH}
 git clone https://github.com/opencv/opencv.git
 cd opencv/
 mkdir build
-cd build
 cmake -D CMAKE_BUILD_TYPE=Release ../
+find ./ -type f -exec sed -i 's/#ifdef HAVE_TIFF/#ifndef HAVE_TIFF/g' {} \;
 make -j7
 cd ..
-source $CMSSW_BASE/../miniconda3/etc/profile.d/conda.sh
-conda activate
-pip install --upgrade wheel setuptools grpcio-tools
 export Protobuf_DIR="$PWD/protobuf/lib64/cmake/protobuf/"
 export OpenCV_DIR="$PWD/opencv/build/"
 export CURL_DIR="$PWD/curl/install/lib64/cmake/CURL/"
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=../install
-
-#You may need something from below
-#in  trtis-clients/tmp/trtis-clients-cache-Release.cmake modified for workspace /data/t3home000/pharris/sonic2/tensorrt-inference-server/build/../../workspace/
+make -j16 trtis-clients
 cd ../
 cp -r install ${CMSSW_BASE}/work/local/tensorrtis
 cp -r build/protobuf $CMSSW_BASE/work/local/protobuf
+
+
+# setup in scram
+cat << 'EOF_TOOLFILE' > tensorrt.xml
+<tool name="tensorrtis" version="v19.10">
+  <info url="https://github.com/NVIDIA/tensorrt-inference-server"/>
+  <lib name="request"/> 
+  <client>             
+    <environment name="TENSORRTIS_BASE" default="$CMSSW_BASE/work/local/tensorrtis"/>
+    <environment name="INCLUDE" default="$TENSORRTIS_BASE/include"/>
+    <environment name="LIBDIR"  default="$TENSORRTIS_BASE/lib"/>
+</client>                                                                                                                                                                                                                                
+</tool>               
+EOF_TOOLFILE
+
+cat << 'EOF_TOOLFILE' > protobuf.xml
+<tool name="protobuf" version="3.5.2-pafccj">
+  <lib name="protobuf"/>
+  <client>
+    <environment name="TENSORRTIS_BASE" default="$CMSSW_BASE/work/local/protobuf"/>
+    <environment name="INCLUDE" default="$TENSORRTIS_BASE/include"/>
+    <environment name="LIBDIR"  default="$TENSORRTIS_BASE/lib64"/>
+    <environment name="BINDIR"  default="$TENSORRTIS_BASE/bin"/>
+  </client>
+</tool>
+EOF_TOOLFILE
+
 cp tensorrt.xml ${CMSSW_BASE}/config/toolbox/${SCRAM_ARCH}/tools/selected/
 cp protobuf.xml ${CMSSW_BASE}/config/toolbox/${SCRAM_ARCH}/tools/selected/
 scram setup tensorrt
 scram setup protobuf
-
-# to get cmake
-#
-# some really bad ways to get info out of scram
-#PROTOBUF_LIBDIR=$(scram tool info protobuf | grep "LIBDIR=" | sed 's/LIBDIR=//')
-#PROTOBUF_INCLUDE=$(scram tool info protobuf | grep "INCLUDE=" | sed 's/INCLUDE=//')
-#TENSORFLOW_LIBDIR=$(scram tool info tensorflow | grep "LIBDIR=" | sed 's/LIBDIR=//')
-#TENSORFLOW_INCLUDE=$(scram tool info tensorflow | grep "INCLUDE=" | sed 's/INCLUDE=//')
-
 
 # get the analysis code
 cd $CMSSW_BASE/src

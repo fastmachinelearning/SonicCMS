@@ -151,6 +151,7 @@ void HcalProducer::acquire(edm::StreamID iStream, edm::Event const& iEvent, edm:
 	float *lImg  = new float[ninput_*batchSize_];
 	createChannels(lImg);
 	streamCacheData->input(lImg); 
+       
 	auto t1 = std::chrono::high_resolution_clock::now();
 	edm::LogInfo("HcalProducer") << "Image time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
 	
@@ -160,6 +161,8 @@ void HcalProducer::acquire(edm::StreamID iStream, edm::Event const& iEvent, edm:
 	client_->predict(iStream.value(),streamCacheData->input(),streamCacheData->output(),holder);
 	auto t2 = std::chrono::high_resolution_clock::now();
 	edm::LogInfo("HcalProducer") << "Image pred: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+	delete streamCacheData->input(); 
+	delete streamCacheData->output(); 
 }
 
 void HcalProducer::produce(edm::StreamID iStream, edm::Event& iEvent, edm::EventSetup const &iSetup) const {
