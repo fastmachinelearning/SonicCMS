@@ -4,7 +4,6 @@
 <use   name="FWCore/PluginManager"/>
 <use   name="PhysicsTools/TensorFlow"/>
 <use   name="tensorrtis"/>
-<use   name="tensorflow-cc"/>
 <export>
   <lib   name="1"/>
 </export>

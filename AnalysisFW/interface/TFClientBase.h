@@ -4,7 +4,7 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/Concurrency/interface/WaitingTaskWithArenaHolder.h"
 
-#include "tensorflow/core/framework/tensor.h"
+//#include "tensorflow/core/framework/tensor.h"
 
 //base class for local and remote clients
 class TFClientBase {

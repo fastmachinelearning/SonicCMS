@@ -61,7 +61,7 @@ void JetImageData::waitForNext(){
 	    input->SetShape(input_shape);
 	    for(unsigned i0 = 0; i0 < batchSize_; i0++) {
 	      //nic::Error err1 = input->SetRaw(reinterpret_cast<const uint8_t*>(&image_data[i0]),image_data[i0].size() * sizeof(float_t));
-	      nic::Error err1 = input->SetRaw(reinterpret_cast<const uint8_t*>(&input_[0]),ninput_ * sizeof(float_t));
+	      nic::Error err1 = input->SetRaw(reinterpret_cast<const uint8_t*>(&input_[0]),ninput_ * sizeof(float));
 	    }
 	    auto t3 = std::chrono::high_resolution_clock::now();
 	    auto time2 = std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
