@@ -5,7 +5,7 @@ export SCRAM_ARCH=slc7_amd64_gcc700
 CMSSWVER=CMSSW_10_6_1_patch3
 scram project ${CMSSWVER}
 cd ${CMSSWVER}
-# cmsenv
+cmsenv
 eval `scramv1 runtime -sh`
 
 unset PYTHONPATH
@@ -39,10 +39,13 @@ cp -r ../src/core src
 cd build
 git clone https://github.com/opencv/opencv.git
 cd opencv/
-find ./ -type f -exec sed -i 's/#ifdef HAVE_TIFF/#ifndef HAVE_TIFF/g' {} \;
+wget https://raw.githubusercontent.com/hls-fpga-machine-learning/SonicCMS/pch/gpu/patch.diff
+cp patch.diff .
+patch -p1 < patch.diff
+#find ./ -type f -exec sed -i 's/#ifdef HAVE_TIFF/#ifndef HAVE_TIFF/g' {} \;
 mkdir build
 cd build
-wget patch.diff
+wget https://raw.githubusercontent.com/hls-fpga-machine-learning/SonicCMS/pch/gpu/patch.diff
 patch -p1 < patch.diff
 cmake -D CMAKE_BUILD_TYPE=Release ../
 make -j7
