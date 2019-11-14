@@ -12,7 +12,7 @@ options.register("port", 8001, VarParsing.multiplicity.singleton, VarParsing.var
 options.register("timeout", 30, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("params", "", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("threads", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
-options.register("streams", 1,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
+options.register("streams", 0,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("batchsize", 1,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("modelname","facile", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.parseArguments()
@@ -66,7 +66,7 @@ process.p = cms.Path(
 )
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
-keep_msgs = ['TFClientRemoteTRT','TFClientLocal']#'HcalProducer'
+keep_msgs = ['TFClientRemoteTRT','TFClientLocal','HcalProducer']
 for msg in keep_msgs:
     process.MessageLogger.categories.append(msg)
     setattr(process.MessageLogger.cerr,msg,

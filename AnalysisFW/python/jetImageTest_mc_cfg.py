@@ -9,7 +9,7 @@ options.register("address", "18.4.112.82", VarParsing.multiplicity.singleton, Va
 options.register("port", 8001, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("timeout", 30, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("params", "", VarParsing.multiplicity.singleton, VarParsing.varType.string)
-options.register("threads", 10, VarParsing.multiplicity.singleton, VarParsing.varType.int)
+options.register("threads", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("streams", 0,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("batchsize", 10,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
 #options.register("modelname","resnet50_netdef", VarParsing.multiplicity.singleton, VarParsing.varType.string)

@@ -42,8 +42,8 @@ class JetImageCache {
 		float* output(float *out) { return output_=out; }
 
 	private:
-                float *input_;
-                float *output_;
+		float *input_;
+		float *output_;
 };
 
 class JetImageProducer : public edm::global::EDProducer<edm::ExternalWork,edm::StreamCache<JetImageCache>>

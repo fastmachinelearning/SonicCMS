@@ -50,7 +50,7 @@ class TFClientRemoteTRT : public TFClientBase {
 	public:
 		//constructors (timeout in seconds)
 		TFClientRemoteTRT() : TFClientBase() {}
-                TFClientRemoteTRT(unsigned numStreams, const std::string& address, int port, unsigned timeout,const std::string& model_name, unsigned batchSize, unsigned ninput, unsigned noutput);
+		TFClientRemoteTRT(unsigned numStreams, const std::string& address, int port, unsigned timeout,const std::string& model_name, unsigned batchSize, unsigned ninput, unsigned noutput);
 		
 		//input is "image" in tensor form
 		void predict(unsigned dataID, const float* img, float* result, edm::WaitingTaskWithArenaHolder holder);
