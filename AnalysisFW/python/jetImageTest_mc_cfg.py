@@ -37,7 +37,7 @@ process.GlobalTag.globaltag = cms.string('100X_upgrade2018_realistic_v10')
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents) )
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:test.root')
+    fileNames = cms.untracked.vstring('file:data/store_mc_RunIISpring18MiniAOD_BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph_MINIAODSIM_100X_upgrade2018_realistic_v10-v1_30000_24A0230C-B530-E811-ADE3-14187741120B.root')
 )
 
 if len(options.inputFiles)>0: process.source.fileNames = options.inputFiles
