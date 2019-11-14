@@ -6,8 +6,9 @@ https://github.com/cms-smpj/SMPJ/tree/v1.0/
 
 ## Updated instructions
 
-For this branch, please use the following script to set up the work area and associated tools (`grpc`,`tensorflow-serving`,`miniconda`,`azureml`):
+For this branch, please use the following script to set up the work area and associated tools (`tensorrt-server`):
 ```
+wget https://raw.githubusercontent.com/hls-fpga-machine-learning/SonicCMS/pch/gpu/setup.sh
 chmod +x setup.sh
 ./setup.sh
 cd CMSSW_10_6_1_patch3/src
