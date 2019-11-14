@@ -23,6 +23,7 @@ source $CMSSW_BASE/../miniconda3/etc/profile.d/conda.sh
 conda activate
 pip install --upgrade wheel setuptools grpcio-tools
 
+export PATH=/cvmfs/sft.cern.ch/lcg/contrib/CMake/3.7.0/Linux-x86_64/bin/:${PATH}
 # download and build tensor-rt-inference server
 git clone https://github.com/NVIDIA/tensorrt-inference-server.git
 cd tensorrt-inference-server
@@ -36,21 +37,24 @@ mkdir src
 cp -r ../src/clients src
 cp -r ../src/core src
 cd build
-export PATH=/cvmfs/sft.cern.ch/lcg/contrib/CMake/3.7.0/Linux-x86_64/bin/:${PATH}
 git clone https://github.com/opencv/opencv.git
 cd opencv/
-mkdir build
-cmake -D CMAKE_BUILD_TYPE=Release ../
 find ./ -type f -exec sed -i 's/#ifdef HAVE_TIFF/#ifndef HAVE_TIFF/g' {} \;
+mkdir build
+cd build
+wget patch.diff
+patch -p1 < patch.diff
+cmake -D CMAKE_BUILD_TYPE=Release ../
 make -j7
-cd ..
+pwd
+cd ../../
 export Protobuf_DIR="$PWD/protobuf/lib64/cmake/protobuf/"
 export OpenCV_DIR="$PWD/opencv/build/"
 export CURL_DIR="$PWD/curl/install/lib64/cmake/CURL/"
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=../install
 make -j16 trtis-clients
 cd ../
-cp -r install ${CMSSW_BASE}/work/local/tensorrtis
+cp -r build/install ${CMSSW_BASE}/work/local/tensorrtis
 cp -r build/protobuf $CMSSW_BASE/work/local/protobuf
 
 
@@ -87,7 +91,7 @@ scram setup protobuf
 # get the analysis code
 cd $CMSSW_BASE/src
 git cms-init
-git clone https://github.com/hls-fpga-machine-learning/SonicCMS -b "pch/tensorrt"
+git clone https://github.com/hls-fpga-machine-learning/SonicCMS -b "pch/gpu"
 git clone https://github.com/kpedro88/CondorProduction Condor/Production
 scram b -j 8
 

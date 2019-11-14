@@ -1,0 +1,125 @@
+diff --git a/modules/highgui/src/window_w32.cpp b/modules/highgui/src/window_w32.cpp
+index b30861d26d..e0e794a989 100644
+--- a/modules/highgui/src/window_w32.cpp
++++ b/modules/highgui/src/window_w32.cpp
+@@ -1954,7 +1954,7 @@ static void showSaveDialog(CvWindow* window)
+ #ifdef HAVE_JPEG
+                       "JPEG files (*.jpeg;*.jpg;*.jpe)\0*.jpeg;*.jpg;*.jpe\0"
+ #endif
+-#ifdef HAVE_TIFF
++#ifndef HAVE_TIFF
+                       "TIFF Files (*.tiff;*.tif)\0*.tiff;*.tif\0"
+ #endif
+ #ifdef HAVE_JASPER
+diff --git a/modules/imgcodecs/CMakeLists.txt b/modules/imgcodecs/CMakeLists.txt
+index 30e8a9d3d0..6ef3712859 100644
+--- a/modules/imgcodecs/CMakeLists.txt
++++ b/modules/imgcodecs/CMakeLists.txt
+@@ -13,10 +13,10 @@ if(HAVE_WINRT_CX AND NOT WINRT)
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /ZW")
+ endif()
+ 
+-if(HAVE_PNG OR HAVE_TIFF OR HAVE_OPENEXR)
+-  ocv_include_directories(${ZLIB_INCLUDE_DIRS})
+-  list(APPEND GRFMT_LIBS ${ZLIB_LIBRARIES})
+-endif()
++#if(HAVE_PNG OR HAVE_TIFF OR HAVE_OPENEXR)
++#  ocv_include_directories(${ZLIB_INCLUDE_DIRS})
++#  list(APPEND GRFMT_LIBS ${ZLIB_LIBRARIES})
++#endif()
+ 
+ if(HAVE_JPEG)
+   ocv_include_directories(${JPEG_INCLUDE_DIR} ${${JPEG_LIBRARY}_BINARY_DIR})
+@@ -40,10 +40,10 @@ if(HAVE_GDCM)
+   list(APPEND GRFMT_LIBS ${GDCM_LIBRARIES})
+ endif()
+ 
+-if(HAVE_TIFF)
+-  ocv_include_directories(${TIFF_INCLUDE_DIR})
+-  list(APPEND GRFMT_LIBS ${TIFF_LIBRARIES})
+-endif()
++#if(HAVE_TIFF)
++#  ocv_include_directories(${TIFF_INCLUDE_DIR})
++#  list(APPEND GRFMT_LIBS ${TIFF_LIBRARIES})
++#endif()
+ 
+ if(HAVE_JASPER)
+   ocv_include_directories(${JASPER_INCLUDE_DIR})
+diff --git a/modules/imgcodecs/src/grfmt_tiff.cpp b/modules/imgcodecs/src/grfmt_tiff.cpp
+index 6bbb9ebd05..eb86f56805 100644
+--- a/modules/imgcodecs/src/grfmt_tiff.cpp
++++ b/modules/imgcodecs/src/grfmt_tiff.cpp
+@@ -47,7 +47,7 @@
+ 
+ #include "precomp.hpp"
+ 
+-#ifdef HAVE_TIFF
++#ifndef HAVE_TIFF
+ #include <opencv2/core/utils/logger.hpp>
+ 
+ #include "grfmt_tiff.hpp"
+diff --git a/modules/imgcodecs/src/grfmt_tiff.hpp b/modules/imgcodecs/src/grfmt_tiff.hpp
+index ee5bcb7018..4bad562041 100644
+--- a/modules/imgcodecs/src/grfmt_tiff.hpp
++++ b/modules/imgcodecs/src/grfmt_tiff.hpp
+@@ -45,7 +45,7 @@
+ 
+ #include "grfmt_base.hpp"
+ 
+-#ifdef HAVE_TIFF
++#ifndef HAVE_TIFF
+ 
+ namespace cv
+ {
+diff --git a/modules/imgcodecs/src/loadsave.cpp b/modules/imgcodecs/src/loadsave.cpp
+index 5dcd241f8c..05d65a994a 100644
+--- a/modules/imgcodecs/src/loadsave.cpp
++++ b/modules/imgcodecs/src/loadsave.cpp
+@@ -161,7 +161,7 @@ struct ImageCodecInitializer
+         decoders.push_back( makePtr<PFMDecoder>() );
+         encoders.push_back( makePtr<PFMEncoder>() );
+     #endif
+-    #ifdef HAVE_TIFF
++    #ifndef HAVE_TIFF
+         decoders.push_back( makePtr<TiffDecoder>() );
+         encoders.push_back( makePtr<TiffEncoder>() );
+     #endif
+diff --git a/modules/imgcodecs/test/test_grfmt.cpp b/modules/imgcodecs/test/test_grfmt.cpp
+index b691891d2a..c4d6a8ab34 100644
+--- a/modules/imgcodecs/test/test_grfmt.cpp
++++ b/modules/imgcodecs/test/test_grfmt.cpp
+@@ -211,7 +211,7 @@ const string all_exts[] =
+ #ifdef HAVE_PNG
+     ".png",
+ #endif
+-#ifdef HAVE_TIFF
++#ifndef HAVE_TIFF
+     ".tiff",
+ #endif
+ #ifdef HAVE_JPEG
+diff --git a/modules/imgcodecs/test/test_read_write.cpp b/modules/imgcodecs/test/test_read_write.cpp
+index f0f4139610..d84d7ad623 100644
+--- a/modules/imgcodecs/test/test_read_write.cpp
++++ b/modules/imgcodecs/test/test_read_write.cpp
+@@ -99,7 +99,7 @@ const string exts[] = {
+ #ifdef HAVE_PNG
+     "png",
+ #endif
+-#ifdef HAVE_TIFF
++#ifndef HAVE_TIFF
+     "tiff",
+ #endif
+ #ifdef HAVE_JPEG
+diff --git a/modules/imgcodecs/test/test_tiff.cpp b/modules/imgcodecs/test/test_tiff.cpp
+index add15ff681..524d83442e 100644
+--- a/modules/imgcodecs/test/test_tiff.cpp
++++ b/modules/imgcodecs/test/test_tiff.cpp
+@@ -5,7 +5,7 @@
+ 
+ namespace opencv_test { namespace {
+ 
+-#ifdef HAVE_TIFF
++#ifndef HAVE_TIFF
+ 
+ // these defines are used to resolve conflict between tiff.h and opencv2/core/types_c.h
+ #define uint64 uint64_hack_
