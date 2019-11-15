@@ -29,17 +29,17 @@
 
 class HcalCache {
 	public:
-		void input(float *in) { input_=in; }
-		const float* input() const { return input_; }
-		float* input() { return input_; }
+		void input(std::vector<float> in) { input_=in; }
+		const std::vector<float>& input() const { return input_; }
+		std::vector<float>& input() { return input_; }
 
-		const float* output() const { return output_; }
-		float* output() { return output_; }
-		float* output(float *out) { return output_=out; }
+		const std::vector<float>& output() const { return output_; }
+		std::vector<float>& output() { return output_; }
+		std::vector<float>& output(std::vector<float> out) { return output_=out; }
 
 	private:
-		float *input_;
-		float *output_;
+		std::vector<float> input_;
+		std::vector<float> output_;
 };
 
 class HcalProducer : public edm::global::EDProducer<edm::ExternalWork,edm::StreamCache<HcalCache>>
@@ -53,8 +53,8 @@ class HcalProducer : public edm::global::EDProducer<edm::ExternalWork,edm::Strea
 		~HcalProducer() override;
 
 	private:
-		void findTopN(const float *scores, unsigned n=5) const;
-		void createChannels(float *iImg) const;
+		void findTopN(const std::vector<float>& scores, unsigned n=5) const;
+		void createChannels(std::vector<float>& iImg) const;
 
 		unsigned topN_;
 		unsigned ninput_;
@@ -98,7 +98,7 @@ std::unique_ptr<HcalCache> HcalProducer::beginStream(edm::StreamID) const {
 }
 
 //Just putting something in for the hell of it
-void HcalProducer::findTopN(const float *scores, unsigned n) const {
+void HcalProducer::findTopN(const std::vector<float>& scores, unsigned n) const {
 	//auto score_list = scores.flat<float>();
 	auto dim = noutput_;
 	for(unsigned i0 = 0; i0 < batchSize_; i0++) {
@@ -122,7 +122,7 @@ void HcalProducer::findTopN(const float *scores, unsigned n) const {
 }
 
 //Make some random channel
-void HcalProducer::createChannels(float *lImg) const {
+void HcalProducer::createChannels(std::vector<float>& lImg) const {
 	for(unsigned ib = 0; ib < batchSize_; ib++) { 
 		for(unsigned i0 = 0; i0 < ninput_; i0++) { 
 			lImg[ib*ninput_+0] = 1; //
@@ -140,7 +140,7 @@ void HcalProducer::acquire(edm::StreamID iStream, edm::Event const& iEvent, edm:
 	//reset cache of input and output
 	HcalCache* streamCacheData = streamCache(iStream);
 	auto t0 = std::chrono::high_resolution_clock::now();
-	float *lImg = new float[ninput_*batchSize_];
+	std::vector<float> lImg(ninput_*batchSize_,0.f);
 	createChannels(lImg);
 	streamCacheData->input(lImg); 
 
@@ -148,9 +148,9 @@ void HcalProducer::acquire(edm::StreamID iStream, edm::Event const& iEvent, edm:
 	edm::LogInfo("HcalProducer") << "Image time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
 	
 	// run the inference on remote or local
-	float *lOutput = new float[noutput_*batchSize_];
+	std::vector<float> lOutput(noutput_*batchSize_,0.f);
 	streamCacheData->output(lOutput);
-	client_->predict(iStream.value(),streamCacheData->input(),streamCacheData->output(),holder);
+	client_->predict(iStream.value(),streamCacheData->input().data(),streamCacheData->output().data(),holder);
 }
 
 void HcalProducer::produce(edm::StreamID iStream, edm::Event& iEvent, edm::EventSetup const &iSetup) const {

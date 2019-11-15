@@ -30,20 +30,19 @@
 #include "DataFormats/JetReco/interface/Jet.h"
 #include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
 
-
 class JetImageCache {
 	public:
-		void input(float *in) { input_=in; }
-		const float* input() const { return input_; }
-		float* input() { return input_; }
+		void input(std::vector<float> in) { input_=in; }
+		const std::vector<float>& input() const { return input_; }
+		std::vector<float>& input() { return input_; }
 
-		const float* output() const { return output_; }
-		float* output() { return output_; }
-		float* output(float *out) { return output_=out; }
+		const std::vector<float>& output() const { return output_; }
+		std::vector<float>& output() { return output_; }
+		std::vector<float>& output(std::vector<float> out) { return output_=out; }
 
 	private:
-		float *input_;
-		float *output_;
+		std::vector<float> input_;
+		std::vector<float> output_;
 };
 
 class JetImageProducer : public edm::global::EDProducer<edm::ExternalWork,edm::StreamCache<JetImageCache>>
@@ -57,8 +56,8 @@ class JetImageProducer : public edm::global::EDProducer<edm::ExternalWork,edm::S
 		~JetImageProducer() override;
 
 	private:
-		void findTopN(const float *scores, unsigned n=5) const;
-		float* createImage(const edm::View<pat::Jet>& jets) const;
+		void findTopN(const std::vector<float>& scores, unsigned n=5) const;
+		std::vector<float> createImage(const edm::View<pat::Jet>& jets) const;
 
 		edm::InputTag JetTag_;
 		edm::EDGetTokenT<edm::View<pat::Jet>> JetTok_;
@@ -115,8 +114,7 @@ std::unique_ptr<JetImageCache> JetImageProducer::beginStream(edm::StreamID) cons
 	return std::make_unique<JetImageCache>();
 }
 
-void JetImageProducer::findTopN(const float *scores, unsigned n) const {
-  //auto score_list = scores.flat<float>();
+void JetImageProducer::findTopN(const std::vector<float>& scores, unsigned n) const {
    auto dim = noutput_;
    for(unsigned i0 = 0; i0 < batchSize_; i0++) {
      //match score to type by index, then put in largest-first map
@@ -137,10 +135,10 @@ void JetImageProducer::findTopN(const float *scores, unsigned n) const {
    }
 }
 
-float* JetImageProducer::createImage(const edm::View<pat::Jet>& jets) const {
+std::vector<float> JetImageProducer::createImage(const edm::View<pat::Jet>& jets) const {
 	// create a jet image for the leading jet in the event
 	// 224 x 224 image which is centered at the jet axis and +/- 1 unit in eta and phi
-        float *img = new float[ninput_];
+	std::vector<float> img(ninput_,0.f);
 	float pixel_width = 2./224.;
 	for (int ii = 0; ii < 224; ii++){
 		for (int ij = 0; ij < 224; ij++){ img[ii*224+ij] = 0.; }
@@ -191,9 +189,9 @@ void JetImageProducer::acquire(edm::StreamID iStream, edm::Event const& iEvent, 
 	JetImageCache* streamCacheData = streamCache(iStream);
 	
 	auto t0 = std::chrono::high_resolution_clock::now();
-	float *lImg  = new float[ninput_*batchSize_];
+	std::vector<float> lImg(ninput_*batchSize_,0.f);
 	for(unsigned i0 = 0; i0 < batchSize_; i0++ ) { 
-	  float *pImg  = createImage(*h_jets.product());
+	  const auto& pImg = createImage(*h_jets.product());
 	  for(unsigned i1 = 0; i1 < ninput_; i1++) {
 	    lImg[ninput_*i0+i1] = pImg[i1];
 	  }
@@ -204,9 +202,9 @@ void JetImageProducer::acquire(edm::StreamID iStream, edm::Event const& iEvent, 
 	edm::LogInfo("JetImageProducer") << "Image time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
 	
 	// run the inference on remote or local
-	float *lOutput = new float[noutput_*batchSize_];
+	std::vector<float> lOutput(noutput_*batchSize_,0.f);
 	streamCacheData->output(lOutput);
-	client_->predict(iStream.value(),streamCacheData->input(),streamCacheData->output(),holder);
+	client_->predict(iStream.value(),streamCacheData->input().data(),streamCacheData->output().data(),holder);
 }
 
 void JetImageProducer::produce(edm::StreamID iStream, edm::Event& iEvent, edm::EventSetup const &iSetup) const {
