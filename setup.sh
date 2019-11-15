@@ -1,8 +1,45 @@
 #!/bin/bash -e
 
-CORES=$1
-if [ -z "$CORES" ]; then
-	CORES=4
+CORES=4
+ACCESS=https
+DEBUG=""
+
+usage(){
+	EXIT=$1
+
+	echo "setup.sh [options]"
+	echo ""
+	echo "-a [protocol]       use protocol to clone (default = ${ACCESS}, alternative = ssh)"
+	echo "-j [cores]          run compilations on # cores (default = ${CORES})"
+	echo "-d                  keep source code for debugging"
+	echo "-h                  display this message and exit"
+
+	exit $EXIT
+}
+
+# process options
+while getopts "a:j:dh" opt; do
+	case "$opt" in
+	a) ACCESS=$OPTARG
+	;;
+	j) CORES=$OPTARG
+	;;
+	d) DEBUG=true
+	;;
+	h) usage 0
+	;;
+	esac
+done
+
+# check options
+if [ "$ACCESS" = "ssh" ]; then
+	ACCESS_GITHUB=git@github.com:
+	ACCESS_CMSSW=--ssh
+elif [ "$ACCESS" = "https" ]; then
+	ACCESS_GITHUB=https://github.com/
+	ACCESS_CMSSW=--https
+else
+	usage 1
 fi
 
 export SCRAM_ARCH=slc7_amd64_gcc700
@@ -30,13 +67,11 @@ export PYTHON27PATH=$NEWPY2PATH:$PYTHON27PATH
 export PATH=/cvmfs/sft.cern.ch/lcg/contrib/CMake/3.7.0/Linux-x86_64/bin/:${PATH}
 
 # some really bad ways to get info out of scram
-#export PYTHON_LIBRARIES=$(scram tool info python | grep "LIBDIR=" | sed 's/LIBDIR=//')
-#export PYTHON_INCLUDE_DIRS=$(scram tool info python | grep "INCLUDE=" | sed 's/INCLUDE=//')
 PYTHON_LIBDIR=$(scram tool info python | grep "LIBDIR=" | sed 's/LIBDIR=//')
 PYTHON_INCLUDE=$(scram tool info python | grep "INCLUDE=" | sed 's/INCLUDE=//')
 
 # download and build tensor-rt-inference server
-git clone https://github.com/NVIDIA/tensorrt-inference-server.git -b r19.10
+git clone ${ACCESS_GITHUB}NVIDIA/tensorrt-inference-server.git -b r19.10
 cd tensorrt-inference-server
 mkdir workspace
 cd workspace
@@ -48,7 +83,7 @@ cp -r ../src/clients src
 cp -r ../src/core src
 cd build
 
-git clone https://github.com/opencv/opencv.git
+git clone ${ACCESS_GITHUB}opencv/opencv.git
 cd opencv/
 wget https://raw.githubusercontent.com/hls-fpga-machine-learning/SonicCMS/pch/gpu/patch.diff
 patch -p1 < patch.diff
@@ -100,13 +135,15 @@ scram setup tensorrt
 scram setup protobuf
 
 # remove the huge source code directory and intermediate products that are not needed to run
-cd $WORK
-rm -rf tensorrt-inference-server
+if [ -z "$DEBUG" ]; then
+	cd $WORK
+	rm -rf tensorrt-inference-server
+fi
 
 # get the analysis code
 cd $CMSSW_BASE/src
-git cms-init
-git clone https://github.com/hls-fpga-machine-learning/SonicCMS -b "pch/gpu"
-git clone https://github.com/kpedro88/CondorProduction Condor/Production
+git cms-init $ACCESS_CMSSW
+git clone ${ACCESS_GITHUB}hls-fpga-machine-learning/SonicCMS -b "pch/gpu"
+git clone ${ACCESS_GITHUB}kpedro88/CondorProduction Condor/Production
 scram b -j $CORES
 
