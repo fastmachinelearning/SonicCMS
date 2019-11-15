@@ -1,4 +1,3 @@
-
 #ifndef TFCLIENTREMOTE_H
 #define TFCLIENTREMOTE_H
 
@@ -16,10 +15,10 @@
 namespace ni = nvidia::inferenceserver;
 namespace nic = nvidia::inferenceserver::client;
 
-class JetImageData {
+class ClientData {
 	public:
-		JetImageData();
-		~JetImageData();
+		ClientData();
+		~ClientData();
 		
 		unsigned dataID_;
 		unsigned timeout_;
@@ -34,16 +33,10 @@ class JetImageData {
 		float *output_;
 		edm::WaitingTaskWithArenaHolder holder_;
 
-		//thread to wait for completion of async call
-		bool hasCall_;
 		std::mutex mutex_;
-		std::condition_variable cond_;
 
-	private:
-		void waitForNext();
-		
-		std::atomic<bool> stop_;
-		std::unique_ptr<std::thread> thread_;
+		//launch async w/ callback
+		void predict();
 };
 
 class TFClientRemoteTRT : public TFClientBase {
@@ -56,7 +49,7 @@ class TFClientRemoteTRT : public TFClientBase {
 		void predict(unsigned dataID, const float* img, float* result, edm::WaitingTaskWithArenaHolder holder);
 		
 	private:
-		std::vector<JetImageData> streamData_;
+		std::vector<ClientData> streamData_;
 		unsigned timeout_;
 		unsigned batchSize_;
 		std::string url_;
