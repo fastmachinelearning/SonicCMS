@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 CORES=$1
 if [ -z "$CORES" ]; then
@@ -98,6 +98,10 @@ mv tensorrt.xml ${CMSSW_BASE}/config/toolbox/${SCRAM_ARCH}/tools/selected/
 mv protobuf.xml ${CMSSW_BASE}/config/toolbox/${SCRAM_ARCH}/tools/selected/
 scram setup tensorrt
 scram setup protobuf
+
+# remove the huge source code directory and intermediate products that are not needed to run
+cd $WORK
+rm -rf tensorrt-inference-server
 
 # get the analysis code
 cd $CMSSW_BASE/src
