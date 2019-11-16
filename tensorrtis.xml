@@ -1,9 +1,0 @@
-<tool name="tensorrtis" version="v19.10">
-  <info url="https://github.com/NVIDIA/tensorrt-inference-server"/>
-  <lib name="request"/> 
-  <client>             
-    <environment name="TENSORRTIS_BASE" default="$CMSSW_BASE/work/local/tensorrtis"/>
-    <environment name="INCLUDE" default="$TENSORRTIS_BASE/include"/>
-    <environment name="LIBDIR"  default="$TENSORRTIS_BASE/lib"/>
-</client>                                                                                                                                                                                                                                
-</tool>                                                                                                                                                                                                                                    

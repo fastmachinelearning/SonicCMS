@@ -12,7 +12,7 @@ options.register("port", 8001, VarParsing.multiplicity.singleton, VarParsing.var
 options.register("timeout", 30, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("params", "", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("threads", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
-options.register("streams", 1,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
+options.register("streams", 0,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("batchsize", 1,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("modelname","facile", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.parseArguments()
@@ -38,7 +38,7 @@ process.GlobalTag.globaltag = cms.string('100X_upgrade2018_realistic_v10')
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents) )
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:test.root')
+    fileNames = cms.untracked.vstring('file:data/store_mc_RunIISpring18MiniAOD_BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph_MINIAODSIM_100X_upgrade2018_realistic_v10-v1_30000_24A0230C-B530-E811-ADE3-14187741120B.root')
 )
 
 if len(options.inputFiles)>0: process.source.fileNames = options.inputFiles
@@ -66,7 +66,7 @@ process.p = cms.Path(
 )
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
-keep_msgs = ['TFClientRemoteTRT','TFClientLocal']#'HcalProducer'
+keep_msgs = ['TFClientRemoteTRT','TFClientLocal','HcalProducer']
 for msg in keep_msgs:
     process.MessageLogger.categories.append(msg)
     setattr(process.MessageLogger.cerr,msg,

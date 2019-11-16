@@ -1,9 +1,0 @@
-<tool name="protobuf" version="3.5.2-pafccj">
-  <lib name="protobuf"/>
-  <client>
-    <environment name="TENSORRTIS_BASE" default="$CMSSW_BASE/work/local/protobuf"/>
-    <environment name="INCLUDE" default="$TENSORRTIS_BASE/include"/>
-    <environment name="LIBDIR"  default="$TENSORRTIS_BASE/lib64"/>
-    <environment name="BINDIR"  default="$TENSORRTIS_BASE/bin"/>
-  </client>
-</tool>
