@@ -104,7 +104,8 @@ void JetImageProducer::preallocate(edm::PreallocationConfiguration const& iPreal
 			extraParams_.getParameter<std::string>("modelname"),
 			batchSize_,
 			ninput_,
-			noutput_
+			noutput_,
+			extraParams_.getParameter<bool>("async")
 		);
 		edm::LogInfo("JetImageProducer") << "Connected to remote server";
 	}

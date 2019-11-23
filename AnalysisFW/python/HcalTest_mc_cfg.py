@@ -15,6 +15,7 @@ options.register("threads", 1, VarParsing.multiplicity.singleton, VarParsing.var
 options.register("streams", 0,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("batchsize", 1,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("modelname","facile", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+options.register("async",False, VarParsing.multiplicity.singleton, VarParsing.varType.bool)
 options.parseArguments()
 
 if len(options.params)>0 and options.remote:
@@ -57,7 +58,8 @@ if options.remote:
         address = cms.string(options.address),
         port = cms.int32(options.port),
         timeout = cms.uint32(options.timeout),
-        modelname = cms.string(options.modelname)
+        modelname = cms.string(options.modelname),
+        async     = cms.bool(options.async)
     )
 
 # Let it run

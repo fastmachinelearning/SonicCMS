@@ -13,7 +13,8 @@ ClientData::ClientData() :
 	dataID_(0),
 	timeout_(0),
 	batchSize_(1),
-	output_(nullptr)
+	output_(nullptr),
+	async_(true)
 {
 }
 
@@ -38,8 +39,6 @@ void ClientData::predict(){
 
 	auto t2 = std::chrono::high_resolution_clock::now();
 	std::vector<int64_t> input_shape;
-	input_shape.push_back(15);
-	input->SetShape(input_shape);
 	for(unsigned i0 = 0; i0 < batchSize_; i0++) {
 		nic::Error err1 = input->SetRaw(reinterpret_cast<const uint8_t*>(&input_[0]),ninput_ * sizeof(float));
 	}
@@ -48,48 +47,64 @@ void ClientData::predict(){
 	edm::LogInfo("TFClientRemoteTRT") << "Image array time: " << time2;
 
 	std::map<std::string, std::unique_ptr<nic::InferContext::Result>> results;
-	nic::Error erro0 = ctx->AsyncRun(
-		[t3,this](nic::InferContext* ctx, const std::shared_ptr<nic::InferContext::Request>& request) {
-			//get results
-			std::map<std::string, std::unique_ptr<nic::InferContext::Result>> results;
-			//this function interface will change in the next tensorrtis version
-			bool is_ready = false;
-			ctx->GetAsyncRunResults(&results, &is_ready, request, false);
-			if(is_ready == false) throw cms::Exception("BadCallback") << "Callback executed before request was ready";
+	if(async_) { 
+	  nic::Error erro0 = ctx->AsyncRun(
+					   [t3,this](nic::InferContext* ctx, const std::shared_ptr<nic::InferContext::Request>& request) {
+					     //get results
+					     std::map<std::string, std::unique_ptr<nic::InferContext::Result>> results;
+					     //this function interface will change in the next tensorrtis version
+					     bool is_ready = false;
+					     ctx->GetAsyncRunResults(&results, &is_ready, request, false);
+					     if(is_ready == false) throw cms::Exception("BadCallback") << "Callback executed before request was ready";
+					     
+					     //check time
+					     auto t4 = std::chrono::high_resolution_clock::now();
+					     auto time3 = std::chrono::duration_cast<std::chrono::microseconds>(t4-t3).count();
+					     edm::LogInfo("TFClientRemoteTRT") << "Remote time: " << time3;
+					     
+					     //check result
+					     std::exception_ptr exceptionPtr;
+					     const std::unique_ptr<nic::InferContext::Result>& result = results.begin()->second;
+					     for(unsigned i0 = 0; i0 < this->batchSize_; i0++) { 
+					       const uint8_t* r0;
+					       size_t content_byte_size;
+					       result->GetRaw(i0, &r0,&content_byte_size);
+					       const float *lVal = reinterpret_cast<const float*>(r0);
+					       for(unsigned i1 = 0; i1 < this->noutput_; i1++) this->output_[i0*noutput_+i1] = lVal[i1]; //This should be replaced with a memcpy
+					     }
+					     auto t5 = std::chrono::high_resolution_clock::now();
+					     auto time4 = std::chrono::duration_cast<std::chrono::microseconds>(t5-t4).count();
+					     edm::LogInfo("TFClientRemoteTRT") << "Output time: " << time4;
 
-			//check time
-			auto t4 = std::chrono::high_resolution_clock::now();
-			auto time3 = std::chrono::duration_cast<std::chrono::microseconds>(t4-t3).count();
-			edm::LogInfo("TFClientRemoteTRT") << "Remote time: " << time3;
-
-			//check result
-			std::exception_ptr exceptionPtr;
-			const std::unique_ptr<nic::InferContext::Result>& result = results.begin()->second;
-			for(unsigned i0 = 0; i0 < this->batchSize_; i0++) { 
-				const uint8_t* r0;
-				size_t content_byte_size;
-				result->GetRaw(i0, &r0,&content_byte_size);
-				const float *lVal = reinterpret_cast<const float*>(r0);
-				for(unsigned i1 = 0; i1 < this->noutput_; i1++) this->output_[i0*noutput_+i1] = lVal[i1]; //This should be replaced with a memcpy
-			}
-			auto t5 = std::chrono::high_resolution_clock::now();
-			auto time4 = std::chrono::duration_cast<std::chrono::microseconds>(t5-t4).count();
-			edm::LogInfo("TFClientRemoteTRT") << "Output time: " << time4;
-
-			//finish
-			this->holder_.doneWaiting(exceptionPtr);
-		}
-	);
+					     //finish
+					     this->holder_.doneWaiting(exceptionPtr);
+					   }
+					   );
+	} else { 
+	  std::map<std::string, std::unique_ptr<nic::InferContext::Result>> results;
+	  nic::Error err0 = ctx->Run(&results);
+	  std::exception_ptr exceptionPtr;
+	  const std::unique_ptr<nic::InferContext::Result>& result = results.begin()->second;
+	  for(unsigned i0 = 0; i0 < batchSize_; i0++) { 
+	    const uint8_t* r0;
+	    size_t content_byte_size;
+	    result->GetRaw(i0, &r0,&content_byte_size);
+	    const float *lVal = reinterpret_cast<const float*>(r0);
+	    for(unsigned i1 = 0; i1 < noutput_; i1++) output_[i0*noutput_+i1] = lVal[i1]; //This should be replaced with a memcpy
+	  }
+	  this->holder_.doneWaiting(exceptionPtr);
+	}
 }
 
 //based on: tensor-rt-client simple_example
-TFClientRemoteTRT::TFClientRemoteTRT(unsigned numStreams, const std::string& address, int port, unsigned timeout,const std::string& model_name,unsigned batchSize,unsigned ninput,unsigned noutput) :
+TFClientRemoteTRT::TFClientRemoteTRT(unsigned numStreams, const std::string& address, int port, unsigned timeout,const std::string& model_name,unsigned batchSize,unsigned ninput,unsigned noutput,bool async) :
 	TFClientBase(),
 	streamData_(numStreams),
 	timeout_(timeout),
 	batchSize_(batchSize),
 	ninput_(ninput),
-	noutput_(noutput)
+	noutput_(noutput),
+	async_(async)
 {
 	url_=address+":"+std::to_string(port);
 	modelName_ = model_name;
@@ -112,6 +127,7 @@ void TFClientRemoteTRT::predict(unsigned dataID, const float* img, float* result
 		streamData.output_= result;
 		streamData.holder_= std::move(holder);
 		streamData.input_ = img;
+		streamData.async_ = async_;
 	}
 	streamData.predict();
 	edm::LogInfo("TFClientRemoteTRT") << "Async predict request sent";

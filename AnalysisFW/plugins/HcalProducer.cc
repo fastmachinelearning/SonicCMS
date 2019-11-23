@@ -87,8 +87,9 @@ void HcalProducer::preallocate(edm::PreallocationConfiguration const& iPrealloc)
 			extraParams_.getParameter<std::string>("modelname"),
 			batchSize_,
 			ninput_,
-			noutput_
-		);
+			noutput_,
+			extraParams_.getParameter<bool>("async")
+							      );
 		edm::LogInfo("HcalProducer") << "Connected to remote server";
 	}
 }

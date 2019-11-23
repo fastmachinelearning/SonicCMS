@@ -31,6 +31,7 @@ class ClientData {
 		unsigned noutput_;
 		const float *input_;
 		float *output_;
+		bool async_;
 		edm::WaitingTaskWithArenaHolder holder_;
 
 		std::mutex mutex_;
@@ -43,7 +44,7 @@ class TFClientRemoteTRT : public TFClientBase {
 	public:
 		//constructors (timeout in seconds)
 		TFClientRemoteTRT() : TFClientBase() {}
-		TFClientRemoteTRT(unsigned numStreams, const std::string& address, int port, unsigned timeout,const std::string& model_name, unsigned batchSize, unsigned ninput, unsigned noutput);
+                TFClientRemoteTRT(unsigned numStreams, const std::string& address, int port, unsigned timeout,const std::string& model_name, unsigned batchSize, unsigned ninput, unsigned noutput,bool async);
 		
 		//input is "image" in tensor form
 		void predict(unsigned dataID, const float* img, float* result, edm::WaitingTaskWithArenaHolder holder);
@@ -56,6 +57,7 @@ class TFClientRemoteTRT : public TFClientBase {
 		std::string modelName_;
 		unsigned ninput_;
 		unsigned noutput_;
+		bool async_;
 		std::unique_ptr<nic::InferContext> *context_;
 		std::shared_ptr<nic::InferContext::Input>* nicinput_; 
 };
