@@ -10,7 +10,7 @@ class SonicClient : public Mode {
 		typedef InputT Input;
 		typedef OutputT Output;
 		//constructor
-		SonicClient(const edm::ParameterSet& params) : Mode() {}
+		SonicClient() : Mode() {}
 		//destructor
 		virtual ~SonicClient() {}
 		
