@@ -4,8 +4,7 @@ import FWCore.ParameterSet.Config as cms
 import os, sys, json
 
 options = VarParsing("analysis")
-options.register("remote", True, VarParsing.multiplicity.singleton, VarParsing.varType.bool)
-options.register("address", "18.4.112.82", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+options.register("address", "prp-gpu-1.t2.ucsd.edu", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("port", 8001, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("timeout", 30, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("params", "", VarParsing.multiplicity.singleton, VarParsing.varType.string)
@@ -17,12 +16,21 @@ options.register("modelname","resnet50_ensemble", VarParsing.multiplicity.single
 options.register("async",False, VarParsing.multiplicity.singleton, VarParsing.varType.bool)
 options.parseArguments()
 
-if len(options.params)>0 and options.remote:
+if len(options.params)>0:
     with open(options.params,'r') as pfile:
         pdict = json.load(pfile)
     options.address = pdict["address"]
     options.port = int(pdict["port"])
     print("server = "+options.address+":"+str(options.port))
+
+# check mode
+allowed_modes = {
+    "Async": "JetImageProducerAsync",
+    "Sync": "JetImageProducerSync",
+    "PseudoAsync": "JetImageProducerPseudoAsync",
+}
+if options.mode not in allowed_modes:
+    raise ValueError("Unknown mode: "+options.mode)
 
 process = cms.Process('imageTest')
 
@@ -38,36 +46,26 @@ process.GlobalTag.globaltag = cms.string('100X_upgrade2018_realistic_v10')
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents) )
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:data/store_mc_RunIISpring18MiniAOD_BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph_MINIAODSIM_100X_upgrade2018_realistic_v10-v1_30000_24A0230C-B530-E811-ADE3-14187741120B.root')
+    fileNames = cms.untracked.vstring('file:../../Core/data/store_mc_RunIISpring18MiniAOD_BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph_MINIAODSIM_100X_upgrade2018_realistic_v10-v1_30000_24A0230C-B530-E811-ADE3-14187741120B.root')
 )
 
 if len(options.inputFiles)>0: process.source.fileNames = options.inputFiles
 
 ################### EDProducer ##############################
-process.jetImageProducer = cms.EDProducer('JetImageProducer',
+process.jetImageProducer = cms.EDProducer(allowed_modes[options.mode],
     JetTag = cms.InputTag('slimmedJetsAK8'),
     topN = cms.uint32(5),
-    NIn  = cms.uint32(224*224*3),
-    NOut = cms.uint32(1000),
-    batchSize = cms.uint32(options.batchsize),
-    imageList = cms.string("imagenet_classes.txt"),
-)
-
-if options.remote:
-    process.jetImageProducer.remote = cms.bool(True)
-    process.jetImageProducer.ExtraParams = cms.PSet(
+    imageList = cms.string("../../Core/data/imagenet_classes.txt"),
+    Client = cms.PSet(
+        ninput  = cms.uint32(15),
+        noutput = cms.uint32(1),
+        batchSize = cms.uint32(options.batchsize),
         address = cms.string(options.address),
         port = cms.int32(options.port),
         timeout = cms.uint32(options.timeout),
         modelname = cms.string(options.modelname),
-        async     = cms.bool(options.async),
     )
-else:
-    process.jetImageProducer.remote = cms.bool(False)
-    process.jetImageProducer.ExtraParams = cms.PSet(
-        featurizer = cms.string("resnet50.pb"),
-        classifier = cms.string("resnet50_classifier.pb"),
-    )
+)
 
 # Let it run
 process.p = cms.Path(
@@ -75,7 +73,7 @@ process.p = cms.Path(
 )
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
-keep_msgs = ['JetImageProducer','TFClientRemote','TFClientLocal']
+keep_msgs = ['JetImageProducer','TRTClient']
 for msg in keep_msgs:
     process.MessageLogger.categories.append(msg)
     setattr(process.MessageLogger.cerr,msg,
