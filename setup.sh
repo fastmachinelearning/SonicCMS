@@ -13,6 +13,8 @@ TensorRT \
 export CORES=1
 export DEBUG=""
 
+join_by() { local IFS="$1"; shift; echo "$*"; }
+
 usage(){
 	EXIT=$1
 
@@ -21,7 +23,7 @@ usage(){
 	echo "-f [fork]           clone from specified fork (default = ${FORK})"
 	echo "-b [branch]         clone specified branch (default = ${BRANCH})"
 	echo "-c [version]        use specified CMSSW version (default = ${CMSSWVER})"
-	echo "-p [packages]       set up specified packages (allowed = "$(join_by , "${PKGS_ALL[@]}")"; or all)""
+	echo "-p [packages]       set up specified packages (allowed = "$(join_by , "${PKGS_ALL[@]}")"; or all)"
 	echo "-a [protocol]       use protocol to clone (default = ${ACCESS}, alternative = ssh)"
 	echo "-j [cores]          run compilations on # cores (default = ${CORES})"
 	echo "-d                  keep source code for debugging"
