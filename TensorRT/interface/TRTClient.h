@@ -8,8 +8,10 @@
 #include "SonicCMS/Core/interface/SonicModeAsync.h"
 #include "SonicCMS/TensorRT/interface/TRTClientBase.h"
 
+#include <vector>
+
 template <typename Mode>
-class TRTClient : public TRTClientBase, public SonicClient<Mode> {
+class TRTClient : public TRTClientBase, public SonicClient<Mode, std::vector<float>> {
 	public:
 		//constructor
 		TRTClient(const edm::ParameterSet& params) : TRTClientBase(params), SonicClient<Mode>() {}
@@ -20,7 +22,7 @@ class TRTClient : public TRTClientBase, public SonicClient<Mode> {
 typedef TRTClientSync TRTClient<SonicModeSync>;
 typedef TRTClientPseudoAsync TRTClient<SonicModePseudoAsync>;
 
-class TRTClientAsync : public TRTClientBase, public SonicClient<SonicModeAsync> {
+class TRTClientAsync : public TRTClientBase, public SonicClient<SonicModeAsync, std::vector<float>> {
 	public:
 		//constructor
 		TRTClient(const edm::ParameterSet& params) : TRTClientBase(params), SonicClient<SonicModeAsync>() {}

@@ -16,7 +16,12 @@ class TRTClientBase {
 		TRTClientBase(const edm::ParameterSet& params);
 
 		//helper
-		getResults(const std::unique_ptr<nic::InferContext::Result>& result);
+		void getResults(const std::unique_ptr<nic::InferContext::Result>& result);
+
+		//accessors
+		unsigned ninput() const { return ninput_; }
+		unsigned noutput() const { return noutput_; }
+		unsigned batchSize() const { return batchSize_; }
 
 	protected:
 		//helper for common ops

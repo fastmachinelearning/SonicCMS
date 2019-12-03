@@ -1,220 +1,128 @@
-// Forked from SMPJ Analysis Framework
-// https://twiki.cern.ch/twiki/bin/viewauth/CMS/SMPJAnalysisFW
-// https://github.com/cms-smpj/SMPJ/tree/v1.0
-
-#include <iostream>
 #include <sstream>
 #include <fstream>
-#include <iomanip>
 #include <string>
-#include <cmath>
-#include <functional>
 #include <vector>
-#include <chrono>
+#include <cmath>
 #include <map>
 
-#include "SonicCMS/AnalysisFW/interface/TFClientBase.h"
-#include "SonicCMS/AnalysisFW/interface/TFClientRemoteTRT.h"
+#include "SonicCMS/Core/interface/SonicEDProducer.h"
+#include "SonicCMS/TensorRT/interface/TRTClient.h"
 #include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/global/EDProducer.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
-#include "FWCore/Framework/src/PreallocationConfiguration.h"
 
 #include "DataFormats/Math/interface/deltaR.h"
 #include "DataFormats/PatCandidates/interface/Jet.h"
 #include "DataFormats/JetReco/interface/Jet.h"
 #include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
 
-class JetImageCache {
-	public:
-		void input(std::vector<float> in) { input_=in; }
-		const std::vector<float>& input() const { return input_; }
-		std::vector<float>& input() { return input_; }
-
-		const std::vector<float>& output() const { return output_; }
-		std::vector<float>& output() { return output_; }
-		std::vector<float>& output(std::vector<float> out) { return output_=out; }
-
-	private:
-		std::vector<float> input_;
-		std::vector<float> output_;
-};
-
-class JetImageProducer : public edm::global::EDProducer<edm::ExternalWork,edm::StreamCache<JetImageCache>>
+template <typename Client>
+class JetImageProducer : public SonicEDProducer<Client>
 {
 	public:
-		explicit JetImageProducer(edm::ParameterSet const& cfg);
-		void preallocate(edm::PreallocationConfiguration const& iPrealloc) override;
-		std::unique_ptr<JetImageCache> beginStream(edm::StreamID) const override;
-		void acquire(edm::StreamID iStream, edm::Event const& iEvent, edm::EventSetup const& iSetup, edm::WaitingTaskWithArenaHolder holder) const override;
-		void produce(edm::StreamID iStream, edm::Event& iEvent, edm::EventSetup const& iSetup) const;
-		~JetImageProducer() override;
+		explicit JetImageProducer(edm::ParameterSet const& cfg) :
+			SonicEDProducer(cfg),
+			JetTag_(cfg.getParameter<edm::InputTag>("JetTag")),
+			JetTok_(consumes<edm::View<pat::Jet>>(JetTag_)),
+			topN_(cfg.getParameter<unsigned>("topN")),
+			imageListFile_(cfg.getParameter<std::string>("imageList"))
+		{
+			//load score list
+			std::ifstream ifile(imageListFile_);
+			if(ifile.is_open()){
+				std::string line;
+				while(std::getline(ifile,line)){
+					imageList_.push_back(line);
+				}
+			}
+		}
+		Client::Input load(edm::Event const& iEvent, edm::EventSetup const& iSetup) override {
+			// create a jet image for the leading jet in the event
+			// 224 x 224 image which is centered at the jet axis and +/- 1 unit in eta and phi
+			std::vector<float> img(client_.ninput(),0.f);
+			const unsigned npix = 224;
+			float pixel_width = 2./float(npix);
+
+			int jet_ctr = 0;
+			for(const auto& i_jet : jets){
+				//jet calcs
+				float jet_pt  =  i_jet.pt();
+				float jet_phi =  i_jet.phi();
+				float jet_eta =  i_jet.eta();
+
+				for(unsigned k = 0; k < i_jet.numberOfDaughters(); ++k){
+					const reco::Candidate* i_part = i_jet.daughter(k);
+					// daughter info
+					float i_pt = i_part->pt();
+					float i_phi = i_part->phi();
+					float i_eta = i_part->eta();
+
+					float dphi = i_phi - jet_phi;
+					if (dphi > M_PI) dphi -= 2*M_PI;
+					if (dphi < -1.*M_PI) dphi += 2*M_PI;
+					float deta = i_eta - jet_eta;
+
+					if ( deta > 1. || deta < -1. || dphi > 1. || dphi < -1.) continue; // outside of the image, shouldn't happen for AK8 jet!
+					int eta_pixel_index =  (int) ((deta + 1.)/pixel_width);
+					int phi_pixel_index =  (int) ((dphi + 1.)/pixel_width);
+					img[3*(eta_pixel_index*npix+phi_pixel_index)+0] += i_pt/jet_pt;
+					img[3*(eta_pixel_index*npix+phi_pixel_index)+1] += i_pt/jet_pt;
+					img[3*(eta_pixel_index*npix+phi_pixel_index)+2] += i_pt/jet_pt;
+				}
+
+				//////////////////////////////
+				jet_ctr++;
+				if (jet_ctr > 0) break; // just do one jet for now
+				//////////////////////////////
+			}
+
+			return img;
+		}
+		void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Client::Output const& iOutput) override {
+			//check the results
+			findTopN(iOutput);
+		}
+		~JetImageProducer() override {}
 
 	private:
-		void findTopN(const std::vector<float>& scores, unsigned n=5) const;
+		void findTopN(const std::vector<float>& scores, unsigned n=5) const {
+			auto dim = client_.noutput();
+			for(unsigned i0 = 0; i0 < client_.batchSize(); i0++) {
+				//match score to type by index, then put in largest-first map
+				std::map<float,std::string,std::greater<float>> score_map;
+				for(unsigned i = 0; i < std::min((unsigned)dim,(unsigned)imageList_.size()); ++i){
+					score_map.emplace(scores[i0*dim+i],imageList_[i]);
+				}
+				//get top n
+				std::stringstream msg;
+				msg << "Scores:\n";
+				unsigned counter = 0;
+				for(const auto& item: score_map){
+					msg << item.second << " : " << item.first << "\n";
+					++counter;
+					if(counter>=topN_) break;
+				}
+				edm::LogInfo("JetImageProducer") << msg.str();
+			}
+		}
 		std::vector<float> createImage(const edm::View<pat::Jet>& jets) const;
 
 		edm::InputTag JetTag_;
 		edm::EDGetTokenT<edm::View<pat::Jet>> JetTok_;
 		unsigned topN_;
-		unsigned ninput_;
-		unsigned noutput_;
-		unsigned batchSize_;
-		bool remote_;
-		edm::ParameterSet extraParams_;
-		std::unique_ptr<TFClientBase> client_;
 		std::string imageListFile_;
 		std::vector<std::string> imageList_;
 };
 
-JetImageProducer::JetImageProducer(edm::ParameterSet const &cfg) :
-	JetTag_(cfg.getParameter<edm::InputTag>("JetTag")),
-	JetTok_(consumes<edm::View<pat::Jet>>(JetTag_)),
-	topN_(cfg.getParameter<unsigned>("topN")),
-	ninput_(cfg.getParameter<unsigned>("NIn")),
-	noutput_(cfg.getParameter<unsigned>("NOut")),
-	batchSize_(cfg.getParameter<unsigned>("batchSize")),
-	remote_(cfg.getParameter<bool>("remote")),
-	extraParams_(cfg.getParameter<edm::ParameterSet>("ExtraParams")),
-	imageListFile_(cfg.getParameter<std::string>("imageList"))
-{
-	//load score list
-	std::ifstream ifile(imageListFile_);
-	if(ifile.is_open()){
-		std::string line;
-		while(std::getline(ifile,line)){
-			imageList_.push_back(line);
-		}
-	}
-}
+typedef JetImageProducerSync JetImageProducer<TRTClientSync>;
+typedef JetImageProducerAsync JetImageProducer<TRTClientAsync>;
+typedef JetImageProducerPseudoAsync JetImageProducer<TRTClientPseudoAsync>;
 
-void JetImageProducer::preallocate(edm::PreallocationConfiguration const& iPrealloc) {
-	if(remote_){
-		//in remote version, model is already loaded on the server
-		client_ = std::make_unique<TFClientRemoteTRT>(
-			iPrealloc.numberOfStreams(),
-			extraParams_.getParameter<std::string>("address"),
-			extraParams_.getParameter<int>("port"),
-			extraParams_.getParameter<unsigned>("timeout"),
-			extraParams_.getParameter<std::string>("modelname"),
-			batchSize_,
-			ninput_,
-			noutput_,
-			extraParams_.getParameter<bool>("async")
-		);
-		edm::LogInfo("JetImageProducer") << "Connected to remote server";
-	}
-}
+DEFINE_FWK_MODULE(JetImageProducerSync);
+DEFINE_FWK_MODULE(JetImageProducerAsync);
+DEFINE_FWK_MODULE(JetImageProducerPseudoAsync);
 
-std::unique_ptr<JetImageCache> JetImageProducer::beginStream(edm::StreamID) const {
-	return std::make_unique<JetImageCache>();
-}
-
-void JetImageProducer::findTopN(const std::vector<float>& scores, unsigned n) const {
-   auto dim = noutput_;
-   for(unsigned i0 = 0; i0 < batchSize_; i0++) {
-     //match score to type by index, then put in largest-first map
-     std::map<float,std::string,std::greater<float>> score_map;
-     for(unsigned i = 0; i < std::min((unsigned)dim,(unsigned)imageList_.size()); ++i){
-       score_map.emplace(scores[i0*dim+i],imageList_[i]);
-     }
-     //get top n
-     std::stringstream msg;
-     msg << "Scores:\n";
-     unsigned counter = 0;
-     for(const auto& item: score_map){
-       msg << item.second << " : " << item.first << "\n";
-       ++counter;
-		if(counter>=n) break;
-     }
-     edm::LogInfo("JetImageProducer") << msg.str();
-   }
-}
-
-std::vector<float> JetImageProducer::createImage(const edm::View<pat::Jet>& jets) const {
-	// create a jet image for the leading jet in the event
-	// 224 x 224 image which is centered at the jet axis and +/- 1 unit in eta and phi
-	std::vector<float> img(ninput_,0.f);
-	float pixel_width = 2./224.;
-	for (int ii = 0; ii < 224; ii++){
-		for (int ij = 0; ij < 224; ij++){ img[ii*224+ij] = 0.; }
-	}
-
-	int jet_ctr = 0;
-	for(const auto& i_jet : jets){
-		//jet calcs
-		float jet_pt  =  i_jet.pt();
-		float jet_phi =  i_jet.phi();
-		float jet_eta =  i_jet.eta();
-
-		for(unsigned k = 0; k < i_jet.numberOfDaughters(); ++k){
-			const reco::Candidate* i_part = i_jet.daughter(k);
-			// daughter info
-			float i_pt = i_part->pt();
-			float i_phi = i_part->phi();
-			float i_eta = i_part->eta();
-
-			float dphi = i_phi - jet_phi;
-			if (dphi > M_PI) dphi -= 2*M_PI;
-			if (dphi < -1.*M_PI) dphi += 2*M_PI;
-			float deta = i_eta - jet_eta;
-
-			if ( deta > 1. || deta < -1. || dphi > 1. || dphi < -1.) continue; // outside of the image, shouldn't happen for AK8 jet!
-			int eta_pixel_index =  (int) ((deta + 1.)/pixel_width);
-			int phi_pixel_index =  (int) ((dphi + 1.)/pixel_width);
-			img[3*(eta_pixel_index*224+phi_pixel_index)+0] += i_pt/jet_pt;
-			img[3*(eta_pixel_index*224+phi_pixel_index)+1] += i_pt/jet_pt;
-			img[3*(eta_pixel_index*224+phi_pixel_index)+2] += i_pt/jet_pt;
-		}
-
-		//////////////////////////////
-		jet_ctr++;
-		if (jet_ctr > 0) break; // just do one jet for now
-		//////////////////////////////
-	}
-	
-	return img;
-}
-
-void JetImageProducer::acquire(edm::StreamID iStream, edm::Event const& iEvent, edm::EventSetup const& iSetup, edm::WaitingTaskWithArenaHolder holder) const {
-	//input data from event
-	edm::Handle<edm::View<pat::Jet>> h_jets;
-	iEvent.getByToken(JetTok_, h_jets);
-
-	//reset cache of input and output
-	JetImageCache* streamCacheData = streamCache(iStream);
-	
-	auto t0 = std::chrono::high_resolution_clock::now();
-	std::vector<float> lImg(ninput_*batchSize_,0.f);
-	for(unsigned i0 = 0; i0 < batchSize_; i0++ ) { 
-	  const auto& pImg = createImage(*h_jets.product());
-	  for(unsigned i1 = 0; i1 < ninput_; i1++) {
-	    lImg[ninput_*i0+i1] = pImg[i1];
-	  }
-	}
-	streamCacheData->input(lImg); 
-
-	auto t1 = std::chrono::high_resolution_clock::now();
-	edm::LogInfo("JetImageProducer") << "Image time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
-	
-	// run the inference on remote or local
-	std::vector<float> lOutput(noutput_*batchSize_,0.f);
-	streamCacheData->output(lOutput);
-	client_->predict(iStream.value(),streamCacheData->input().data(),streamCacheData->output().data(),holder);
-}
-
-void JetImageProducer::produce(edm::StreamID iStream, edm::Event& iEvent, edm::EventSetup const &iSetup) const {
-	JetImageCache* streamCacheData = streamCache(iStream);
-	//check the results
-	findTopN(streamCacheData->output(),topN_);
-}
-
-JetImageProducer::~JetImageProducer() {
-}
-
-DEFINE_FWK_MODULE(JetImageProducer);
