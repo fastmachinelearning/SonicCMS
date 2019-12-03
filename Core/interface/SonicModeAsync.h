@@ -9,13 +9,22 @@ class SonicModeAsync {
 		
 		//main operation
 		void predict(edm::WaitingTaskWithArenaHolder holder) {
-			predictImpl(std::move(holder));
-			//impl calls holder
-		}		
+			holder_ = std::move(holder);
+			predictImpl();
+			//impl calls finish() which calls holder_
+		}
 		
 	protected:
-		//async mode passes holder to impl
-		virtual void predictImpl(edm::WaitingTaskWithArenaHolder holder) = 0;
+		//this function must call finish()
+		virtual void predictImpl() = 0;
+
+		void finish() {
+			std::exception_ptr exceptionPtr;
+			holder_.doneWaiting(exceptionPtr);
+		}
+
+		//members
+		edm::WaitingTaskWithArenaHolder holder_;
 };
 
 #endif

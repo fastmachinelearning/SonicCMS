@@ -58,6 +58,7 @@ class SonicModePseudoAsync {
 					
 					//pseudo-async calls holder at the end (inside std::thread)
 					hasCall_ = false;
+					std::exception_ptr exceptionPtr;
 					holder_.doneWaiting(exceptionPtr);
 				}
 			}
