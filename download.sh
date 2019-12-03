@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd $CMSSW_BASE/src/SonicCMS/AnalysisFW/python
+cd $CMSSW_BASE/src/SonicCMS/Core/data
 wget https://raw.githubusercontent.com/Lasagne/Recipes/master/examples/resnet50/imagenet_classes.txt
 wget -O resnet50.pb "https://www.dropbox.com/s/8p783l38z8cp160/resnet50.pb?dl=0"
 wget -O resnet50_classifier.pb "https://www.dropbox.com/s/mycy3dh154kfgtd/resnet50_classifier.pb?dl=0"
