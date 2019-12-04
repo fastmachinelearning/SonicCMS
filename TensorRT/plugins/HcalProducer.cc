@@ -16,11 +16,14 @@ template <typename Client>
 class HcalProducer : public SonicEDProducer<Client>
 {
 	public:
+		//needed because base class has dependent scope
+		using typename SonicEDProducer<Client>::Input;
+		using typename SonicEDProducer<Client>::Output;
 		explicit HcalProducer(edm::ParameterSet const& cfg) : SonicEDProducer<Client>(cfg), topN_(cfg.getParameter<unsigned>("topN")) {}
-		typename Client::Input load(edm::Event const& iEvent, edm::EventSetup const& iSetup) override {
-			auto ninput = this->client_.ninput();
-			auto batchSize = this->client_.batchSize();
-			typename Client::Input lImg(ninput*batchSize, 0.f);
+		Input load(edm::Event const& iEvent, edm::EventSetup const& iSetup) override {
+			auto ninput = client_.ninput();
+			auto batchSize = client_.batchSize();
+			Input lImg(ninput*batchSize, 0.f);
 			//make some random channels
 			for(unsigned ib = 0; ib < batchSize; ib++) { 
 				for(unsigned i0 = 0; i0 < ninput; i0++) { 
@@ -35,17 +38,18 @@ class HcalProducer : public SonicEDProducer<Client>
 			}
 			return lImg;
 		}
-		void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, typename Client::Output const& iOutput) override {
+		void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Output const& iOutput) override {
 			//check the results
 			findTopN(iOutput);
 		}
 		~HcalProducer() override {}
 
 	private:
+		using SonicEDProducer<Client>::client_;
 		//Just putting something in for the hell of it
-		void findTopN(const typename Client::Output& scores) const {
-			auto dim = this->client_.noutput();
-			for(unsigned i0 = 0; i0 < this->client_.batchSize(); i0++) {
+		void findTopN(const Output& scores) const {
+			auto dim = client_.noutput();
+			for(unsigned i0 = 0; i0 < client_.batchSize(); i0++) {
 				//match score to type by index, then put in largest-first map
 				std::map<float,std::string,std::greater<float>> score_map;
 				for(unsigned i = 0; i < (unsigned)dim; ++i){

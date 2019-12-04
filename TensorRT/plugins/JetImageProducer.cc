@@ -24,6 +24,9 @@ template <typename Client>
 class JetImageProducer : public SonicEDProducer<Client>
 {
 	public:
+		//needed because base class has dependent scope
+		using typename SonicEDProducer<Client>::Input;
+		using typename SonicEDProducer<Client>::Output;
 		explicit JetImageProducer(edm::ParameterSet const& cfg) :
 			SonicEDProducer<Client>(cfg),
 			JetTag_(cfg.getParameter<edm::InputTag>("JetTag")),
@@ -40,7 +43,7 @@ class JetImageProducer : public SonicEDProducer<Client>
 				}
 			}
 		}
-		typename Client::Input load(edm::Event const& iEvent, edm::EventSetup const& iSetup) override {
+		Input load(edm::Event const& iEvent, edm::EventSetup const& iSetup) override {
 			//input data from event
 			edm::Handle<edm::View<pat::Jet>> h_jets;
 			iEvent.getByToken(JetTok_, h_jets);
@@ -48,7 +51,7 @@ class JetImageProducer : public SonicEDProducer<Client>
 
 			// create a jet image for the leading jet in the event
 			// 224 x 224 image which is centered at the jet axis and +/- 1 unit in eta and phi
-			std::vector<float> img(this->client_.ninput(),0.f);
+			std::vector<float> img(client_.ninput(),0.f);
 			const unsigned npix = 224;
 			float pixel_width = 2./float(npix);
 
@@ -85,25 +88,26 @@ class JetImageProducer : public SonicEDProducer<Client>
 				//////////////////////////////
 			}
 
-			std::vector<float> lImg(this->client_.ninput()*this->client_.batchSize(),0.f);
-			for(unsigned i0 = 0; i0 < this->client_.batchSize(); i0++ ) { 
-				for(unsigned i1 = 0; i1 < this->client_.ninput(); i1++) {
-					lImg[this->client_.ninput()*i0+i1] = img[i1];
+			std::vector<float> lImg(client_.ninput()*client_.batchSize(),0.f);
+			for(unsigned i0 = 0; i0 < client_.batchSize(); i0++ ) { 
+				for(unsigned i1 = 0; i1 < client_.ninput(); i1++) {
+					lImg[client_.ninput()*i0+i1] = img[i1];
 				}
 			}
 
 			return img;
 		}
-		void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, typename Client::Output const& iOutput) override {
+		void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Output const& iOutput) override {
 			//check the results
 			findTopN(iOutput);
 		}
 		~JetImageProducer() override {}
 
 	private:
+		using SonicEDProducer<Client>::client_;
 		void findTopN(const std::vector<float>& scores, unsigned n=5) const {
-			auto dim = this->client_.noutput();
-			for(unsigned i0 = 0; i0 < this->client_.batchSize(); i0++) {
+			auto dim = client_.noutput();
+			for(unsigned i0 = 0; i0 < client_.batchSize(); i0++) {
 				//match score to type by index, then put in largest-first map
 				std::map<float,std::string,std::greater<float>> score_map;
 				for(unsigned i = 0; i < std::min((unsigned)dim,(unsigned)imageList_.size()); ++i){
