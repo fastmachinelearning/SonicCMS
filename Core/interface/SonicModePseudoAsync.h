@@ -2,6 +2,7 @@
 #define SonicCMS_Core_SonicModePseudoAsync
 
 #include "FWCore/Concurrency/interface/WaitingTaskWithArenaHolder.h"
+#include "SonicCMS/Core/interface/SonicModeBase.h"
 
 #include <memory>
 #include <condition_variable>
@@ -10,10 +11,10 @@
 #include <atomic>
 
 //pretend to be async + non-blocking by waiting for blocking calls to return in separate std::thread
-class SonicModePseudoAsync {
+class SonicModePseudoAsync : public SonicModeBase {
 	public:
 		//constructor
-		SonicModePseudoAsync() : hasCall_(false), stop_(false) {
+		SonicModePseudoAsync() : SonicModeBase(), hasCall_(false), stop_(false) {
 			thread_ = std::make_unique<std::thread>([this](){ waitForNext(); });
 		}
 		//destructor
@@ -29,7 +30,7 @@ class SonicModePseudoAsync {
 			}
 		}
 		//accessor
-		void predict(edm::WaitingTaskWithArenaHolder holder) {
+		void predict(edm::WaitingTaskWithArenaHolder holder) override final {
 			//do all read/writes inside lock to ensure cache synchronization
 			{
 				std::lock_guard<std::mutex> guard(mutex_);
@@ -42,9 +43,6 @@ class SonicModePseudoAsync {
 		}
 		
 	protected:
-		//like sync mode, pseudo-async doesn't pass holder
-		virtual void predictImpl() = 0;
-	
 		void waitForNext() {
 			while(true){
 				//wait for condition
@@ -58,8 +56,7 @@ class SonicModePseudoAsync {
 					
 					//pseudo-async calls holder at the end (inside std::thread)
 					hasCall_ = false;
-					std::exception_ptr exceptionPtr;
-					holder_.doneWaiting(exceptionPtr);
+					finish();
 				}
 			}
 		}

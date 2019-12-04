@@ -3,28 +3,18 @@
 
 #include "FWCore/Concurrency/interface/WaitingTaskWithArenaHolder.h"
 
-class SonicModeAsync {
+#include "SonicCMS/Core/interface/SonicModeBase.h"
+
+class SonicModeAsync : public SonicModeBase {
 	public:
 		virtual ~SonicModeAsync() {}
 		
 		//main operation
-		void predict(edm::WaitingTaskWithArenaHolder holder) {
+		void predict(edm::WaitingTaskWithArenaHolder holder) override final {
 			holder_ = std::move(holder);
 			predictImpl();
 			//impl calls finish() which calls holder_
 		}
-		
-	protected:
-		//this function must call finish()
-		virtual void predictImpl() = 0;
-
-		void finish() {
-			std::exception_ptr exceptionPtr;
-			holder_.doneWaiting(exceptionPtr);
-		}
-
-		//members
-		edm::WaitingTaskWithArenaHolder holder_;
 };
 
 #endif
