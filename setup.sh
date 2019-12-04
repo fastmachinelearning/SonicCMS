@@ -155,7 +155,7 @@ cp -r build/install ${CMSSW_BASE}/work/local/tensorrtis
 cp -r build/protobuf $CMSSW_BASE/work/local/protobuf
 
 # setup in scram
-cat << 'EOF_TOOLFILE' > tensorrt.xml
+cat << 'EOF_TOOLFILE' > tensorrtis.xml
 <tool name="tensorrtis" version="v19.10">
   <info url="https://github.com/NVIDIA/tensorrt-inference-server"/>
   <lib name="request"/> 
@@ -163,7 +163,8 @@ cat << 'EOF_TOOLFILE' > tensorrt.xml
     <environment name="TENSORRTIS_BASE" default="$CMSSW_BASE/work/local/tensorrtis"/>
     <environment name="INCLUDE" default="$TENSORRTIS_BASE/include"/>
     <environment name="LIBDIR"  default="$TENSORRTIS_BASE/lib"/>
-</client>                                                                                                                                                                                                                                
+  </client>
+  <use name="protobuf"/>
 </tool>               
 EOF_TOOLFILE
 
@@ -181,10 +182,10 @@ cat << 'EOF_TOOLFILE' > protobuf.xml
 </tool>
 EOF_TOOLFILE
 
-mv tensorrt.xml ${CMSSW_BASE}/config/toolbox/${SCRAM_ARCH}/tools/selected/
+mv tensorrtis.xml ${CMSSW_BASE}/config/toolbox/${SCRAM_ARCH}/tools/selected/
 mv protobuf.xml ${CMSSW_BASE}/config/toolbox/${SCRAM_ARCH}/tools/selected/
-scram setup tensorrt
 scram setup protobuf
+scram setup tensorrtis
 
 # remove the huge source code directory and intermediate products that are not needed to run
 if [ -z "$DEBUG" ]; then

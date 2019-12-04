@@ -15,7 +15,7 @@
 namespace nic = nvidia::inferenceserver::client;
 
 template <typename Mode>
-class TRTClient : public TRTClientBase, public SonicClient<Mode, std::vector<float>> {
+class TRTClient : public SonicClient<Mode, std::vector<float>> {
 	public:
 		//constructor
 		TRTClient(const edm::ParameterSet& params);
@@ -41,11 +41,11 @@ class TRTClient : public TRTClientBase, public SonicClient<Mode, std::vector<flo
 		unsigned batchSize_;
 		unsigned ninput_;
 		unsigned noutput_;
-		std::unique_ptr<nic::InferContext>* context_;
-		std::shared_ptr<nic::InferContext::Input>* nicinput_; 
+		std::unique_ptr<nic::InferContext> context_;
+		std::shared_ptr<nic::InferContext::Input> nicinput_; 
 };
-typedef TRTClientSync TRTClient<SonicModeSync>;
-typedef TRTClientPseudoAsync TRTClient<SonicModePseudoAsync>;
-typedef TRTClientAsync TRTClient<SonicModeAsync>;
+typedef TRTClient<SonicModeSync> TRTClientSync;
+typedef TRTClient<SonicModePseudoAsync> TRTClientPseudoAsync;
+typedef TRTClient<SonicModeAsync> TRTClientAsync;
 
 #endif

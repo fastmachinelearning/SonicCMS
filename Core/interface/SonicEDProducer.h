@@ -23,13 +23,13 @@ class SonicEDProducer : public edm::stream::EDProducer<edm::ExternalWork, Capabi
 			client_.setInput(load(iEvent, iSetup));
 			client_.predict(holder);
 		}
-		virtual Client::Input load(edm::Event const& iEvent, edm::EventSetup const& iSetup) = 0;
+		virtual typename Client::Input load(edm::Event const& iEvent, edm::EventSetup const& iSetup) = 0;
 		//derived classes use a dedicated produce() interface that incorporates client_.output()
 		void produce(edm::Event& iEvent, edm::EventSetup const& iSetup) override final {
 			//todo: measure time between acquire and produce
 			produce(iEvent, iSetup, client_.output());
 		}
-		virtual void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Client::Output const& iOutput) = 0;
+		virtual void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, typename Client::Output const& iOutput) = 0;
 		
 	protected:
 		//members
