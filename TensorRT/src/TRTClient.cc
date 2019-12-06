@@ -11,9 +11,9 @@ namespace nic = nvidia::inferenceserver::client;
 
 //based on https://github.com/NVIDIA/tensorrt-inference-server/blob/master/src/clients/c++/examples/simple_callback_client.cc
 
-template <typename Mode>
-TRTClient<Mode>::TRTClient(const edm::ParameterSet& params) :
-	SonicClient<Mode, std::vector<float>>(),
+template <typename Client>
+TRTClient<Client>::TRTClient(const edm::ParameterSet& params) :
+	Client(),
 	url_(params.getParameter<std::string>("address")+":"+std::to_string(params.getParameter<unsigned>("port"))),
 	timeout_(params.getParameter<unsigned>("timeout")),
 	modelName_(params.getParameter<std::string>("modelName")),
@@ -23,8 +23,8 @@ TRTClient<Mode>::TRTClient(const edm::ParameterSet& params) :
 {
 }
 
-template <typename Mode>
-void TRTClient<Mode>::setup() {
+template <typename Client>
+void TRTClient<Client>::setup() {
 	nic::InferGrpcContext::Create(&context_, url_, modelName_, -1, false);
 	std::unique_ptr<nic::InferContext::Options> options;
 	nic::InferContext::Options::Create(&options);
@@ -48,8 +48,8 @@ void TRTClient<Mode>::setup() {
 	edm::LogInfo("TRTClient") << "Image array time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
 }
 
-template <typename Mode>
-void TRTClient<Mode>::getResults(const std::unique_ptr<nic::InferContext::Result>& result) {
+template <typename Client>
+void TRTClient<Client>::getResults(const std::unique_ptr<nic::InferContext::Result>& result) {
 	auto t2 = std::chrono::high_resolution_clock::now();
 	this->output_.resize(noutput_*batchSize_,0.f);
 	for(unsigned i0 = 0; i0 < batchSize_; i0++) { 
@@ -63,8 +63,8 @@ void TRTClient<Mode>::getResults(const std::unique_ptr<nic::InferContext::Result
 	edm::LogInfo("TRTClient") << "Output time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
 }
 
-template <typename Mode>
-void TRTClient<Mode>::predictImpl(){
+template <typename Client>
+void TRTClient<Client>::predictImpl(){
 	//common operations first
 	setup();
 
@@ -103,6 +103,6 @@ void TRTClientAsync::predictImpl(){
 }
 
 //explicit template instantiations
-template class TRTClient<SonicModeSync>;
-template class TRTClient<SonicModeAsync>;
-template class TRTClient<SonicModePseudoAsync>;
+template class TRTClient<SonicClientSync<std::vector<float>>>;
+template class TRTClient<SonicClientAsync<std::vector<float>>>;
+template class TRTClient<SonicClientPseudoAsync<std::vector<float>>>;

@@ -1,17 +1,28 @@
-#ifndef SonicCMS_Core_SonicModeBase
-#define SonicCMS_Core_SonicModeBase
+#ifndef SonicCMS_Core_SonicClientBase
+#define SonicCMS_Core_SonicClientBase
 
 #include "FWCore/Concurrency/interface/WaitingTaskWithArenaHolder.h"
 
 #include <string>
 #include <chrono>
 
-class SonicModeBase {
+template <typename InputT, typename OutputT=InputT>
+class SonicClientBase {
 	public:
-		virtual ~SonicModeBase() {}
+		//typedefs for outside accessibility
+		typedef InputT Input;
+		typedef OutputT Output;
+		//destructor
+		virtual ~SonicClientBase() {}
 
 		void setDebugName(const std::string& debugName) { debugName_ = debugName; }
 
+		//accessors
+		const Input& input() const { return input_; }
+		void setInput(const Input& inp) { input_ = inp; }
+		const Output& output() const { return output_; }
+
+		//main operation
 		virtual void predict(edm::WaitingTaskWithArenaHolder holder) = 0;
 
 	protected:
@@ -33,7 +44,10 @@ class SonicModeBase {
 		}
 
 		//members
+		Input input_;
+		Output output_;
 		edm::WaitingTaskWithArenaHolder holder_;
+
 		//for logging/debugging
 		std::string debugName_;
 		std::chrono::time_point<std::chrono::high_resolution_clock> t0_;

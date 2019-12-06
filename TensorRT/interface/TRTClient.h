@@ -2,10 +2,9 @@
 #define SonicCMS_TensorRT_TRTClient
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "SonicCMS/Core/interface/SonicClient.h"
-#include "SonicCMS/Core/interface/SonicModeSync.h"
-#include "SonicCMS/Core/interface/SonicModePseudoAsync.h"
-#include "SonicCMS/Core/interface/SonicModeAsync.h"
+#include "SonicCMS/Core/interface/SonicClientSync.h"
+#include "SonicCMS/Core/interface/SonicClientPseudoAsync.h"
+#include "SonicCMS/Core/interface/SonicClientAsync.h"
 
 #include <vector>
 #include <string>
@@ -14,8 +13,8 @@
 
 namespace nic = nvidia::inferenceserver::client;
 
-template <typename Mode>
-class TRTClient : public SonicClient<Mode, std::vector<float>> {
+template <typename Client>
+class TRTClient : public Client {
 	public:
 		//constructor
 		TRTClient(const edm::ParameterSet& params);
@@ -44,8 +43,8 @@ class TRTClient : public SonicClient<Mode, std::vector<float>> {
 		std::unique_ptr<nic::InferContext> context_;
 		std::shared_ptr<nic::InferContext::Input> nicinput_; 
 };
-typedef TRTClient<SonicModeSync> TRTClientSync;
-typedef TRTClient<SonicModePseudoAsync> TRTClientPseudoAsync;
-typedef TRTClient<SonicModeAsync> TRTClientAsync;
+typedef TRTClient<SonicClientSync<std::vector<float>>> TRTClientSync;
+typedef TRTClient<SonicClientPseudoAsync<std::vector<float>>> TRTClientPseudoAsync;
+typedef TRTClient<SonicClientAsync<std::vector<float>>> TRTClientAsync;
 
 #endif

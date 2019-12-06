@@ -1,8 +1,8 @@
-#ifndef SonicCMS_Core_SonicModePseudoAsync
-#define SonicCMS_Core_SonicModePseudoAsync
+#ifndef SonicCMS_Core_SonicClientPseudoAsync
+#define SonicCMS_Core_SonicClientPseudoAsync
 
 #include "FWCore/Concurrency/interface/WaitingTaskWithArenaHolder.h"
-#include "SonicCMS/Core/interface/SonicModeBase.h"
+#include "SonicCMS/Core/interface/SonicClientBase.h"
 
 #include <memory>
 #include <condition_variable>
@@ -11,14 +11,15 @@
 #include <atomic>
 
 //pretend to be async + non-blocking by waiting for blocking calls to return in separate std::thread
-class SonicModePseudoAsync : public SonicModeBase {
+template <typename InputT, typename OutputT=InputT>
+class SonicClientPseudoAsync : public SonicClientBase<InputT,OutputT> {
 	public:
 		//constructor
-		SonicModePseudoAsync() : SonicModeBase(), hasCall_(false), stop_(false) {
+		SonicClientPseudoAsync() : SonicClientBase<InputT,OutputT>(), hasCall_(false), stop_(false) {
 			thread_ = std::make_unique<std::thread>([this](){ waitForNext(); });
 		}
 		//destructor
-		virtual ~SonicModePseudoAsync() {
+		virtual ~SonicClientPseudoAsync() {
 			{
 				std::lock_guard<std::mutex> guard(mutex_);
 				stop_ = true;
@@ -34,8 +35,8 @@ class SonicModePseudoAsync : public SonicModeBase {
 			//do all read/writes inside lock to ensure cache synchronization
 			{
 				std::lock_guard<std::mutex> guard(mutex_);
-				holder_ = std::move(holder);
-				setStartTime();
+				this->holder_ = std::move(holder);
+				this->setStartTime();
 
 				//activate thread to wait for response, and return
 				hasCall_ = true;
@@ -53,11 +54,11 @@ class SonicModePseudoAsync : public SonicModeBase {
 					if(stop_) break;
 
 					//do everything inside lock
-					predictImpl();
+					this->predictImpl();
 					
 					//pseudo-async calls holder at the end (inside std::thread)
 					hasCall_ = false;
-					finish();
+					this->finish();
 				}
 			}
 		}
