@@ -5,6 +5,7 @@
 #include "request_grpc.h"
 
 #include <string>
+#include <chrono>
 
 namespace nic = nvidia::inferenceserver::client;
 
@@ -38,14 +39,18 @@ void TRTClient<Mode>::setup() {
 	nicinput_ = nicinputs[0];
 	nicinput_->Reset();
 
+	auto t2 = std::chrono::high_resolution_clock::now();
 	std::vector<int64_t> input_shape;
 	for(unsigned i0 = 0; i0 < batchSize_; i0++) {
 		nic::Error err1 = nicinput_->SetRaw(reinterpret_cast<const uint8_t*>(this->input_.data()), ninput_ * sizeof(float));
 	}
+	auto t3 = std::chrono::high_resolution_clock::now();
+	edm::LogInfo("TRTClient") << "Image array time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
 }
 
 template <typename Mode>
 void TRTClient<Mode>::getResults(const std::unique_ptr<nic::InferContext::Result>& result) {
+	auto t2 = std::chrono::high_resolution_clock::now();
 	this->output_.resize(noutput_*batchSize_,0.f);
 	for(unsigned i0 = 0; i0 < batchSize_; i0++) { 
 		const uint8_t* r0;
@@ -54,6 +59,8 @@ void TRTClient<Mode>::getResults(const std::unique_ptr<nic::InferContext::Result
 		const float *lVal = reinterpret_cast<const float*>(r0);
 		for(unsigned i1 = 0; i1 < noutput_; i1++) this->output_[i0*noutput_+i1] = lVal[i1]; //This should be replaced with a memcpy
 	}
+	auto t3 = std::chrono::high_resolution_clock::now();
+	edm::LogInfo("TRTClient") << "Output time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
 }
 
 template <typename Mode>
@@ -62,8 +69,11 @@ void TRTClient<Mode>::predictImpl(){
 	setup();
 
 	//blocking call
+	auto t2 = std::chrono::high_resolution_clock::now();
 	std::map<std::string, std::unique_ptr<nic::InferContext::Result>> results;
 	nic::Error err0 = context_->Run(&results);
+	auto t3 = std::chrono::high_resolution_clock::now();
+	edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
 	getResults(results.begin()->second);
 }
 
@@ -71,14 +81,17 @@ void TRTClient<Mode>::predictImpl(){
 template <>
 void TRTClientAsync::predictImpl(){
 	//non-blocking call
+	auto t2 = std::chrono::high_resolution_clock::now();
 	nic::Error erro0 = context_->AsyncRun(
-		[this](nic::InferContext* ctx, const std::shared_ptr<nic::InferContext::Request>& request) {
+		[t2,this](nic::InferContext* ctx, const std::shared_ptr<nic::InferContext::Request>& request) {
 			//get results
 			std::map<std::string, std::unique_ptr<nic::InferContext::Result>> results;
 			//this function interface will change in the next tensorrtis version
 			bool is_ready = false;
 			ctx->GetAsyncRunResults(&results, &is_ready, request, false);
 			if(is_ready == false) throw cms::Exception("BadCallback") << "Callback executed before request was ready";
+			auto t3 = std::chrono::high_resolution_clock::now();
+			edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
 
 			//check result
 			this->getResults(results.begin()->second);

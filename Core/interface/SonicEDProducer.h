@@ -8,6 +8,9 @@
 #include "FWCore/Concurrency/interface/WaitingTaskWithArenaHolder.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
+#include <string>
+#include <chrono>
+
 //this is a stream producer because client operations are not multithread-safe in general
 //it is designed such that the user never has to interact with the client or the acquire() callback directly
 template <typename Client, typename... Capabilities>
@@ -23,7 +26,10 @@ class SonicEDProducer : public edm::stream::EDProducer<edm::ExternalWork, Capabi
 		
 		//derived classes just implement load, not acquire
 		void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, edm::WaitingTaskWithArenaHolder holder) override final {
+			auto t0 = std::chrono::high_resolution_clock::now();
 			client_.setInput(load(iEvent, iSetup));
+			auto t1 = std::chrono::high_resolution_clock::now();
+			if(!debugName_.empty()) edm::LogInfo(debugName_) << "Load time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
 			client_.predict(holder);
 		}
 		virtual Input load(edm::Event const& iEvent, edm::EventSetup const& iSetup) = 0;
@@ -35,8 +41,14 @@ class SonicEDProducer : public edm::stream::EDProducer<edm::ExternalWork, Capabi
 		virtual void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Output const& iOutput) = 0;
 		
 	protected:
+		//for debugging
+		void setDebugName(const std::string& debugName){
+			debugName_ = debugName;
+			client_.setDebugName(debugName);
+		}
 		//members
 		Client client_;
+		std::string debugName_;
 };
 
 #endif

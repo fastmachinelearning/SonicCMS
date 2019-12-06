@@ -8,12 +8,13 @@
 class SonicModeSync : public SonicModeBase {
 	public:
 		virtual ~SonicModeSync() {}
-		
+
 		//main operation
 		void predict(edm::WaitingTaskWithArenaHolder holder) override final {
 			holder_ = std::move(holder);
+			setStartTime();
 			predictImpl();
-			
+
 			//sync mode calls holder at the end
 			finish();
 		}		

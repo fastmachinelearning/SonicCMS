@@ -35,13 +35,14 @@ class SonicModePseudoAsync : public SonicModeBase {
 			{
 				std::lock_guard<std::mutex> guard(mutex_);
 				holder_ = std::move(holder);
-			
+				setStartTime();
+
 				//activate thread to wait for response, and return
 				hasCall_ = true;
 			}
 			cond_.notify_one();
 		}
-		
+
 	protected:
 		void waitForNext() {
 			while(true){
@@ -60,7 +61,7 @@ class SonicModePseudoAsync : public SonicModeBase {
 				}
 			}
 		}
-	
+
 		//members
 		edm::WaitingTaskWithArenaHolder holder_;
 		bool hasCall_;

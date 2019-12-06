@@ -34,6 +34,8 @@ class JetImageProducer : public SonicEDProducer<Client>
 			topN_(cfg.getParameter<unsigned>("topN")),
 			imageListFile_(cfg.getParameter<std::string>("imageList"))
 		{
+			//for debugging
+			this->setDebugName("JetImageProducer");
 			//load score list
 			std::ifstream ifile(imageListFile_);
 			if(ifile.is_open()){

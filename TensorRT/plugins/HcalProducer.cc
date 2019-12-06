@@ -19,7 +19,10 @@ class HcalProducer : public SonicEDProducer<Client>
 		//needed because base class has dependent scope
 		using typename SonicEDProducer<Client>::Input;
 		using typename SonicEDProducer<Client>::Output;
-		explicit HcalProducer(edm::ParameterSet const& cfg) : SonicEDProducer<Client>(cfg), topN_(cfg.getParameter<unsigned>("topN")) {}
+		explicit HcalProducer(edm::ParameterSet const& cfg) : SonicEDProducer<Client>(cfg), topN_(cfg.getParameter<unsigned>("topN")) {
+			//for debugging
+			this->setDebugName("HcalProducer");
+		}
 		Input load(edm::Event const& iEvent, edm::EventSetup const& iSetup) override {
 			auto ninput = client_.ninput();
 			auto batchSize = client_.batchSize();

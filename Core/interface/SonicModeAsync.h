@@ -8,10 +8,11 @@
 class SonicModeAsync : public SonicModeBase {
 	public:
 		virtual ~SonicModeAsync() {}
-		
+
 		//main operation
 		void predict(edm::WaitingTaskWithArenaHolder holder) override final {
 			holder_ = std::move(holder);
+			setStartTime();
 			predictImpl();
 			//impl calls finish() which calls holder_
 		}
