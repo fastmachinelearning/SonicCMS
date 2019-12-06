@@ -8,6 +8,7 @@ PKGS=()
 PKGS_ALL=(
 TensorRT \
 )
+SETUP=true
 
 # these are used by pkg-specific setup scripts
 export CORES=1
@@ -26,6 +27,7 @@ usage(){
 	echo "-p [packages]       set up specified packages (allowed = "$(join_by , "${PKGS_ALL[@]}")"; or all)"
 	echo "-a [protocol]       use protocol to clone (default = ${ACCESS}, alternative = ssh)"
 	echo "-j [cores]          run compilations on # cores (default = ${CORES})"
+	echo "-i                  install only (to add new packages, if setup was already run)"
 	echo "-d                  keep source code for debugging"
 	echo "-h                  display this message and exit"
 
@@ -33,7 +35,7 @@ usage(){
 }
 
 # process options
-while getopts "f:b:c:p:a:j:dh" opt; do
+while getopts "f:b:c:p:a:j:dih" opt; do
 	case "$opt" in
 	f) FORK=$OPTARG
 	;;
@@ -49,12 +51,16 @@ while getopts "f:b:c:p:a:j:dh" opt; do
 	;;
 	d) export DEBUG=true
 	;;
+	i) SETUP=""
+	;;
 	h) usage 0
 	;;
 	esac
 done
 
 # check options
+SPARSE=.git/info/sparse-checkout
+alias git_update="git read-tree -mu HEAD"
 if [ "$ACCESS" = "ssh" ]; then
 	export ACCESS_GITHUB=git@github.com:
 	export ACCESS_CMSSW=--ssh
@@ -65,37 +71,46 @@ else
 	usage 1
 fi
 
-export SCRAM_ARCH=slc7_amd64_gcc700
-# cmsrel
-scram project ${CMSSWVER}
-cd ${CMSSWVER}
-eval `scramv1 runtime -sh`
+if [ -n "$SETUP" ]; then
+	export SCRAM_ARCH=slc7_amd64_gcc700
+	# cmsrel
+	scram project ${CMSSWVER}
+	cd ${CMSSWVER}
+	# cmsenv
+	eval `scramv1 runtime -sh`
+elif [ -z "$CMSSW_BASE" ]; then
+	echo '$CMSSW_BASE required for install mode'
+	exit 1
+fi
 
 # prepare for installation
 unset PYTHONPATH
 export WORK=$CMSSW_BASE/work
-mkdir $WORK
+mkdir -p $WORK
 cd $WORK
 export LOCAL=$WORK/local
-mkdir $LOCAL
+mkdir -p $LOCAL
 
-# clone sonic
-cd $CMSSW_BASE/src
-git cms-init $ACCESS_CMSSW
-git clone ${ACCESS_GITHUB}${FORK}/SonicCMS -b ${BRANCH}
-git clone ${ACCESS_GITHUB}kpedro88/CondorProduction Condor/Production
+if [ -n "$SETUP" ]; then
+	# clone sonic
+	cd $CMSSW_BASE/src
+	git cms-init $ACCESS_CMSSW
+	git clone ${ACCESS_GITHUB}${FORK}/SonicCMS -b ${BRANCH}
+	git clone ${ACCESS_GITHUB}kpedro88/CondorProduction Condor/Production
 
-# setup sparse checkout for specified packages
-cd $CMSSW_BASE/src/SonicCMS
-SPARSE=.git/info/sparse-checkout
-cat << EOF_SPARSE > ${SPARSE}
+	# setup sparse checkout for specified packages
+	cd $CMSSW_BASE/src/SonicCMS
+	cat << EOF_SPARSE > ${SPARSE}
 /Core
 /*.*
 EOF_SPARSE
+	git_update
+fi
+
 for PKG in ${PKGS[@]}; do
 	echo "/$PKG" >> ${SPARSE}
 done
-git read-tree -mu HEAD
+git_update
 
 # loop through package-specific installations
 for PKG in ${PKGS[@]}; do
