@@ -6,21 +6,12 @@
 #include <string>
 #include <chrono>
 
-template <typename InputT, typename OutputT=InputT>
 class SonicClientBase {
 	public:
-		//typedefs for outside accessibility
-		typedef InputT Input;
-		typedef OutputT Output;
 		//destructor
 		virtual ~SonicClientBase() {}
 
 		void setDebugName(const std::string& debugName) { debugName_ = debugName; }
-
-		//accessors
-		const Input& input() const { return input_; }
-		void setInput(const Input& inp) { input_ = inp; }
-		const Output& output() const { return output_; }
 
 		//main operation
 		virtual void predict(edm::WaitingTaskWithArenaHolder holder) = 0;
@@ -44,8 +35,6 @@ class SonicClientBase {
 		}
 
 		//members
-		Input input_;
-		Output output_;
 		edm::WaitingTaskWithArenaHolder holder_;
 
 		//for logging/debugging
