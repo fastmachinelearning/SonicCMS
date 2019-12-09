@@ -23,23 +23,22 @@ class HcalProducer : public SonicEDProducer<Client>
 			//for debugging
 			this->setDebugName("HcalProducer");
 		}
-		Input load(edm::Event const& iEvent, edm::EventSetup const& iSetup) override {
+		void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, Input& iInput) override {
 			auto ninput = client_.ninput();
 			auto batchSize = client_.batchSize();
-			Input lImg(ninput*batchSize, 0.f);
+			iInput = Input(ninput*batchSize, 0.f);
 			//make some random channels
 			for(unsigned ib = 0; ib < batchSize; ib++) { 
 				for(unsigned i0 = 0; i0 < ninput; i0++) { 
-					lImg[ib*ninput+0] = 1; //
-					lImg[ib*ninput+1] = 1; //
-					lImg[ib*ninput+2] = 1; //
-					lImg[ib*ninput+3] = int(rand() % 30)-15; //
-					lImg[ib*ninput+4] = int(rand() % 36)-36; //
-					lImg[ib*ninput+5] = 1;
-					for(unsigned i1 = 6; i1 < ninput; i1++) lImg[ib*ninput+i1] = float(rand() % 1000)*0.1;
+					iInput[ib*ninput+0] = 1; //
+					iInput[ib*ninput+1] = 1; //
+					iInput[ib*ninput+2] = 1; //
+					iInput[ib*ninput+3] = int(rand() % 30)-15; //
+					iInput[ib*ninput+4] = int(rand() % 36)-36; //
+					iInput[ib*ninput+5] = 1;
+					for(unsigned i1 = 6; i1 < ninput; i1++) iInput[ib*ninput+i1] = float(rand() % 1000)*0.1;
 				}
 			}
-			return lImg;
 		}
 		void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Output const& iOutput) override {
 			//check the results

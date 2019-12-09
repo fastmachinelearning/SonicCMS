@@ -16,7 +16,7 @@ class MyProducer : public SonicEDProducer<Client>
 			//for debugging
 			setDebugName("MyProducer");
 		}
-		Input load(edm::Event const& iEvent, edm::EventSetup const& iSetup) override {
+		void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, Input& iInput) override {
 			//convert event data to client input format
 		}
 		void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Output const& iOutput) override {

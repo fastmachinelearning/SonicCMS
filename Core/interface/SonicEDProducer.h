@@ -24,15 +24,16 @@ class SonicEDProducer : public edm::stream::EDProducer<edm::ExternalWork, Capabi
 		//destructor
 		virtual ~SonicEDProducer() {}
 		
-		//derived classes just implement load, not acquire
+		//derived classes use a dedicated acquire() interface that incorporates client_.input()
+		//(no need to interact with callback holder)
 		void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, edm::WaitingTaskWithArenaHolder holder) override final {
 			auto t0 = std::chrono::high_resolution_clock::now();
-			client_.setInput(load(iEvent, iSetup));
+			acquire(iEvent, iSetup, client_.input());
 			auto t1 = std::chrono::high_resolution_clock::now();
 			if(!debugName_.empty()) edm::LogInfo(debugName_) << "Load time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
 			client_.predict(holder);
 		}
-		virtual Input load(edm::Event const& iEvent, edm::EventSetup const& iSetup) = 0;
+		virtual void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, Input& iInput) = 0;
 		//derived classes use a dedicated produce() interface that incorporates client_.output()
 		void produce(edm::Event& iEvent, edm::EventSetup const& iSetup) override final {
 			//todo: measure time between acquire and produce

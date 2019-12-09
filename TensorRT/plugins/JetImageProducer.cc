@@ -45,7 +45,7 @@ class JetImageProducer : public SonicEDProducer<Client>
 				}
 			}
 		}
-		Input load(edm::Event const& iEvent, edm::EventSetup const& iSetup) override {
+		void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, Input& iInput) override {
 			//input data from event
 			edm::Handle<edm::View<pat::Jet>> h_jets;
 			iEvent.getByToken(JetTok_, h_jets);
@@ -90,14 +90,12 @@ class JetImageProducer : public SonicEDProducer<Client>
 				//////////////////////////////
 			}
 
-			std::vector<float> lImg(client_.ninput()*client_.batchSize(),0.f);
+			iInput = Input(client_.ninput()*client_.batchSize(),0.f);
 			for(unsigned i0 = 0; i0 < client_.batchSize(); i0++ ) { 
 				for(unsigned i1 = 0; i1 < client_.ninput(); i1++) {
-					lImg[client_.ninput()*i0+i1] = img[i1];
+					iInput[client_.ninput()*i0+i1] = img[i1];
 				}
 			}
-
-			return img;
 		}
 		void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Output const& iOutput) override {
 			//check the results
