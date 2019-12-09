@@ -10,6 +10,7 @@
 #include <mutex>
 #include <thread>
 #include <atomic>
+#include <exception>
 
 //pretend to be async + non-blocking by waiting for blocking calls to return in separate std::thread
 template <typename InputT, typename OutputT=InputT>
@@ -55,17 +56,22 @@ class SonicClientPseudoAsync : public SonicClientBase, public SonicClientTypes<I
 					if(stop_) break;
 
 					//do everything inside lock
-					predictImpl();
+					std::exception_ptr eptr;
+					try {
+						predictImpl();
+					}
+					catch(...) {
+						eptr = std::current_exception();
+					}
 					
 					//pseudo-async calls holder at the end (inside std::thread)
 					hasCall_ = false;
-					finish();
+					finish(eptr);
 				}
 			}
 		}
 
 		//members
-		edm::WaitingTaskWithArenaHolder holder_;
 		bool hasCall_;
 		std::mutex mutex_;
 		std::condition_variable cond_;

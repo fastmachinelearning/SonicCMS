@@ -6,6 +6,7 @@
 
 #include <string>
 #include <chrono>
+#include <exception>
 
 namespace nic = nvidia::inferenceserver::client;
 
@@ -25,7 +26,8 @@ TRTClient<Client>::TRTClient(const edm::ParameterSet& params) :
 
 template <typename Client>
 void TRTClient<Client>::setup() {
-	nic::InferGrpcContext::Create(&context_, url_, modelName_, -1, false);
+	auto err = nic::InferGrpcContext::Create(&context_, url_, modelName_, -1, false);
+	if(!err.IsOk()) throw cms::Exception("BadGrpc") << "unable to create inference context: " << err;
 	std::unique_ptr<nic::InferContext::Options> options;
 	nic::InferContext::Options::Create(&options);
 
@@ -80,6 +82,15 @@ void TRTClient<Client>::predictImpl(){
 //specialization for true async
 template <>
 void TRTClientAsync::predictImpl(){
+	//common operations first
+	try {
+		setup();
+	}
+	catch (...) {
+		finish(std::current_exception());
+		return;
+	}
+
 	//non-blocking call
 	auto t2 = std::chrono::high_resolution_clock::now();
 	nic::Error erro0 = context_->AsyncRun(
@@ -89,7 +100,8 @@ void TRTClientAsync::predictImpl(){
 			//this function interface will change in the next tensorrtis version
 			bool is_ready = false;
 			ctx->GetAsyncRunResults(&results, &is_ready, request, false);
-			if(is_ready == false) throw cms::Exception("BadCallback") << "Callback executed before request was ready";
+			if(is_ready == false) finish(std::make_exception_ptr(cms::Exception("BadCallback") << "Callback executed before request was ready"));
+
 			auto t3 = std::chrono::high_resolution_clock::now();
 			edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
 

@@ -6,6 +6,8 @@
 #include "SonicCMS/Core/interface/SonicClientBase.h"
 #include "SonicCMS/Core/interface/SonicClientTypes.h"
 
+#include <exception>
+
 template <typename InputT, typename OutputT=InputT>
 class SonicClientSync : public SonicClientBase, public SonicClientTypes<InputT,OutputT> {
 	public:
@@ -15,10 +17,17 @@ class SonicClientSync : public SonicClientBase, public SonicClientTypes<InputT,O
 		void predict(edm::WaitingTaskWithArenaHolder holder) override final {
 			holder_ = std::move(holder);
 			setStartTime();
-			predictImpl();
+
+			std::exception_ptr eptr;
+			try {
+				predictImpl();
+			}
+			catch(...) {
+				eptr = std::current_exception();
+			}
 
 			//sync Client calls holder at the end
-			finish();
+			finish(eptr);
 		}		
 };
 

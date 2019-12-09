@@ -5,6 +5,7 @@
 
 #include <string>
 #include <chrono>
+#include <exception>
 
 class SonicClientBase {
 	public:
@@ -25,13 +26,12 @@ class SonicClientBase {
 			setTime_ = true;
 		}
 
-		void finish() {
+		void finish(std::exception_ptr eptr = std::exception_ptr{}) {
 			if(setTime_){
 				auto t1 = std::chrono::high_resolution_clock::now();
 				edm::LogInfo(debugName_) << "Client time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0_).count();
 			}
-			std::exception_ptr exceptionPtr;
-			holder_.doneWaiting(exceptionPtr);
+			holder_.doneWaiting(eptr);
 		}
 
 		//members
