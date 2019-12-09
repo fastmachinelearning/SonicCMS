@@ -59,9 +59,9 @@ process.HcalProducer = cms.EDProducer(allowed_modes[options.mode],
         noutput = cms.uint32(1),
         batchSize = cms.uint32(options.batchsize),
         address = cms.string(options.address),
-        port = cms.int32(options.port),
+        port = cms.uint32(options.port),
         timeout = cms.uint32(options.timeout),
-        modelname = cms.string(options.modelname),
+        modelName = cms.string(options.modelname),
     )
 )
 
