@@ -61,7 +61,7 @@ done
 
 # check options
 SPARSE=.git/info/sparse-checkout
-alias git_update="git read-tree -mu HEAD"
+git_update="git read-tree -mu HEAD"
 if [ "$ACCESS" = "ssh" ]; then
 	export ACCESS_GITHUB=git@github.com:
 	export ACCESS_CMSSW=--ssh
@@ -105,13 +105,15 @@ if [ -n "$SETUP" ]; then
 /Core
 /*.*
 EOF_SPARSE
-	git_update
+	$git_update
+else
+	cd $CMSSW_BASE/src/SonicCMS
 fi
 
 for PKG in ${PKGS[@]}; do
 	echo "/$PKG" >> ${SPARSE}
 done
-git_update
+$git_update
 
 # loop through package-specific installations
 for PKG in ${PKGS[@]}; do
