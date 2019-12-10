@@ -1,0 +1,9 @@
+<use   name="DataFormats/JetReco"/>
+<use   name="DataFormats/Candidate"/>
+<use   name="DataFormats/PatCandidates"/>
+<use   name="FWCore/Framework"/>
+<use   name="FWCore/PluginManager"/>
+<use   name="SonicCMS/Core"/>
+<use   name="SonicCMS/Brainwave"/>
+<use   name="tensorflow-cc"/>
+<flags   EDM_PLUGIN="1"/>

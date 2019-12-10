@@ -7,6 +7,7 @@ ACCESS=https
 PKGS=()
 PKGS_ALL=(
 TensorRT \
+Brainwave \
 )
 SETUP=true
 
