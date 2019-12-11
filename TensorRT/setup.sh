@@ -44,8 +44,15 @@ export CURL_DIR="$PWD/curl/install/lib64/cmake/CURL/"
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=../install
 make -j $CORES trtis-clients
 cd ../
-cp -r build/install ${CMSSW_BASE}/work/local/tensorrtis
-cp -r build/protobuf $CMSSW_BASE/work/local/protobuf-trt
+cp -r build/install ${LOCAL}/tensorrtis
+cp -r build/protobuf ${LOCAL}/protobuf-trt
+
+# rename protobuf-trt libraries to avoid collisions
+cd $LOCAL/protobuf-trt/lib64
+mv libprotobuf-lite.a libprotobuf-trt-lite.a
+mv libprotobuf.a libprotobuf-trt.a
+mv libprotoc.a libprotoc-trt.a
+cd $WORK
 
 # setup in scram
 cat << 'EOF_TOOLFILE' > tensorrt.xml
@@ -64,7 +71,7 @@ EOF_TOOLFILE
 # setup as a separate external in case the builtin version is needed
 cat << 'EOF_TOOLFILE' > protobuf-trt.xml
 <tool name="protobuf-trt" version="3.5.1">
-  <lib name="protobuf"/>
+  <lib name="protobuf-trt"/>
   <client>
     <environment name="PROTOBUF_BASE" default="$CMSSW_BASE/work/local/protobuf-trt"/>
     <environment name="INCLUDE" default="$PROTOBUF_BASE/include"/>
