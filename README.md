@@ -1,6 +1,6 @@
 # SONIC (Services for Optimized Network Inference on Coprocessors) for CMS
 
-## Updated instructions
+## Instructions
 
 For this branch, please use the following script to set up the work area:
 ```
@@ -31,3 +31,7 @@ To get the various input files (the data file comes from [this file list](https:
 ./download.sh
 ```
 These files are stored in `Core` so they can be shared by the various packages.
+
+## Running
+
+Each package has its own `README.md` file with details about how to run its producers.
