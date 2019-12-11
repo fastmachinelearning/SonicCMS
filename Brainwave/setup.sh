@@ -5,7 +5,7 @@ CMSSWTF=$(dirname $(python3 -c "import tensorflow; print(tensorflow.__file__)"))
 # download and build grpc
 INSTALLDIR=work/local/grpc
 cd $WORK
-git clone https://github.com/grpc/grpc -b v1.14.0
+git clone ${ACCESS_GITHUB}grpc/grpc -b v1.14.0
 cd grpc
 git submodule update --init
 make -j 8
@@ -44,18 +44,21 @@ scram setup grpc
 # download and build tensorflow_serving w/ cmake
 INSTALLDIR=work/local/tensorflow_serving
 cd $WORK
-git clone https://github.com/hls-fpga-machine-learning/inception_cmake
+git clone ${ACCESS_GITHUB}hls-fpga-machine-learning/inception_cmake
 cd inception_cmake
 git submodule update --init
 cd serving
 git checkout 1.6.1
-git clone --recursive https://github.com/tensorflow/tensorflow.git -b v1.6.0
+git clone --recursive ${ACCESS_GITHUB}tensorflow/tensorflow.git -b v1.6.0
 cd ..
 # to get cmake
 export PATH=/cvmfs/sft.cern.ch/lcg/contrib/CMake/3.7.0/Linux-x86_64/bin/:${PATH}
 mkdir build
 cd build
 # some really bad ways to get info out of scram
+PROTOBUF_BINDIR=$(scram tool info protobuf | grep "BINDIR=" | sed 's/BINDIR=//')
+# make sure desired version of protoc executable comes first in the path
+export PATH=${PROTOBUF_BINDIR}:${PATH}
 PROTOBUF_LIBDIR=$(scram tool info protobuf | grep "LIBDIR=" | sed 's/LIBDIR=//')
 PROTOBUF_INCLUDE=$(scram tool info protobuf | grep "INCLUDE=" | sed 's/INCLUDE=//')
 GRPC_LIBDIR=$(scram tool info grpc | grep "LIBDIR=" | sed 's/LIBDIR=//')
@@ -110,7 +113,9 @@ pip install --upgrade azureml-sdk[notebooks,automl,contrib] azureml-dataprep
 
 # to get working version
 AMLDIR=miniconda3/envs/myamlenv/lib/python3.6/site-packages
-mv $AMLDIR/tensorflow $AMLDIR/tensorflow-bak
+if [ -d $AMLDIR/tensorflow ]; then
+	mv $AMLDIR/tensorflow $AMLDIR/tensorflow-bak
+fi
 ln -s $CMSSWTF $AMLDIR/tensorflow
 
 # really terrible hack to make remote login work
@@ -119,3 +124,9 @@ sed -i 's/use_device_code=False/use_device_code=True/' $CMSSW_BASE/../miniconda3
 # setup batch submission
 cd $CMSSW_BASE/src/SonicCMS/Brainwave/batch
 python $CMSSW_BASE/src/Condor/Production/python/linkScripts.py
+
+# remove the huge source code directory and intermediate products that are not needed to run
+if [ -z "$DEBUG" ]; then
+	cd $WORK
+	rm -rf grpc inception_cmake
+fi

@@ -45,26 +45,28 @@ cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=../install
 make -j $CORES trtis-clients
 cd ../
 cp -r build/install ${CMSSW_BASE}/work/local/tensorrtis
-cp -r build/protobuf $CMSSW_BASE/work/local/protobuf
+cp -r build/protobuf $CMSSW_BASE/work/local/protobuf-trt
 
 # setup in scram
 cat << 'EOF_TOOLFILE' > tensorrt.xml
 <tool name="tensorrtis" version="v19.10">
   <info url="https://github.com/NVIDIA/tensorrt-inference-server"/>
   <lib name="request"/> 
-  <client>             
+  <client>
     <environment name="TENSORRTIS_BASE" default="$CMSSW_BASE/work/local/tensorrtis"/>
     <environment name="INCLUDE" default="$TENSORRTIS_BASE/include"/>
     <environment name="LIBDIR"  default="$TENSORRTIS_BASE/lib"/>
-</client>                                                                                                                                                                                                                                
-</tool>               
+  </client>
+  <use name="protobuf-trt"/>
+</tool>
 EOF_TOOLFILE
 
-cat << 'EOF_TOOLFILE' > protobuf.xml
-<tool name="protobuf" version="3.5.1">
+# setup as a separate external in case the builtin version is needed
+cat << 'EOF_TOOLFILE' > protobuf-trt.xml
+<tool name="protobuf-trt" version="3.5.1">
   <lib name="protobuf"/>
   <client>
-    <environment name="PROTOBUF_BASE" default="$CMSSW_BASE/work/local/protobuf"/>
+    <environment name="PROTOBUF_BASE" default="$CMSSW_BASE/work/local/protobuf-trt"/>
     <environment name="INCLUDE" default="$PROTOBUF_BASE/include"/>
     <environment name="LIBDIR"  default="$PROTOBUF_BASE/lib64"/>
     <environment name="BINDIR"  default="$PROTOBUF_BASE/bin"/>
@@ -75,9 +77,9 @@ cat << 'EOF_TOOLFILE' > protobuf.xml
 EOF_TOOLFILE
 
 mv tensorrt.xml ${CMSSW_BASE}/config/toolbox/${SCRAM_ARCH}/tools/selected/
-mv protobuf.xml ${CMSSW_BASE}/config/toolbox/${SCRAM_ARCH}/tools/selected/
+mv protobuf-trt.xml ${CMSSW_BASE}/config/toolbox/${SCRAM_ARCH}/tools/selected/
 scram setup tensorrt
-scram setup protobuf
+scram setup protobuf-trt
 
 # remove the huge source code directory and intermediate products that are not needed to run
 if [ -z "$DEBUG" ]; then

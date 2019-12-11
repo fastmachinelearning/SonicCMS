@@ -7,4 +7,5 @@
 <use   name="SonicCMS/Core"/>
 <use   name="SonicCMS/TensorRT"/>
 <use   name="tensorrtis"/>
+<use   name="protobuf-trt"/>
 <flags   EDM_PLUGIN="1"/>
