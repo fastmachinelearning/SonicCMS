@@ -30,7 +30,7 @@ void TFClientRemote::predictImpl(){
 
 	//setup input
 	protomap& inputs = *request.mutable_inputs();
-	input_->AsProtoTensorContent(inputs["images"]);
+	input_.AsProtoTensorContent(&inputs["images"]);
 
 	//setup timeout
 	auto t1 = std::chrono::high_resolution_clock::now();
@@ -56,7 +56,7 @@ void TFClientRemote::predictImpl(){
 	std::exception_ptr exceptionPtr;
 	if(ok and status.ok() and tag==(void*)(1)){
 		protomap& outputs = *response.mutable_outputs();
-		output_->FromProto(outputs["output_alias"]);
+		output_.FromProto(outputs["output_alias"]);
 		std::stringstream msg;
 		edm::LogInfo("TFClientRemote") << "Classifier Status: Ok\n";
 	}

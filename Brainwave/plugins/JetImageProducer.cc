@@ -47,13 +47,17 @@ class JetImageProducer : public SonicEDProducer<Client>
 			}
 		}
 		void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, Input& iInput) override {
+			edm::Handle<edm::View<pat::Jet>> h_jets;
+			iEvent.getByToken(JetTok_, h_jets);
+			const auto& jets = *h_jets.product();
+
 			// create a jet image for the leading jet in the event
 			// 224 x 224 image which is centered at the jet axis and +/- 1 unit in eta and phi
 			const unsigned npix = 224;
 			float image2D[npix][npix];
 			float pixel_width = 2./float(npix);
-			for (int ii = 0; ii < npix; ii++){
-				for (int ij = 0; ij < npix; ij++){ image2D[ii][ij] = 0.; }
+			for (unsigned ii = 0; ii < npix; ii++){
+				for (unsigned ij = 0; ij < npix; ij++){ image2D[ii][ij] = 0.; }
 			}
 
 			int jet_ctr = 0;
@@ -89,9 +93,9 @@ class JetImageProducer : public SonicEDProducer<Client>
 
 			// convert image to tensor
 			iInput = Input(tensorflow::DT_FLOAT, { 1, npix, npix, 3 });
-			auto input_map = inputImage.tensor<float, 4>();
-			for (int itf = 0; itf < npix; itf++){
-				for (int jtf = 0; jtf < npix; jtf++){
+			auto input_map = iInput.template tensor<float, 4>();
+			for (unsigned itf = 0; itf < npix; itf++){
+				for (unsigned jtf = 0; jtf < npix; jtf++){
 					input_map(0,itf,jtf,0) = image2D[itf][jtf];
 					input_map(0,itf,jtf,1) = image2D[itf][jtf];
 					input_map(0,itf,jtf,2) = image2D[itf][jtf];

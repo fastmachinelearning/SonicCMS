@@ -87,7 +87,7 @@ std::vector<tensorflow::Tensor> TFClientLocal::runFeaturizer(const tensorflow::T
 
     msg.str("");
     std::vector<tensorflow::Tensor> featurizer_outputs;
-    tensorflow::Status statusF = sessionF->Run( {{"InputImage:0",inputImage}}, { "resnet_v1_50/pool5:0" }, {}, &featurizer_outputs);
+    tensorflow::Status statusF = sessionF_->Run( {{"InputImage:0",inputImage}}, { "resnet_v1_50/pool5:0" }, {}, &featurizer_outputs);
     if (!statusF.ok()) { msg << statusF.ToString() << "\n"; }
     else { msg << "Featurizer Status: Ok\n"; }
     edm::LogInfo("TFClientLocal") << msg.str();
@@ -104,7 +104,7 @@ std::vector<tensorflow::Tensor> TFClientLocal::runClassifier(const tensorflow::T
 
     msg.str("");
     std::vector<tensorflow::Tensor> outputs;
-    tensorflow::Status statusC = sessionC->Run( {{"Input:0",inputClassifier}}, { "resnet_v1_50/logits/Softmax:0" }, {}, &outputs);
+    tensorflow::Status statusC = sessionC_->Run( {{"Input:0",inputClassifier}}, { "resnet_v1_50/logits/Softmax:0" }, {}, &outputs);
     if (!statusC.ok()) { msg << statusC.ToString() << "\n"; }
     else{ msg << "Classifier Status: Ok"  << "\n"; }
     msg << "output vector size = " << outputs.size() << "\n";
@@ -130,7 +130,7 @@ void TFClientLocal::predictImpl() {
 
 	// --------------------------------------------------------------------
 	// Run the Featurizer
-	const auto& featurizer_outputs = runFeaturizer(input_,sessionF_[dataID]);
+	const auto& featurizer_outputs = runFeaturizer(input_);
 
 	auto t2 = std::chrono::high_resolution_clock::now();
 	edm::LogInfo("TFClientLocal") << "Featurizer time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
@@ -138,7 +138,7 @@ void TFClientLocal::predictImpl() {
 	// --------------------------------------------------------------------
 	// Run the Classifier
 	const auto& inputClassifier = createFeatureList(featurizer_outputs[0]);
-	const auto& outputs = runClassifier(inputClassifier,sessionC_[dataID]);
+	const auto& outputs = runClassifier(inputClassifier);
 	output_ = outputs[0];
 
 	auto t3 = std::chrono::high_resolution_clock::now();
