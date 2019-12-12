@@ -97,6 +97,10 @@ sed -i 's~$INSTALLDIR~'$INSTALLDIR'~' tensorflow-serving.xml
 mv tensorflow-serving.xml ${CMSSW_BASE}/config/toolbox/${SCRAM_ARCH}/tools/selected/
 scram setup tensorflow-serving
 
+# setup batch submission (before conda to avoid python2/3 issues)
+cd $CMSSW_BASE/src/SonicCMS/Brainwave/batch
+python $CMSSW_BASE/src/Condor/Production/python/linkScripts.py
+
 # setup for conda environment (kept separate from CMSSW)
 cd $CMSSW_BASE/..
 
@@ -120,10 +124,6 @@ ln -s $CMSSWTF $AMLDIR/tensorflow
 
 # really terrible hack to make remote login work
 sed -i 's/use_device_code=False/use_device_code=True/' $CMSSW_BASE/../miniconda3/envs/myamlenv/lib/python3.6/site-packages/azureml/_base_sdk_common/common.py
-
-# setup batch submission
-cd $CMSSW_BASE/src/SonicCMS/Brainwave/batch
-python $CMSSW_BASE/src/Condor/Production/python/linkScripts.py
 
 # remove the huge source code directory and intermediate products that are not needed to run
 if [ -z "$DEBUG" ]; then
