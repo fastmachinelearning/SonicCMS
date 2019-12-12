@@ -30,7 +30,7 @@ void TFClientRemote::predictImpl(){
 
 	//setup input
 	protomap& inputs = *request.mutable_inputs();
-	input_.AsProtoTensorContent(&inputs["images"]);
+	input_.AsProtoTensorContent(&inputs[inputTensorName_]);
 
 	//setup timeout
 	auto t1 = std::chrono::high_resolution_clock::now();
@@ -56,9 +56,11 @@ void TFClientRemote::predictImpl(){
 	std::exception_ptr exceptionPtr;
 	if(ok and status.ok() and tag==(void*)(1)){
 		protomap& outputs = *response.mutable_outputs();
-		output_.FromProto(outputs["output_alias"]);
+		tensorflow::TensorProto& result_tensor_proto = outputs.begin()->second;
+		const std::string& result_string = outputs.begin()->first;
+		bool out_ok = output_.FromProto(result_tensor_proto);
 		std::stringstream msg;
-		edm::LogInfo("TFClientRemote") << "Classifier Status: Ok\n";
+		edm::LogInfo("TFClientRemote") << "Classifier Status: Ok (output string: " << result_string << ", status: " << out_ok << ")\n";
 	}
 	else{
 		edm::LogInfo("TFClientRemote") << "gRPC call return code: " << status.error_code() << ", msg: " << status.error_message();
@@ -75,5 +77,6 @@ TFClientRemote::TFClientRemote(const edm::ParameterSet& params) :
 		grpc::InsecureChannelCredentials()
 	)),
 	stub_(PredictionService::NewStub(channel_)),
-	timeout_(params.getParameter<unsigned>("timeout"))
+	timeout_(params.getParameter<unsigned>("timeout")),
+	inputTensorName_(params.getParameter<std::string>("inputTensorName"))
 { }

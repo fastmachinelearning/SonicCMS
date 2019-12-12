@@ -5,6 +5,7 @@
 #include "SonicCMS/Core/interface/SonicClientPseudoAsync.h"
 
 #include <memory>
+#include <string>
 
 #include "grpc++/create_channel.h"
 #include "tensorflow_serving/apis/prediction_service.grpc.pb.h"
@@ -23,6 +24,7 @@ class TFClientRemote : public SonicClientPseudoAsync<tensorflow::Tensor> {
 		std::shared_ptr<grpc::Channel> channel_;
 		std::unique_ptr<tensorflow::serving::PredictionService::Stub> stub_;
 		unsigned timeout_;
+		std::string inputTensorName_;
 };
 
 #endif

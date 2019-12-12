@@ -26,6 +26,7 @@ if options.remote:
         address = cms.string(options.address),
         port = cms.uint32(options.port),
         timeout = cms.uint32(options.timeout),
+        inputTensorName = cms.string("Placeholder:0"),
     )
 else:
     prodname = 'JetImageProducerLocal'
@@ -57,7 +58,8 @@ if len(options.inputFiles)>0: process.source.fileNames = options.inputFiles
 process.jetImageProducer = cms.EDProducer(prodname,
     JetTag = cms.InputTag('slimmedJetsAK8'),
     topN = cms.uint32(5),
-    imageList = cms.string("imagenet_classes.txt"),
+#    imageList = cms.string("../../Core/data/imagenet_classes.txt"),
+    imageList = cms.string("../../Core/data/top_classes.txt"),
     Client = Client,
 )
 

@@ -45,6 +45,9 @@ class JetImageProducer : public SonicEDProducer<Client>
 					imageList_.push_back(line);
 				}
 			}
+			else {
+				throw cms::Exception("MissingInputFile") << "Could not open image list: " << imageListFile_;
+			}
 		}
 		void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, Input& iInput) override {
 			edm::Handle<edm::View<pat::Jet>> h_jets;
@@ -120,7 +123,7 @@ class JetImageProducer : public SonicEDProducer<Client>
 
 			//get top n
 			std::stringstream msg;
-			msg << "Scores:\n";
+			msg << "Scores:" << dim << "\n";
 			unsigned counter = 0;
 			for(const auto& item: score_map){
 				msg << item.second << " : " << item.first << "\n";
