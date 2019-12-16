@@ -101,6 +101,7 @@ if [ -n "$SETUP" ]; then
 
 	# setup sparse checkout for specified packages
 	cd $CMSSW_BASE/src/SonicCMS
+	git config core.sparseCheckout true
 	cat << EOF_SPARSE > ${SPARSE}
 /Core
 /*.*

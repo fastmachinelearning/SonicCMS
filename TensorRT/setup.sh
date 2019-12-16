@@ -6,7 +6,7 @@ cd $WORK
 NEWPY2PATH=$LOCAL/lib/python2.7/site-packages
 mkdir -p $NEWPY2PATH
 # need --ignore-installed or it tries to uninstall cvmfs packages
-pip install --prefix $LOCAL --ignore-installed wheel setuptools grpcio-tools
+pip install --prefix $LOCAL --no-cache-dir --ignore-installed wheel setuptools grpcio-tools
 export PYTHON27PATH=$NEWPY2PATH:$PYTHON27PATH
 
 # to get cmake
