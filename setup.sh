@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 FORK=hls-fpga-machine-learning
-BRANCH=abstract
+BRANCH=master
 CMSSWVER=CMSSW_10_6_6
 ACCESS=https
 PKGS=()

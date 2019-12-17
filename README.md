@@ -4,7 +4,7 @@
 
 For this branch, please use the following script to set up the work area:
 ```
-wget https://raw.githubusercontent.com/hls-fpga-machine-learning/SonicCMS/abstract/setup.sh
+wget https://raw.githubusercontent.com/hls-fpga-machine-learning/SonicCMS/master/setup.sh
 chmod +x setup.sh
 ./setup.sh
 cd CMSSW_10_6_6/src
@@ -17,7 +17,7 @@ which can be executed by the main setup script depending on which packages are s
 More packages can be added later (without rerunning the rest of the setup) by additionally supplying the `-i` option.
 The setup script has additional options, which are listed here:
 * `-f [fork]`: clone from specified fork (default = hls-fpga-machine-learning)
-* `-b [branch]`: clone specified branch (default = abstract)
+* `-b [branch]`: clone specified branch (default = master)
 * `-c [version]`: use specified CMSSW version (default = CMSSW_10_6_6)
 * `-p [packages]`: set up specified packages (allowed = TensorRT,Brainwave; or all)
 * `-a [protocol]`: use protocol to clone (default = https, alternative = ssh)
