@@ -11,15 +11,15 @@ cd CMSSW_10_6_6/src
 cmsenv
 ```
 
-By default, this script installs all packages (corresponding to non-`Core` directories in this repository).
-Each package has its own dedicated script to install associated tools and dependencies, which is executed by the main setup script.
-Instead, only desired packages can be selected for installation.
-More packages can be added later (without rerunning the rest of the setup) using the `-i` option.
+By default, this script installs only the Core package from this repository.
+Each other package has its own dedicated script to install associated tools and dependencies,
+which can be executed by the main setup script depending on which packages are selected using `-p`.
+More packages can be added later (without rerunning the rest of the setup) by additionally supplying the `-i` option.
 The setup script has additional options, which are listed here:
 * `-f [fork]`: clone from specified fork (default = hls-fpga-machine-learning)
 * `-b [branch]`: clone specified branch (default = abstract)
 * `-c [version]`: use specified CMSSW version (default = CMSSW_10_6_6)
-* `-p [packages]`: set up specified packages (allowed = TensorRT; or all)
+* `-p [packages]`: set up specified packages (allowed = TensorRT,Brainwave; or all)
 * `-a [protocol]`: use protocol to clone (default = https, alternative = ssh)
 * `-j [cores]`: run compilations on # cores (default = 1)
 * `-d`: keep source code for debugging
