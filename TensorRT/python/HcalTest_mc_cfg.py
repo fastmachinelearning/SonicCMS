@@ -77,26 +77,11 @@ process.HcalProducer = cms.EDProducer(allowed_modes[options.mode],
 )
 
 # Let it run
-#process.p = cms.Path(
-#    process.HcalProducer
-#)
-
-process.digiPath = cms.Path(
-    process.hcalDigis
+process.p = cms.Path(
+    process.hcalDigis*
+    process.hbheprereco*
+    process.HcalProducer
 )
-process.recoPath = cms.Path(
-    process.hbheprereco
-)
-
-process.raw2digi_step = cms.Path(process.RawToDigi)
-process.HcalProducer_step = cms.Path(process.HcalProducer)
-process.endjob_step = cms.EndPath(process.endOfProcess)
-
-process.out = cms.OutputModule("PoolOutputModule",                                                                                                                  outputCommands = cms.untracked.vstring('keep *'),                                                                                                           fileName       = cms.untracked.string ("test_output.root")                                                                      
-)   
-process.endpath = cms.EndPath(process.out)
-
-process.schedule = cms.Schedule(process.raw2digi_step,process.digiPath,process.recoPath,process.HcalProducer_step,process.endjob_step,process.endpath)
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
 keep_msgs = ['TRTClient','HcalProducer']

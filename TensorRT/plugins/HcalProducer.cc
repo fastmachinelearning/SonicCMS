@@ -59,7 +59,7 @@ class HcalProducer : public SonicEDProducer<Client>
 			iInput = Input(ninput*batchSize, 0.f);
 
 			//batchSize == # of RHs in evt
-			auto batchSize = std::distance(hRecHitHCAL->begin(), hRecHitHCAL->end());
+			//auto batchSize = std::distance(hRecHitHCAL->begin(), hRecHitHCAL->end());
 
 			//fill inputs
 			unsigned int ib = 0;
