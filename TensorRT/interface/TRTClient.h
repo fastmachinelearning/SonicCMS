@@ -2,6 +2,7 @@
 #define SonicCMS_TensorRT_TRTClient
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "SonicCMS/Core/interface/SonicClientSync.h"
 #include "SonicCMS/Core/interface/SonicClientPseudoAsync.h"
 #include "SonicCMS/Core/interface/SonicClientAsync.h"
@@ -26,6 +27,19 @@ class TRTClient : public Client {
 		unsigned ninput() const { return ninput_; }
 		unsigned noutput() const { return noutput_; }
 		unsigned batchSize() const { return batchSize_; }
+
+		//for fillDescriptions
+		static void fillPSetDescription(edm::ParameterSetDescription& iDesc) {
+			edm::ParameterSetDescription descClient;
+			descClient.add<unsigned>("ninput");
+			descClient.add<unsigned>("noutput");
+			descClient.add<unsigned>("batchSize");
+			descClient.add<std::string>("address");
+			descClient.add<unsigned>("port");
+			descClient.add<unsigned>("timeout");
+			descClient.add<std::string>("modelName");
+			iDesc.add<edm::ParameterSetDescription>("Client",descClient);
+		}
 
 	protected:
 		void predictImpl() override;

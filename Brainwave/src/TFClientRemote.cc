@@ -1,4 +1,5 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "SonicCMS/Brainwave/interface/TFClientRemote.h"
 
 #include <sstream>
@@ -80,3 +81,13 @@ TFClientRemote::TFClientRemote(const edm::ParameterSet& params) :
 	timeout_(params.getParameter<unsigned>("timeout")),
 	inputTensorName_(params.getParameter<std::string>("inputTensorName"))
 { }
+
+void TFClientRemote::fillPSetDescription(edm::ParameterSetDescription& iDesc) {
+	edm::ParameterSetDescription descClient;
+	descClient.add<std::string>("address");
+	descClient.add<unsigned>("port");
+	descClient.add<unsigned>("timeout");
+	descClient.add<std::string>("inputTensorName","Placeholder:0");
+	iDesc.add<edm::ParameterSetDescription>("Client",descClient);
+}
+

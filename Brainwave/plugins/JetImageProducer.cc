@@ -10,6 +10,8 @@
 #include "SonicCMS/Brainwave/interface/TFClientLocal.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -110,6 +112,17 @@ class JetImageProducer : public SonicEDProducer<Client>
 			findTopN(iOutput);
 		}
 
+		//to ensure distinct cfi names - specialized below
+		static std::string getCfiName();
+		static void fillDescriptions(edm::ConfigurationDescriptions & descriptions) {
+			edm::ParameterSetDescription desc;
+			Client::fillPSetDescription(desc);
+			desc.add<edm::InputTag>("JetTag",edm::InputTag("slimmedJetsAK8"));
+			desc.add<unsigned>("topN",5);
+			desc.add<std::string>("imageList");
+			descriptions.add(getCfiName(),desc);
+		}
+
 	private:
 		void findTopN(const tensorflow::Tensor& scores) const {
 			auto score_list = scores.flat<float>();
@@ -142,6 +155,9 @@ class JetImageProducer : public SonicEDProducer<Client>
 
 typedef JetImageProducer<TFClientRemote> JetImageProducerRemote;
 typedef JetImageProducer<TFClientLocal> JetImageProducerLocal;
+
+template<> std::string JetImageProducerRemote::getCfiName() { return "JetImageProducerRemote"; }
+template<> std::string JetImageProducerLocal::getCfiName() { return "JetImageProducerLocal"; }
 
 DEFINE_FWK_MODULE(JetImageProducerRemote);
 DEFINE_FWK_MODULE(JetImageProducerLocal);

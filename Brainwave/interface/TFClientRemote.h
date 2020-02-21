@@ -12,10 +12,17 @@
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/util/command_line_flags.h"
 
+//forward declaration
+namespace edm {
+	class ParameterSetDescription;
+}
+
 class TFClientRemote : public SonicClientPseudoAsync<tensorflow::Tensor> {
 	public:
 		//constructors (timeout in seconds)
 		TFClientRemote(const edm::ParameterSet& params);
+		//for fillDescriptions
+		static void fillPSetDescription(edm::ParameterSetDescription& iDesc);
 
 	protected:
 		void predictImpl() override;

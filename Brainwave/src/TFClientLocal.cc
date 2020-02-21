@@ -1,8 +1,10 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
 #include "SonicCMS/Brainwave/interface/TFClientLocal.h"
 
 #include <sstream>
+#include <string>
 #include <chrono>
 
 #include "tensorflow/core/graph/default_device.h"
@@ -11,6 +13,13 @@ TFClientLocal::TFClientLocal(const edm::ParameterSet& params) : SonicClientSync<
 {
 	loadModel(params.getParameter<std::string>("featurizer"), params.getParameter<std::string>("classifier"));
 	createSessions();
+}
+
+void TFClientLocal::fillPSetDescription(edm::ParameterSetDescription& iDesc) {
+	edm::ParameterSetDescription descClient;
+	descClient.add<std::string>("featurizer");
+	descClient.add<std::string>("classifier");
+	iDesc.add<edm::ParameterSetDescription>("Client",descClient);
 }
 
 void TFClientLocal::loadModel(const std::string& featurizer_file, const std::string& classifier_file) {

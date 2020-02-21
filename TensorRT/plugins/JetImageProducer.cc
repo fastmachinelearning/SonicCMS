@@ -9,6 +9,8 @@
 #include "SonicCMS/TensorRT/interface/TRTClient.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -103,6 +105,17 @@ class JetImageProducer : public SonicEDProducer<Client>
 		}
 		~JetImageProducer() override {}
 
+		//to ensure distinct cfi names - specialized below
+		static std::string getCfiName();
+		static void fillDescriptions(edm::ConfigurationDescriptions & descriptions) {
+			edm::ParameterSetDescription desc;
+			Client::fillPSetDescription(desc);
+			desc.add<edm::InputTag>("JetTag",edm::InputTag("slimmedJetsAK8"));
+			desc.add<unsigned>("topN",5);
+			desc.add<std::string>("imageList");
+			descriptions.add(getCfiName(),desc);
+		}
+
 	private:
 		using SonicEDProducer<Client>::client_;
 		void findTopN(const std::vector<float>& scores, unsigned n=5) const {
@@ -137,6 +150,10 @@ class JetImageProducer : public SonicEDProducer<Client>
 typedef JetImageProducer<TRTClientSync> JetImageProducerSync;
 typedef JetImageProducer<TRTClientAsync> JetImageProducerAsync;
 typedef JetImageProducer<TRTClientPseudoAsync> JetImageProducerPseudoAsync;
+
+template<> std::string JetImageProducerSync::getCfiName() { return "JetImageProducerSync"; }
+template<> std::string JetImageProducerAsync::getCfiName() { return "JetImageProducerAsync"; }
+template<> std::string JetImageProducerPseudoAsync::getCfiName() { return "JetImageProducerPseudoAsync"; }
 
 DEFINE_FWK_MODULE(JetImageProducerSync);
 DEFINE_FWK_MODULE(JetImageProducerAsync);

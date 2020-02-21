@@ -12,12 +12,19 @@
 #include "tensorflow/core/graph/default_device.h"
 #include "tensorflow/core/public/session.h"
 
+//forward declaration
+namespace edm {
+	class ParameterSetDescription;
+}
+
 class TFClientLocal : public SonicClientSync<tensorflow::Tensor> {
 	public:
 		//constructor
 		TFClientLocal(const edm::ParameterSet& params);
 		//destructor
 		~TFClientLocal();
+		//for fillDescriptions
+		static void fillPSetDescription(edm::ParameterSetDescription& iDesc);
 
 	protected:
 		void predictImpl() override;
