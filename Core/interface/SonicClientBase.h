@@ -2,6 +2,7 @@
 #define SonicCMS_Core_SonicClientBase
 
 #include "FWCore/Concurrency/interface/WaitingTaskWithArenaHolder.h"
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 #include <string>
 #include <chrono>
