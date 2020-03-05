@@ -45,7 +45,7 @@ class DeepCaloProducer : public SonicEDProducer<Client>
 				fileSize = file.tellg();
 				file.seekg(0, std::ios::beg);
 
-				std::cout << fileSize << " bytes in the file." << std::endl;
+				// std::cout << fileSize << " bytes in the file." << std::endl;
 				imageData_.reserve(fileSize/sizeof(float));
 
 				for (size_t i = 0; i < imageData_.capacity(); i++)
@@ -63,9 +63,10 @@ class DeepCaloProducer : public SonicEDProducer<Client>
 				file.close();
 			} else std::cout << "Could not read the file!" << std::endl;
 
-			std::cout << imageData_.size() << " floats loaded!" << std::endl;
+			// std::cout << imageData_.size() << " floats loaded!" << std::endl;
 
-			counter = 0;
+			imageID_ = 0;
+			imageN_ = imageData_.size() / (56*11*4);
 		}
 		void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, Input& iInput) override {
 			auto ninput = client_.ninput();
@@ -79,15 +80,15 @@ class DeepCaloProducer : public SonicEDProducer<Client>
 			// }
 
 
-			if (counter + batchSize >= 1000)
-				counter = 0;
+			if (imageID_ + batchSize >= imageN_)
+				imageID_ = 0;
 
-			unsigned int start = counter*56*11*4;
+			unsigned int start = imageID_*56*11*4;
 			unsigned int end   = start + batchSize*56*11*4;
 
 			iInput = std::vector<float>(imageData_.begin() + start, imageData_.begin() + end);
 
-			counter += batchSize;
+			imageID_ += batchSize;
 		}
 		void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Output const& iOutput) override {
 			findTopN(iOutput);
@@ -103,24 +104,25 @@ class DeepCaloProducer : public SonicEDProducer<Client>
 				//match score to type by index, then put in largest-first map
 				std::map<float,std::string,std::greater<float>> score_map;
 				for(unsigned i = 0; i < (unsigned)dim; ++i){
-					std::stringstream pSS; pSS << "Dummy Channel " << i;
+					// std::stringstream pSS; pSS << "Dummy Channel " << i;
 					score_map.emplace(scores[i0*dim+i],pSS.str());
 				}
 				//get top n
-				std::stringstream msg;
-				msg << "Scores:\n";
+				// std::stringstream msg;
+				// msg << "Scores:\n";
 				unsigned counter = 0;
 				for(const auto& item: score_map){
-					msg << item.second << " : " << item.first << "\n";
+					// msg << item.second << " : " << item.first << "\n";
 					++counter;
 					if(counter>=topN_) break;
 				}
-				edm::LogInfo("DeepCaloProducer") << msg.str();
+				// edm::LogInfo("DeepCaloProducer") << msg.str();
 			}
 		}
 
 		unsigned topN_;
-		unsigned int counter;
+		unsigned int imageID_;
+		unsigned int imageN_;
 		std::string binDataPath_;
 		std::vector<float> imageData_;
 };
