@@ -104,7 +104,7 @@ class DeepCaloProducer : public SonicEDProducer<Client>
 				//match score to type by index, then put in largest-first map
 				std::map<float,std::string,std::greater<float>> score_map;
 				for(unsigned i = 0; i < (unsigned)dim; ++i){
-					// std::stringstream pSS; pSS << "Dummy Channel " << i;
+					std::stringstream pSS; pSS << "Dummy Channel " << i;
 					score_map.emplace(scores[i0*dim+i],pSS.str());
 				}
 				//get top n
