@@ -27,7 +27,15 @@ process.dummyPseudoAsync = cms.EDProducer("SonicDummyProducerPseudoAsync",
     ),
 )
 
-process.task = cms.Task(process.dummySync,process.dummyPseudoAsync)
+process.dummyAsync = cms.EDProducer("SonicDummyProducerAsync",
+    input = cms.int32(3),
+    Client = cms.PSet(
+        factor = cms.int32(5),
+        wait = cms.int32(10),
+    ),
+)
+
+process.task = cms.Task(process.dummySync,process.dummyPseudoAsync,process.dummyAsync)
 
 process.testerSync = cms.EDAnalyzer("IntTestAnalyzer",
     valueMustMatch = cms.untracked.int32(-1),
@@ -39,5 +47,11 @@ process.testerPseudoAsync = cms.EDAnalyzer("IntTestAnalyzer",
     moduleLabel = cms.untracked.string("dummyPseudoAsync"),
 )
 
+process.testerAsync = cms.EDAnalyzer("IntTestAnalyzer",
+    valueMustMatch = cms.untracked.int32(15),
+    moduleLabel = cms.untracked.string("dummyAsync"),
+)
+
 process.p1 = cms.Path(process.testerSync, process.task)
 process.p2 = cms.Path(process.testerPseudoAsync, process.task)
+process.p3 = cms.Path(process.testerAsync, process.task)

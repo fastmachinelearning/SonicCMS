@@ -44,13 +44,17 @@ namespace edmtest {
 
 	typedef SonicDummyProducer<DummyClientSync> SonicDummyProducerSync;
 	typedef SonicDummyProducer<DummyClientPseudoAsync> SonicDummyProducerPseudoAsync;
+	typedef SonicDummyProducer<DummyClientAsync> SonicDummyProducerAsync;
 
 	template<> std::string SonicDummyProducerSync::getCfiName() { return "SonicDummyProducerSync"; }
 	template<> std::string SonicDummyProducerPseudoAsync::getCfiName() { return "SonicDummyProducerPseudoAsync"; }
+	template<> std::string SonicDummyProducerAsync::getCfiName() { return "SonicDummyProducerAsync"; }
 }
 
 using edmtest::SonicDummyProducerSync;
 DEFINE_FWK_MODULE(SonicDummyProducerSync);
 using edmtest::SonicDummyProducerPseudoAsync;
 DEFINE_FWK_MODULE(SonicDummyProducerPseudoAsync);
+using edmtest::SonicDummyProducerAsync;
+DEFINE_FWK_MODULE(SonicDummyProducerAsync);
 

@@ -5,6 +5,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "SonicCMS/Core/interface/SonicClientSync.h"
 #include "SonicCMS/Core/interface/SonicClientPseudoAsync.h"
+#include "SonicCMS/Core/interface/SonicClientAsync.h"
 
 #include <vector>
 #include <thread>
@@ -42,6 +43,13 @@ class DummyClient : public Client {
 
 typedef DummyClient<SonicClientSync<int>> DummyClientSync;
 typedef DummyClient<SonicClientPseudoAsync<int>> DummyClientPseudoAsync;
-//test of true Async omitted
+typedef DummyClient<SonicClientAsync<int>> DummyClientAsync;
+
+//specialization for true async
+template <>
+void DummyClientAsync::predictImpl() {
+	this->output_ = this->input_*factor_;
+	this->finish();
+}
 
 #endif
