@@ -44,7 +44,8 @@ void TRTClient<Client>::setup() {
 	auto t2 = std::chrono::high_resolution_clock::now();
 	std::vector<int64_t> input_shape;
 	for(unsigned i0 = 0; i0 < batchSize_; i0++) {
-		nic::Error err1 = nicinput_->SetRaw(reinterpret_cast<const uint8_t*>(this->input_.data()), ninput_ * sizeof(float));
+			float * arr = &(this->input_.data()[i0*ninput_]);
+        	nic::Error err1 = nicinput_->SetRaw(reinterpret_cast<const uint8_t*>(arr), ninput_ * sizeof(float));
 	}
 	auto t3 = std::chrono::high_resolution_clock::now();
 	edm::LogInfo("TRTClient") << "Image array time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
