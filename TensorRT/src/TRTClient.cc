@@ -11,6 +11,8 @@
 namespace nic = nvidia::inferenceserver::client;
 namespace ni = nvidia::inferenceserver;
 
+using ModelInfo = std::pair<std::string, int64_t>;
+
 //based on https://github.com/NVIDIA/tensorrt-inference-server/blob/master/src/clients/c++/examples/simple_callback_client.cc
 
 template <typename Client>
@@ -31,7 +33,7 @@ void TRTClient<Client>::setup()
 	if (!err.IsOk())
 		throw cms::Exception("BadGrpc") << "unable to create inference context: " << err;
 
-	auto err = nic::ServerStatusGrpcContext::Create(&server_ctx_, url_, false);
+	nic::ServerStatusGrpcContext::Create(&server_ctx_, url_, false);
 	if (!err.IsOk())
 		throw cms::Exception("BadServer") << "unable to create server inference context: " << err;
 
@@ -94,7 +96,7 @@ void TRTClient<Client>::predictImpl()
 }
 
 //specialization for true async
-template <typename Client>
+template <>
 void TRTClientAsync::predictImpl()
 {
 	//common operations first
@@ -111,7 +113,7 @@ void TRTClientAsync::predictImpl()
 	//non-blocking call
 
 	// Get the status of the server prior to the request being made.
-	std::map<std::string, ni::ModelStatus> start_status;
+	// std::map<std::string, ni::ModelStatus> start_status;
 	GetServerSideStatus(&start_status);
 
 	auto t2 = std::chrono::high_resolution_clock::now();
@@ -127,8 +129,8 @@ void TRTClientAsync::predictImpl()
 
 			auto t3 = std::chrono::high_resolution_clock::now();
 
-			std::map<std::string, ni::ModelStatus> end_status;
-			GetServerSideStatus(&end_status)
+			// std::map<std::string, ni::ModelStatus> end_status;
+			GetServerSideStatus(&end_status);
 
 			edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 
@@ -136,25 +138,24 @@ void TRTClientAsync::predictImpl()
 			this->getResults(results.begin()->second);
 
 			ServerSideStats stats;
-			SummarizeServerModelStats(modelName_, -1, start_status, end_status, stats);
-			ReportServerSideState(&stats);
+			SummarizeServerStats(std::make_pair(modelName_, -1), start_status, end_status, &stats);
+			ReportServerSideState(stats);
 
 			//finish
 			this->finish();
 		});
 }
 
-
-nic::Error
-TRTClient::ReportServerSideState(const ServerSideStats &stats)
+template <typename Client>
+void
+TRTClient<Client>::ReportServerSideState(const ServerSideStats& stats)
 {
 	// https://github.com/NVIDIA/tensorrt-inference-server/blob/master/src/clients/c%2B%2B/perf_client/inference_profiler.cc
-	const std::string ident = std::string(' ');
 	const uint64_t cnt = stats.request_count;
 	if (cnt == 0)
 	{
-		std::cout << ident << "  Request count: " << cnt << std::endl;
-		return nic::Error(ni::RequestStatusCode::SUCCESS);
+		std::cout << "  Request count: " << cnt << std::endl;
+		return;
 	}
 
 	const uint64_t cumm_time_us = stats.cumm_time_ns / 1000;
@@ -169,19 +170,50 @@ TRTClient::ReportServerSideState(const ServerSideStats &stats)
 	const uint64_t overhead = (cumm_avg_us > queue_avg_us + compute_avg_us)
 								  ? (cumm_avg_us - queue_avg_us - compute_avg_us)
 								  : 0;
-	std::cout << ident << "  Request count: " << cnt << std::endl
-			  << ident << "  Avg request latency: " << cumm_avg_us << " usec";
+	std::cout << "  Request count: " << cnt << std::endl
+			  << "  Avg request latency: " << cumm_avg_us << " usec";
 
 	std::cout << " (overhead " << overhead << " usec + "
 				<< "queue " << queue_avg_us << " usec + "
 				<< "compute " << compute_avg_us << " usec)" << std::endl
 				<< std::endl;
-
-	return nic::Error(ni::RequestStatusCode::SUCCESS);
 }
 
-nic::Error
-TRTClient::SummarizeServerModelStats(
+template <typename Client>
+void
+TRTClient<Client>::SummarizeServerStats(
+    const ModelInfo model_info,
+    const std::map<std::string, ni::ModelStatus>& start_status,
+    const std::map<std::string, ni::ModelStatus>& end_status,
+    ServerSideStats* server_stats)
+{
+  	SummarizeServerModelStats(
+      model_info.first, model_info.second,
+      start_status.find(model_info.first)->second,
+      end_status.find(model_info.first)->second, server_stats);
+
+//   // Summarize the composing models, if any.
+//   for (const auto& composing_model_info : composing_models_map_[model_info]) {
+//     auto it = server_stats->composing_models_stat
+//                   .emplace(composing_model_info, ServerSideStats())
+//                   .first;
+//     if (composing_models_map_.find(composing_model_info) !=
+//         composing_models_map_.end()) {
+//       RETURN_IF_ERROR(SummarizeServerStats(
+//           composing_model_info, start_status, end_status, &(it->second)));
+//     } else {
+//       RETURN_IF_ERROR(SummarizeServerModelStats(
+//           composing_model_info.first, composing_model_info.second,
+//           start_status.find(composing_model_info.first)->second,
+//           end_status.find(composing_model_info.first)->second, &(it->second)));
+//     }
+
+//   return nic::Error::Success;
+}
+
+template <typename Client>
+void
+TRTClient<Client>::SummarizeServerModelStats(
     const std::string& model_name, const int64_t model_version,
     const ni::ModelStatus& start_status, const ni::ModelStatus& end_status,
     ServerSideStats* server_stats)
@@ -199,14 +231,12 @@ TRTClient::SummarizeServerModelStats(
 
   const auto& vend_itr = end_status.version_status().find(status_model_version);
   if (vend_itr == end_status.version_status().end()) {
-    return nic::Error(
-        ni::RequestStatusCode::INTERNAL, "missing model version status");
+    return;
   } else {
     const auto& end_itr =
-        vend_itr->second.infer_stats().find(manager_->BatchSize());
+        vend_itr->second.infer_stats().find(batchSize_);
     if (end_itr == vend_itr->second.infer_stats().end()) {
-      return nic::Error(
-          ni::RequestStatusCode::INTERNAL, "missing inference stats");
+      return;
     } else {
       uint64_t start_cnt = 0;
       uint64_t start_cumm_time_ns = 0;
@@ -217,7 +247,7 @@ TRTClient::SummarizeServerModelStats(
           start_status.version_status().find(status_model_version);
       if (vstart_itr != start_status.version_status().end()) {
         const auto& start_itr =
-            vstart_itr->second.infer_stats().find(manager_->BatchSize());
+            vstart_itr->second.infer_stats().find(batchSize_);
         if (start_itr != vstart_itr->second.infer_stats().end()) {
           start_cnt = start_itr->second.success().count();
           start_cumm_time_ns = start_itr->second.success().total_time_ns();
@@ -236,34 +266,31 @@ TRTClient::SummarizeServerModelStats(
           end_itr->second.compute().total_time_ns() - start_compute_time_ns;
     }
   }
-
-  return nic::Error::Success;
 }
 
-nic::Error
-TRTClient::GetServerSideStatus(
+template <typename Client>
+void
+TRTClient<Client>::GetServerSideStatus(
     std::map<std::string, ni::ModelStatus>* model_status)
 {
   model_status->clear();
 
   ni::ServerStatus server_status;
-  server_ctx_->GetServerStatus(&server_status));
+  server_ctx_->GetServerStatus(&server_status);
   GetServerSideStatus(
-      server_status, std::make_pair(model_name_, model_version_),
-      model_status));
-  return nic::Error::Success;
+      server_status, std::make_pair(modelName_, -1), // HARDCODED model_version_ = -1
+      model_status);
 }
 
-nic::Error
-TRTClient::GetServerSideStatus(
+template <typename Client>
+void
+TRTClient<Client>::GetServerSideStatus(
     ni::ServerStatus& server_status, const ModelInfo model_info,
     std::map<std::string, ni::ModelStatus>* model_status)
 {
   const auto& itr = server_status.model_status().find(model_info.first);
   if (itr == server_status.model_status().end()) {
-    return nic::Error(
-        ni::RequestStatusCode::INTERNAL,
-        "unable to find status for model" + model_info.first);
+    return;
   } else {
     model_status->emplace(model_info.first, itr->second);
   }
@@ -286,7 +313,7 @@ TRTClient::GetServerSideStatus(
 //         model_status->emplace(composing_model_info.first, itr->second);
 //       }
 //     }
-  }
+}
 
 //explicit template instantiations
 template class TRTClient<SonicClientSync<std::vector<float>>>;

@@ -12,6 +12,9 @@
 #include "request_grpc.h"
 
 namespace nic = nvidia::inferenceserver::client;
+namespace ni = nvidia::inferenceserver;
+
+using ModelInfo = std::pair<std::string, int64_t>;
 
 struct ServerSideStats {
   uint64_t request_count;
@@ -21,8 +24,6 @@ struct ServerSideStats {
 
   std::map<ModelInfo, ServerSideStats> composing_models_stat;
 };
-
-using ModelInfo = std::pair<std::string, int64_t>;
 
 template <typename Client>
 class TRTClient : public Client {
@@ -41,20 +42,24 @@ class TRTClient : public Client {
 	protected:
 		void predictImpl() override;
 
+		//helper for common ops
+		void setup();
 
-		nic::Error ReportServerSideState(const ServerSideStats& stats);
-		nic::Error SummarizeServerModelStats(
+		void ReportServerSideState(const ServerSideStats& stats);
+		void SummarizeServerStats(
+			const ModelInfo model_info,
+			const std::map<std::string, ni::ModelStatus>& start_status,
+			const std::map<std::string, ni::ModelStatus>& end_status,
+			ServerSideStats* server_stats);
+		void SummarizeServerModelStats(
 			const std::string& model_name, const int64_t model_version,
 			const ni::ModelStatus& start_status, const ni::ModelStatus& end_status,
 			ServerSideStats* server_stats);
 
-		nic::Error GetServerSideStatus(std::map<std::string, ni::ModelStatus>* model_status);
-		nic::Error GetServerSideStatus(
+		void GetServerSideStatus(std::map<std::string, ni::ModelStatus>* model_status);
+		void GetServerSideStatus(
 			ni::ServerStatus& server_status, const ModelInfo model_info,
-			std::map<std::string, ni::ModelStatus>* model_status)
-
-		//helper for common ops
-		void setup();
+			std::map<std::string, ni::ModelStatus>* model_status);
 
 		//members
 		std::string url_;
@@ -64,8 +69,10 @@ class TRTClient : public Client {
 		unsigned ninput_;
 		unsigned noutput_;
 		std::unique_ptr<nic::InferContext> context_;
+		std::unique_ptr<nic::ServerStatusContext> server_ctx_;
 		std::shared_ptr<nic::InferContext::Input> nicinput_; 
-		std::shared_ptr<nic::ServerStatusContext> server_ctx_;
+
+		std::map<std::string, ni::ModelStatus> start_status, end_status;
 };
 
 typedef TRTClient<SonicClientSync<std::vector<float>>> TRTClientSync;
