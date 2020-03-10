@@ -22,6 +22,8 @@ struct ServerSideStats {
   std::map<ModelInfo, ServerSideStats> composing_models_stat;
 };
 
+using ModelInfo = std::pair<std::string, int64_t>;
+
 template <typename Client>
 class TRTClient : public Client {
 	public:

@@ -76,9 +76,6 @@ void TRTClient<Client>::getResults(const std::unique_ptr<nic::InferContext::Resu
 	}
 	auto t3 = std::chrono::high_resolution_clock::now();
 	edm::LogInfo("TRTClient") << "Output time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
-
-	ni::ServerStatus server_status;
-	server_ctx_->GetServerStatus(&server_status));
 }
 
 template <typename Client>
@@ -139,7 +136,7 @@ void TRTClientAsync::predictImpl()
 			this->getResults(results.begin()->second);
 
 			ServerSideStats stats;
-			auto err = SummarizeServerModelStats(modelName_, -1, start_status, end_status, stats);
+			SummarizeServerModelStats(modelName_, -1, start_status, end_status, stats);
 			ReportServerSideState(&stats);
 
 			//finish
@@ -148,12 +145,11 @@ void TRTClientAsync::predictImpl()
 }
 
 
-
-template <typename Client>
 nic::Error
-TRTClient<Client>::ReportServerSideState(const ServerSideStats &stats)
+TRTClient::ReportServerSideState(const ServerSideStats &stats)
 {
 	// https://github.com/NVIDIA/tensorrt-inference-server/blob/master/src/clients/c%2B%2B/perf_client/inference_profiler.cc
+	const std::string ident = std::string(' ');
 	const uint64_t cnt = stats.request_count;
 	if (cnt == 0)
 	{
@@ -184,9 +180,8 @@ TRTClient<Client>::ReportServerSideState(const ServerSideStats &stats)
 	return nic::Error(ni::RequestStatusCode::SUCCESS);
 }
 
-template<typename Client>
 nic::Error
-TRTClient<Client>::SummarizeServerModelStats(
+TRTClient::SummarizeServerModelStats(
     const std::string& model_name, const int64_t model_version,
     const ni::ModelStatus& start_status, const ni::ModelStatus& end_status,
     ServerSideStats* server_stats)
@@ -245,24 +240,22 @@ TRTClient<Client>::SummarizeServerModelStats(
   return nic::Error::Success;
 }
 
-template<typename Client>
 nic::Error
-TRTClient<Client>::GetServerSideStatus(
+TRTClient::GetServerSideStatus(
     std::map<std::string, ni::ModelStatus>* model_status)
 {
   model_status->clear();
 
   ni::ServerStatus server_status;
-  RETURN_IF_ERROR(server_ctx_->GetServerStatus(&server_status));
-  RETURN_IF_ERROR(GetServerSideStatus(
+  server_ctx_->GetServerStatus(&server_status));
+  GetServerSideStatus(
       server_status, std::make_pair(model_name_, model_version_),
       model_status));
   return nic::Error::Success;
 }
 
-template<typename Client>
 nic::Error
-TRTClient<Client>::GetServerSideStatus(
+TRTClient::GetServerSideStatus(
     ni::ServerStatus& server_status, const ModelInfo model_info,
     std::map<std::string, ni::ModelStatus>* model_status)
 {
@@ -275,24 +268,24 @@ TRTClient<Client>::GetServerSideStatus(
     model_status->emplace(model_info.first, itr->second);
   }
 
-  // Also get status for composing models if any
-  for (const auto& composing_model_info : composing_models_map_[model_info]) {
-    if (composing_models_map_.find(composing_model_info) !=
-        composing_models_map_.end()) {
-      RETURN_IF_ERROR(GetServerSideStatus(
-          server_status, composing_model_info, model_status));
-    } else {
-      const auto& itr =
-          server_status.model_status().find(composing_model_info.first);
-      if (itr == server_status.model_status().end()) {
-        return nic::Error(
-            ni::RequestStatusCode::INTERNAL,
-            "unable to find status for composing model" +
-                composing_model_info.first);
-      } else {
-        model_status->emplace(composing_model_info.first, itr->second);
-      }
-    }
+//   // Also get status for composing models if any
+//   for (const auto& composing_model_info : composing_models_map_[model_info]) {
+//     if (composing_models_map_.find(composing_model_info) !=
+//         composing_models_map_.end()) {
+//       GetServerSideStatus(
+//           server_status, composing_model_info, model_status);
+//     } else {
+//       const auto& itr =
+//           server_status.model_status().find(composing_model_info.first);
+//       if (itr == server_status.model_status().end()) {
+//         return nic::Error(
+//             ni::RequestStatusCode::INTERNAL,
+//             "unable to find status for composing model" +
+//                 composing_model_info.first);
+//       } else {
+//         model_status->emplace(composing_model_info.first, itr->second);
+//       }
+//     }
   }
 
 //explicit template instantiations
