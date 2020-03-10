@@ -13,6 +13,15 @@
 
 namespace nic = nvidia::inferenceserver::client;
 
+struct ServerSideStats {
+  uint64_t request_count;
+  uint64_t cumm_time_ns;
+  uint64_t queue_time_ns;
+  uint64_t compute_time_ns;
+
+  std::map<ModelInfo, ServerSideStats> composing_models_stat;
+};
+
 template <typename Client>
 class TRTClient : public Client {
 	public:
@@ -29,7 +38,18 @@ class TRTClient : public Client {
 
 	protected:
 		void predictImpl() override;
+
+
 		nic::Error ReportServerSideState(const ServerSideStats& stats);
+		nic::Error SummarizeServerModelStats(
+			const std::string& model_name, const int64_t model_version,
+			const ni::ModelStatus& start_status, const ni::ModelStatus& end_status,
+			ServerSideStats* server_stats);
+
+		nic::Error GetServerSideStatus(std::map<std::string, ni::ModelStatus>* model_status);
+		nic::Error GetServerSideStatus(
+			ni::ServerStatus& server_status, const ModelInfo model_info,
+			std::map<std::string, ni::ModelStatus>* model_status)
 
 		//helper for common ops
 		void setup();
@@ -43,8 +63,9 @@ class TRTClient : public Client {
 		unsigned noutput_;
 		std::unique_ptr<nic::InferContext> context_;
 		std::shared_ptr<nic::InferContext::Input> nicinput_; 
-		std::shared_ptr<nic::ServerStatusConect> server_ctx_;
+		std::shared_ptr<nic::ServerStatusContext> server_ctx_;
 };
+
 typedef TRTClient<SonicClientSync<std::vector<float>>> TRTClientSync;
 typedef TRTClient<SonicClientPseudoAsync<std::vector<float>>> TRTClientPseudoAsync;
 typedef TRTClient<SonicClientAsync<std::vector<float>>> TRTClientAsync;
