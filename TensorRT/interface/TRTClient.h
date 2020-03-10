@@ -29,6 +29,7 @@ class TRTClient : public Client {
 
 	protected:
 		void predictImpl() override;
+		nic::Error ReportServerSideState(const ServerSideStats& stats);
 
 		//helper for common ops
 		void setup();
@@ -42,6 +43,7 @@ class TRTClient : public Client {
 		unsigned noutput_;
 		std::unique_ptr<nic::InferContext> context_;
 		std::shared_ptr<nic::InferContext::Input> nicinput_; 
+		std::shared_ptr<nic::ServerStatusConect> server_ctx_;
 };
 typedef TRTClient<SonicClientSync<std::vector<float>>> TRTClientSync;
 typedef TRTClient<SonicClientPseudoAsync<std::vector<float>>> TRTClientPseudoAsync;

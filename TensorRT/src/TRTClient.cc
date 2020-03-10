@@ -9,65 +9,78 @@
 #include <exception>
 
 namespace nic = nvidia::inferenceserver::client;
+namespace ni = nvidia::inferenceserver;
 
 //based on https://github.com/NVIDIA/tensorrt-inference-server/blob/master/src/clients/c++/examples/simple_callback_client.cc
 
 template <typename Client>
-TRTClient<Client>::TRTClient(const edm::ParameterSet& params) :
-	Client(),
-	url_(params.getParameter<std::string>("address")+":"+std::to_string(params.getParameter<unsigned>("port"))),
-	timeout_(params.getParameter<unsigned>("timeout")),
-	modelName_(params.getParameter<std::string>("modelName")),
-	batchSize_(params.getParameter<unsigned>("batchSize")),
-	ninput_(params.getParameter<unsigned>("ninput")),
-	noutput_(params.getParameter<unsigned>("noutput"))
+TRTClient<Client>::TRTClient(const edm::ParameterSet &params) : Client(),
+																url_(params.getParameter<std::string>("address") + ":" + std::to_string(params.getParameter<unsigned>("port"))),
+																timeout_(params.getParameter<unsigned>("timeout")),
+																modelName_(params.getParameter<std::string>("modelName")),
+																batchSize_(params.getParameter<unsigned>("batchSize")),
+																ninput_(params.getParameter<unsigned>("ninput")),
+																noutput_(params.getParameter<unsigned>("noutput"))
 {
 }
 
 template <typename Client>
-void TRTClient<Client>::setup() {
+void TRTClient<Client>::setup()
+{
 	auto err = nic::InferGrpcContext::Create(&context_, url_, modelName_, -1, false);
-	if(!err.IsOk()) throw cms::Exception("BadGrpc") << "unable to create inference context: " << err;
+	if (!err.IsOk())
+		throw cms::Exception("BadGrpc") << "unable to create inference context: " << err;
+
+	auto err = nic::ServerStatusGrpcContext::Create(&ctx_, url_, false);
+	if (!err.IsOk())
+		throw cms::Exception("BadServer") << "unable to create server inference context: " << err;
+
 	std::unique_ptr<nic::InferContext::Options> options;
 	nic::InferContext::Options::Create(&options);
 
 	options->SetBatchSize(batchSize_);
-	for (const auto& output : context_->Outputs()) {
+	for (const auto &output : context_->Outputs())
+	{
 		options->AddRawResult(output);
 	}
 	context_->SetRunOptions(*options);
 
-	const std::vector<std::shared_ptr<nic::InferContext::Input>>& nicinputs = context_->Inputs();
+	const std::vector<std::shared_ptr<nic::InferContext::Input>> &nicinputs = context_->Inputs();
 	nicinput_ = nicinputs[0];
 	nicinput_->Reset();
 
 	auto t2 = std::chrono::high_resolution_clock::now();
 	std::vector<int64_t> input_shape;
-	for(unsigned i0 = 0; i0 < batchSize_; i0++) {
-			float * arr = &(this->input_.data()[i0*ninput_]);
-        	nic::Error err1 = nicinput_->SetRaw(reinterpret_cast<const uint8_t*>(arr), ninput_ * sizeof(float));
+	for (unsigned i0 = 0; i0 < batchSize_; i0++)
+	{
+		float *arr = &(this->input_.data()[i0 * ninput_]);
+		nic::Error err1 = nicinput_->SetRaw(reinterpret_cast<const uint8_t *>(arr), ninput_ * sizeof(float));
 	}
 	auto t3 = std::chrono::high_resolution_clock::now();
-	edm::LogInfo("TRTClient") << "Image array time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
+	edm::LogInfo("TRTClient") << "Image array time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 }
 
 template <typename Client>
-void TRTClient<Client>::getResults(const std::unique_ptr<nic::InferContext::Result>& result) {
+void TRTClient<Client>::getResults(const std::unique_ptr<nic::InferContext::Result> &result)
+{
 	auto t2 = std::chrono::high_resolution_clock::now();
-	this->output_.resize(noutput_*batchSize_,0.f);
-	for(unsigned i0 = 0; i0 < batchSize_; i0++) { 
-		const uint8_t* r0;
+	this->output_.resize(noutput_ * batchSize_, 0.f);
+	for (unsigned i0 = 0; i0 < batchSize_; i0++)
+	{
+		const uint8_t *r0;
 		size_t content_byte_size;
 		result->GetRaw(i0, &r0, &content_byte_size);
-		const float *lVal = reinterpret_cast<const float*>(r0);
-		for(unsigned i1 = 0; i1 < noutput_; i1++) this->output_[i0*noutput_+i1] = lVal[i1]; //This should be replaced with a memcpy
+		const float *lVal = reinterpret_cast<const float *>(r0);
+		for (unsigned i1 = 0; i1 < noutput_; i1++)
+			this->output_[i0 * noutput_ + i1] = lVal[i1]; //This should be replaced with a memcpy
 	}
 	auto t3 = std::chrono::high_resolution_clock::now();
-	edm::LogInfo("TRTClient") << "Output time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
+	edm::LogInfo("TRTClient") << "Output time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 }
 
 template <typename Client>
-void TRTClient<Client>::predictImpl(){
+void TRTClient<Client>::predictImpl()
+{
 	//common operations first
 	setup();
 
@@ -76,18 +89,21 @@ void TRTClient<Client>::predictImpl(){
 	std::map<std::string, std::unique_ptr<nic::InferContext::Result>> results;
 	nic::Error err0 = context_->Run(&results);
 	auto t3 = std::chrono::high_resolution_clock::now();
-	edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
+	edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 	getResults(results.begin()->second);
 }
 
 //specialization for true async
 template <>
-void TRTClientAsync::predictImpl(){
+void TRTClientAsync::predictImpl()
+{
 	//common operations first
-	try {
+	try
+	{
 		setup();
 	}
-	catch (...) {
+	catch (...)
+	{
 		finish(std::current_exception());
 		return;
 	}
@@ -95,24 +111,59 @@ void TRTClientAsync::predictImpl(){
 	//non-blocking call
 	auto t2 = std::chrono::high_resolution_clock::now();
 	nic::Error erro0 = context_->AsyncRun(
-		[t2,this](nic::InferContext* ctx, const std::shared_ptr<nic::InferContext::Request>& request) {
+		[t2, this](nic::InferContext *ctx, const std::shared_ptr<nic::InferContext::Request> &request) {
 			//get results
 			std::map<std::string, std::unique_ptr<nic::InferContext::Result>> results;
 			//this function interface will change in the next tensorrtis version
 			bool is_ready = false;
 			ctx->GetAsyncRunResults(&results, &is_ready, request, false);
-			if(is_ready == false) finish(std::make_exception_ptr(cms::Exception("BadCallback") << "Callback executed before request was ready"));
+			if (is_ready == false)
+				finish(std::make_exception_ptr(cms::Exception("BadCallback") << "Callback executed before request was ready"));
 
 			auto t3 = std::chrono::high_resolution_clock::now();
-			edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
+			edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 
 			//check result
 			this->getResults(results.begin()->second);
 
 			//finish
 			this->finish();
-		}
-	);
+		});
+}
+
+template <>
+nic::Error
+ReportServerSideState(const ServerSideStats &stats)
+{
+	// https://github.com/NVIDIA/tensorrt-inference-server/blob/master/src/clients/c%2B%2B/perf_client/inference_profiler.cc
+	const uint64_t cnt = stats.request_count;
+	if (cnt == 0)
+	{
+		std::cout << ident << "  Request count: " << cnt << std::endl;
+		return nic::Error(ni::RequestStatusCode::SUCCESS);
+	}
+
+	const uint64_t cumm_time_us = stats.cumm_time_ns / 1000;
+	const uint64_t cumm_avg_us = cumm_time_us / cnt;
+
+	const uint64_t queue_time_us = stats.queue_time_ns / 1000;
+	const uint64_t queue_avg_us = queue_time_us / cnt;
+
+	const uint64_t compute_time_us = stats.compute_time_ns / 1000;
+	const uint64_t compute_avg_us = compute_time_us / cnt;
+
+	const uint64_t overhead = (cumm_avg_us > queue_avg_us + compute_avg_us)
+								  ? (cumm_avg_us - queue_avg_us - compute_avg_us)
+								  : 0;
+	std::cout << ident << "  Request count: " << cnt << std::endl
+			  << ident << "  Avg request latency: " << cumm_avg_us << " usec";
+
+	std::cout << " (overhead " << overhead << " usec + "
+				<< "queue " << queue_avg_us << " usec + "
+				<< "compute " << compute_avg_us << " usec)" << std::endl
+				<< std::endl;
+
+	return nic::Error(ni::RequestStatusCode::SUCCESS);
 }
 
 //explicit template instantiations
