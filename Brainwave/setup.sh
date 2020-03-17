@@ -5,10 +5,10 @@ CMSSWTF=$(dirname $(python3 -c "import tensorflow; print(tensorflow.__file__)"))
 # download and build grpc
 INSTALLDIR=work/local/grpc
 cd $WORK
-git clone ${ACCESS_GITHUB}grpc/grpc -b v1.14.0
+git clone ${ACCESS_GITHUB}grpc/grpc -b v1.27.3
 cd grpc
 git submodule update --init
-make -j 8
+make -j ${CORES}
 # get ldconfig
 if ! [ type ldconfig >& /dev/null ]; then
 	export PATH=${PATH}:/sbin
@@ -16,15 +16,25 @@ fi
 # get around "make: execvp: /bin/sh: Argument list too long" if directory path is long
 ln -s $CMSSW_BASE base
 make install prefix=base/$INSTALLDIR
-# link libraries because tensorflow_serving tries to get the wrong versions for some reason
-cd $CMSSW_BASE/$INSTALLDIR/lib
-ln -s libgrpc++.so.1.14.0 libgrpc++.so.1
-ln -s libgrpc++_reflection.so.1.14.0 libgrpc++_reflection.so.1
-cd -
 
+# rename protobuf-bw libraries to avoid collisions
+PBDIR=work/local/protobuf-bw/
+cd $CMSSW_BASE
+mkdir -p $PBDIR/lib64
+cp $WORK/grpc/third_party/protobuf/src/.libs/*.a $PBDIR/lib64/
+mkdir -p $PBDIR/include
+cp -r $WORK/grpc/third_party/protobuf/src/google $PBDIR/include/
+mkdir -p $PBDIR/bin
+cp $WORK/grpc/third_party/protobuf/src/protoc $PBDIR/bin/
+cd $PBDIR/lib64
+mv libprotobuf-lite.a libprotobuf-bw-lite.a
+mv libprotobuf.a libprotobuf-bw.a
+mv libprotoc.a libprotoc-bw.a
+
+cd $WORK
 # setup in scram
 cat << 'EOF_TOOLFILE' > grpc.xml
-<tool name="grpc" version="v1.14.0">
+<tool name="grpc" version="v1.27.3">
   <info url="https://github.com/grpc/grpc"/>
   <lib name="grpc"/>
   <lib name="grpc++"/>
@@ -34,12 +44,30 @@ cat << 'EOF_TOOLFILE' > grpc.xml
     <environment name="INCLUDE" default="$GRPC_BASE/include"/>
     <environment name="LIBDIR" default="$GRPC_BASE/lib"/>
   </client>
+  <use name="protobuf-bw"/>
 </tool>
 EOF_TOOLFILE
 sed -i 's~$INSTALLDIR~'$INSTALLDIR'~' grpc.xml
 
+# setup as a separate external in case the builtin version is needed
+cat << 'EOF_TOOLFILE' > protobuf-bw.xml
+<tool name="protobuf-bw" version="3.11.0">
+  <lib name="protobuf-bw"/>
+  <client>
+    <environment name="PROTOBUF_BASE" default="$CMSSW_BASE/work/local/protobuf-bw"/>
+    <environment name="INCLUDE" default="$PROTOBUF_BASE/include"/>
+    <environment name="LIBDIR"  default="$PROTOBUF_BASE/lib64"/>
+    <environment name="BINDIR"  default="$PROTOBUF_BASE/bin"/>
+  </client>
+  <runtime name="PATH" value="$PROTOBUF_BASE/bin" type="path"/>
+  <runtime name="ROOT_INCLUDE_PATH" value="$INCLUDE" type="path"/>
+</tool>
+EOF_TOOLFILE
+
 mv grpc.xml ${CMSSW_BASE}/config/toolbox/${SCRAM_ARCH}/tools/selected/
+mv protobuf-bw.xml ${CMSSW_BASE}/config/toolbox/${SCRAM_ARCH}/tools/selected/
 scram setup grpc
+scram setup protobuf-bw
 
 # download and build tensorflow_serving w/ cmake
 INSTALLDIR=work/local/tensorflow_serving
@@ -56,18 +84,18 @@ export PATH=/cvmfs/sft.cern.ch/lcg/contrib/CMake/3.7.0/Linux-x86_64/bin/:${PATH}
 mkdir build
 cd build
 # some really bad ways to get info out of scram
-PROTOBUF_BINDIR=$(scram tool info protobuf | grep "BINDIR=" | sed 's/BINDIR=//')
+PROTOBUF_BINDIR=$(scram tool info protobuf-bw | grep "BINDIR=" | sed 's/BINDIR=//')
 # make sure desired version of protoc executable comes first in the path
 export PATH=${PROTOBUF_BINDIR}:${PATH}
-PROTOBUF_LIBDIR=$(scram tool info protobuf | grep "LIBDIR=" | sed 's/LIBDIR=//')
-PROTOBUF_INCLUDE=$(scram tool info protobuf | grep "INCLUDE=" | sed 's/INCLUDE=//')
+PROTOBUF_LIBDIR=$(scram tool info protobuf-bw | grep "LIBDIR=" | sed 's/LIBDIR=//')
+PROTOBUF_INCLUDE=$(scram tool info protobuf-bw | grep "INCLUDE=" | sed 's/INCLUDE=//')
 GRPC_LIBDIR=$(scram tool info grpc | grep "LIBDIR=" | sed 's/LIBDIR=//')
 GRPC_INCLUDE=$(scram tool info grpc | grep "INCLUDE=" | sed 's/INCLUDE=//')
 GRPC_BIN=$(scram tool info grpc | grep "GRPC_BASE=" | sed 's/GRPC_BASE=//')
 TENSORFLOW_LIBDIR=$(scram tool info tensorflow | grep "LIBDIR=" | sed 's/LIBDIR=//')
 TENSORFLOW_INCLUDE=$(scram tool info tensorflow | grep "INCLUDE=" | sed 's/INCLUDE=//')
 cmake .. -DPROTOBUF_LIBRARY=$PROTOBUF_LIBDIR/libprotobuf.so -DPROTOBUF_INCLUDE_DIR=$PROTOBUF_INCLUDE -DGRPC_LIBRARY=$GRPC_LIBDIR/libgrpc.so -DGRPC_GRPC++_LIBRARY=$GRPC_LIBDIR/libgrpc++.so -DGRPC_INCLUDE_DIR=$GRPC_INCLUDE -DGRPC_GRPC++_REFLECTION_LIBRARY=$GRPC_LIBDIR/libgrpc++_reflection.so -DGRPC_CPP_PLUGIN=$GRPC_BIN/bin/grpc_cpp_plugin -DTENSORFLOW_CC_LIBRARY=$TENSORFLOW_LIBDIR/libtensorflow_cc.so -DTENSORFLOW_INCLUDE_DIR=$TENSORFLOW_INCLUDE -DEIGEN_INCLUDE_DIR=$TENSORFLOW_INCLUDE/eigen -DTENSORFLOW_FWK_LIBRARY=$TENSORFLOW_LIBDIR/libtensorflow_framework.so
-make
+make -j ${CORES}
 # install
 mkdir $CMSSW_BASE/$INSTALLDIR
 mkdir $CMSSW_BASE/$INSTALLDIR/lib
@@ -85,7 +113,7 @@ cat << 'EOF_TOOLFILE' > tensorflow-serving.xml
     <environment name="INCLUDE" default="$TFSERVING_BASE/include"/>
     <environment name="LIBDIR" default="$TFSERVING_BASE/lib"/>
   </client>
-  <use name="protobuf"/>
+  <use name="protobuf-bw"/>
   <use name="grpc"/>
   <use name="eigen"/>
   <use name="tensorflow-cc"/>

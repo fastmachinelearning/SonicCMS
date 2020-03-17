@@ -5,7 +5,7 @@
 <use   name="PhysicsTools/TensorFlow"/>
 <use   name="SonicCMS/Core"/>
 <use   name="grpc"/>
-<use   name="protobuf"/>
+<use   name="protobuf-bw"/>
 <use   name="tensorflow-cc"/>
 <use   name="tensorflow-serving"/>
 <export>
