@@ -1,5 +1,5 @@
-#ifndef SonicCMS_TensorRT_TRTClient
-#define SonicCMS_TensorRT_TRTClient
+#ifndef SonicCMS_TensorRT_TRTClientFPGA
+#define SonicCMS_TensorRT_TRTClientFPGA
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
@@ -15,10 +15,10 @@
 namespace nic = nvidia::inferenceserver::client;
 
 template <typename Client>
-class TRTClient : public Client {
+class TRTClientFPGA : public Client {
 	public:
 		//constructor
-		TRTClient(const edm::ParameterSet& params);
+		TRTClientFPGA(const edm::ParameterSet& params);
 
 		//helper
 		void getResults(const std::unique_ptr<nic::InferContext::Result>& result);
@@ -57,8 +57,8 @@ class TRTClient : public Client {
 		std::unique_ptr<nic::InferContext> context_;
 		std::shared_ptr<nic::InferContext::Input> nicinput_; 
 };
-typedef TRTClient<SonicClientSync<std::vector<float>>> TRTClientSync;
-typedef TRTClient<SonicClientPseudoAsync<std::vector<float>>> TRTClientPseudoAsync;
-typedef TRTClient<SonicClientAsync<std::vector<float>>> TRTClientAsync;
+typedef TRTClientFPGA<SonicClientSync<std::vector<unsigned short>>> TRTClientFPGASync;
+typedef TRTClientFPGA<SonicClientPseudoAsync<std::vector<unsigned short>>> TRTClientFPGAPseudoAsync;
+typedef TRTClientFPGA<SonicClientAsync<std::vector<unsigned short>>> TRTClientFPGAAsync;
 
 #endif
