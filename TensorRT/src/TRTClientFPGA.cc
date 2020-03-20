@@ -33,7 +33,7 @@ void TRTClientFPGA<Client>::setup() {
     std::unique_ptr<nic::InferContext::Options> options;
     nic::InferContext::Options::Create(&options);
     
-    options->SetBatchSize(1);//batchSize_);
+    options->SetBatchSize(batchSize_);
     for (const auto& output : context_->Outputs()) {
       options->AddRawResult(output);
     }
@@ -45,11 +45,10 @@ void TRTClientFPGA<Client>::setup() {
   nicinput_->Reset();
   
   auto t2 = std::chrono::high_resolution_clock::now();
-  std::vector<int64_t> input_shape;
   for(unsigned i0 = 0; i0 < batchSize_; i0++) {
     nic::Error err1 = nicinput_->SetRaw(reinterpret_cast<const uint8_t*>(&(this->input_[i0*ninput_])), ninput_ * sizeof(unsigned short));
   }
-  //nic::Error err1 = nicinput_->SetRaw(reinterpret_cast<const uint8_t*>(&(this->input_[0])), batchSize_*ninput_ * sizeof(unsigned short));
+  //nic::Error err1 = nicinput_->SetRaw(reinterpret_cast<const uint8_t*>(this->input_.data()), batchSize_*ninput_ * sizeof(unsigned short));
   auto t3 = std::chrono::high_resolution_clock::now();
   edm::LogInfo("TRTClientFPGA") << "Image array time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
 }
