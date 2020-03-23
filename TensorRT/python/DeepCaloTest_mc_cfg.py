@@ -75,7 +75,7 @@ process.p = cms.Path(
     process.DeepCaloProducer
 )
 
-process.MessageLogger.cerr.FwkReport.reportEvery = 1
+process.MessageLogger.cerr.FwkReport.reportEvery = 500
 keep_msgs = ['TRTClient','DeepCaloProducer']
 for msg in keep_msgs:
     process.MessageLogger.categories.append(msg)

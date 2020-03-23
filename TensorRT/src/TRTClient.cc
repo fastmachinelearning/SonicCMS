@@ -87,11 +87,11 @@ void TRTClient<Client>::predictImpl()
 	setup();
 
 	//blocking call
-	auto t2 = std::chrono::high_resolution_clock::now();
+	//auto t2 = std::chrono::high_resolution_clock::now();
 	std::map<std::string, std::unique_ptr<nic::InferContext::Result>> results;
 	nic::Error err0 = context_->Run(&results);
-	auto t3 = std::chrono::high_resolution_clock::now();
-	edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+	//auto t3 = std::chrono::high_resolution_clock::now();
+	//edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 	getResults(results.begin()->second);
 }
 
@@ -116,7 +116,7 @@ void TRTClientAsync::predictImpl()
 	// std::map<std::string, ni::ModelStatus> start_status;
 	GetServerSideStatus(&start_status);
 
-	auto t2 = std::chrono::high_resolution_clock::now();
+	//auto t2 = std::chrono::high_resolution_clock::now();
 	nic::Error erro0 = context_->AsyncRun(
 		[t2, this](nic::InferContext *ctx, const std::shared_ptr<nic::InferContext::Request> &request) {
 			//get results
@@ -127,19 +127,19 @@ void TRTClientAsync::predictImpl()
 			if (is_ready == false)
 				finish(std::make_exception_ptr(cms::Exception("BadCallback") << "Callback executed before request was ready"));
 
-			auto t3 = std::chrono::high_resolution_clock::now();
+			//auto t3 = std::chrono::high_resolution_clock::now();
 
 			// std::map<std::string, ni::ModelStatus> end_status;
 			GetServerSideStatus(&end_status);
 
-			edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+			//edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 
 			//check result
 			this->getResults(results.begin()->second);
 
 			ServerSideStats stats;
 			SummarizeServerStats(std::make_pair(modelName_, -1), start_status, end_status, &stats);
-			ReportServerSideState(stats);
+			//ReportServerSideState(stats);
 
 			//finish
 			this->finish();
