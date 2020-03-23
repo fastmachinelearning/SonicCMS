@@ -33,7 +33,7 @@ void TRTClientFPGA<Client>::setup() {
     std::unique_ptr<nic::InferContext::Options> options;
     nic::InferContext::Options::Create(&options);
     
-    options->SetBatchSize(batchSize_);
+    //options->SetBatchSize(batchSize_);
     for (const auto& output : context_->Outputs()) {
       options->AddRawResult(output);
     }
@@ -46,7 +46,8 @@ void TRTClientFPGA<Client>::setup() {
   
   auto t2 = std::chrono::high_resolution_clock::now();
   for(unsigned i0 = 0; i0 < batchSize_; i0++) {
-    nic::Error err1 = nicinput_->SetRaw(reinterpret_cast<const uint8_t*>(&(this->input_[i0*ninput_])), ninput_ * sizeof(unsigned short));
+   nic::Error err1 = nicinput_->SetRaw(reinterpret_cast<const uint8_t*>(&(this->input_[i0*ninput_])), ninput_ * sizeof(unsigned short));
+   //nic::Error err1 = nicinput_->SetRaw(reinterpret_cast<const uint8_t*>(this->input_.data()), ninput_ * sizeof(unsigned short));
   }
   //nic::Error err1 = nicinput_->SetRaw(reinterpret_cast<const uint8_t*>(this->input_.data()), batchSize_*ninput_ * sizeof(unsigned short));
   auto t3 = std::chrono::high_resolution_clock::now();
@@ -56,7 +57,8 @@ void TRTClientFPGA<Client>::setup() {
 template <typename Client>
 void TRTClientFPGA<Client>::getResults(const std::unique_ptr<nic::InferContext::Result>& result) {
 	auto t2 = std::chrono::high_resolution_clock::now();
-	this->output_.resize(noutput_*batchSize_,0.f);
+	unsigned short tmp=0;
+	this->output_.resize(noutput_*batchSize_,tmp);
 	//for(unsigned i0 = 0; i0 < batchSize_; i0++) { 
 	const uint8_t* r0;
 	size_t content_byte_size;
