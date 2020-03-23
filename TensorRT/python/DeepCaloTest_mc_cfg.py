@@ -46,15 +46,19 @@ process.GlobalTag.globaltag = cms.string('100X_upgrade2018_realistic_v10')
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents) )
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:../../Core/data/store_mc_RunIISpring18MiniAOD_BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph_MINIAODSIM_100X_upgrade2018_realistic_v10-v1_30000_24A0230C-B530-E811-ADE3-14187741120B.root')
+    #fileNames = cms.untracked.vstring('file:../../Core/data/store_mc_RunIISpring18MiniAOD_BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph_MINIAODSIM_100X_upgrade2018_realistic_v10-v1_30000_24A0230C-B530-E811-ADE3-14187741120B.root')
+    	fileNames = cms.untracked.vstring(['/store/user/pedrok/sonic/store_mc_RunIISpring18MiniAOD_BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph_MINIAODSIM_100X_upgrade2018_realistic_v10-v1_30000_24A0230C-B530-E811-ADE3-14187741120B.root']*90),
+	duplicateCheckMode = cms.untracked.string('noDuplicateCheck')
 )
+
 
 if len(options.inputFiles)>0: process.source.fileNames = options.inputFiles
 
 ################### EDProducer ##############################
 process.DeepCaloProducer = cms.EDProducer(allowed_modes[options.mode],
     topN = cms.uint32(5),
-    binDataPath = cms.string("../../Core/data/image0_1000.bin"),
+    #binDataPath = cms.string("../../Core/data/image0_1000.bin"),
+    binDataPath = cms.string("../../Core/data/deepcalo_all.bin"),
     Client = cms.PSet(
         ninput  = cms.uint32(56*11*4),
         noutput = cms.uint32(1),
@@ -88,7 +92,7 @@ if options.threads>0:
     process.options.numberOfThreads = cms.untracked.uint32(options.threads)
     process.options.numberOfStreams = cms.untracked.uint32(options.streams if options.streams>0 else 0)
 
-# process.Timing = cms.Service("Timing",
-#   summaryOnly = cms.untracked.bool(False),
-#   useJobReport = cms.untracked.bool(True)
-# )
+process.Timing = cms.Service("Timing",
+   summaryOnly = cms.untracked.bool(True),
+   useJobReport = cms.untracked.bool(True)
+ )

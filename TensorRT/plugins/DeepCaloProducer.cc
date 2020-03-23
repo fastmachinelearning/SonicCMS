@@ -31,7 +31,7 @@ class DeepCaloProducer : public SonicEDProducer<Client>
 			//for debugging
 			this->setDebugName("DeepCaloProducer");
 
-			printf("Loading data...\n");
+			// printf("Loading data...\n");
 
 			// Load the bin data
 			std::streampos fileSize;
@@ -112,7 +112,7 @@ class DeepCaloProducer : public SonicEDProducer<Client>
 				// msg << "Scores:\n";
 				unsigned counter = 0;
 				for(const auto& item: score_map){
-					// msg << item.second << " : " << item.first << "\n";
+				//	msg << item.second << " : " << item.first << "\n";
 					++counter;
 					if(counter>=topN_) break;
 				}
