@@ -14,7 +14,7 @@ options.register("timeout", 30, VarParsing.multiplicity.singleton, VarParsing.va
 options.register("params", "", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("threads", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("streams", 1,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
-options.register("batchsize", 15000,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
+options.register("batchsize", 16000,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("modelname","facile", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("mode", "Async", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.parseArguments()
