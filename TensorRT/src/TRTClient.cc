@@ -116,7 +116,7 @@ void TRTClientAsync::predictImpl()
 	// std::map<std::string, ni::ModelStatus> start_status;
 	GetServerSideStatus(&start_status);
 
-	//auto t2 = std::chrono::high_resolution_clock::now();
+	auto t2 = std::chrono::high_resolution_clock::now();
 	nic::Error erro0 = context_->AsyncRun(
 		[t2, this](nic::InferContext *ctx, const std::shared_ptr<nic::InferContext::Request> &request) {
 			//get results
