@@ -7,6 +7,8 @@
 #include "SonicCMS/TensorRT/interface/TRTClient.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
+#include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
@@ -46,6 +48,15 @@ class HcalProducer : public SonicEDProducer<Client>
 		}
 		~HcalProducer() override {}
 
+		//to ensure distinct cfi names - specialized below
+		static std::string getCfiName();
+		static void fillDescriptions(edm::ConfigurationDescriptions & descriptions) {
+			edm::ParameterSetDescription desc;
+			Client::fillPSetDescription(desc);
+			desc.add<unsigned>("topN",5);
+			descriptions.add(getCfiName(),desc);
+		}
+
 	private:
 		using SonicEDProducer<Client>::client_;
 		//Just putting something in for the hell of it
@@ -77,6 +88,10 @@ class HcalProducer : public SonicEDProducer<Client>
 typedef HcalProducer<TRTClientSync> HcalProducerSync;
 typedef HcalProducer<TRTClientAsync> HcalProducerAsync;
 typedef HcalProducer<TRTClientPseudoAsync> HcalProducerPseudoAsync;
+
+template<> std::string HcalProducerSync::getCfiName() { return "HcalProducerSync"; }
+template<> std::string HcalProducerAsync::getCfiName() { return "HcalProducerAsync"; }
+template<> std::string HcalProducerPseudoAsync::getCfiName() { return "HcalProducerPseudoAsync"; }
 
 DEFINE_FWK_MODULE(HcalProducerSync);
 DEFINE_FWK_MODULE(HcalProducerAsync);

@@ -22,6 +22,12 @@ class MyProducer : public SonicEDProducer<Client>
 		void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Output const& iOutput) override {
 			//convert client output to event data format
 		}
+		static void fillDescriptions(edm::ConfigurationDescriptions & descriptions) {
+			edm::ParameterSetDescription desc;
+			Client::fillPSetDescription(desc);
+			//add producer-specific parameters
+			descriptions.add("MyProducer",desc);
+		}
 };
 
 DEFINE_FWK_MODULE(MyProducer);
@@ -37,6 +43,7 @@ process.MyProducer = cms.EDProducer("MyProducer",
     )
 )
 ```
+These parameters can be prepopulated and validated by the client using `fillDescriptions` (see below).
 
 Example producers can be found in the `plugins` folders of the other packages in this repository.
 
@@ -60,6 +67,8 @@ class MyClient : public SonicClient*<Input,Output> {
 	public:
 		MyClient(const edm::ParameterSet& params);
 
+		static void fillPSetDescription(edm::ParameterSetDescription& iDesc);
+
 	protected:
 		void predictImpl() override;
 };
@@ -76,5 +85,14 @@ The generic `SonicClient*` should be replaced with one of the available modes:
 
 In addition, as indicated, the input and output data types must be specified.
 (If both types are the same, only the input type needs to be specified.)
+
+The client can also provide a static method `fillPSetDescription` to populate its parameters in the `fillDescriptions` for the producers that use the client:
+```cpp
+void MyClient::fillPSetDescription(edm::ParameterSetDescription& iDesc) {
+	edm::ParameterSetDescription descClient;
+	//add parameters
+	iDesc.add<edm::ParameterSetDescription>("Client",descClient);
+}
+```
 
 Example client code can be found in the `interface` and `src` directories of the other packages in this repository.

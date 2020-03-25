@@ -13,7 +13,7 @@ options.register("streams", 0,    VarParsing.multiplicity.singleton, VarParsing.
 options.register("batchsize", 10,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
 #options.register("modelname","resnet50_netdef", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("modelname","resnet50_ensemble", VarParsing.multiplicity.singleton, VarParsing.varType.string)
-options.register("async",False, VarParsing.multiplicity.singleton, VarParsing.varType.bool)
+options.register("mode","Async", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.parseArguments()
 
 if len(options.params)>0:

@@ -6,7 +6,8 @@
 #include <map>
 
 #include "SonicCMS/Core/interface/SonicEDProducer.h"
-#include "SonicCMS/TensorRT/interface/TRTClient.h"
+#include "SonicCMS/Brainwave/interface/TFClientRemote.h"
+#include "SonicCMS/Brainwave/interface/TFClientLocal.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
@@ -46,18 +47,23 @@ class JetImageProducer : public SonicEDProducer<Client>
 					imageList_.push_back(line);
 				}
 			}
+			else {
+				throw cms::Exception("MissingInputFile") << "Could not open image list: " << imageListFile_;
+			}
 		}
 		void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, Input& iInput) override {
-			//input data from event
 			edm::Handle<edm::View<pat::Jet>> h_jets;
 			iEvent.getByToken(JetTok_, h_jets);
 			const auto& jets = *h_jets.product();
 
 			// create a jet image for the leading jet in the event
 			// 224 x 224 image which is centered at the jet axis and +/- 1 unit in eta and phi
-			std::vector<float> img(client_.ninput(),0.f);
 			const unsigned npix = 224;
+			float image2D[npix][npix];
 			float pixel_width = 2./float(npix);
+			for (unsigned ii = 0; ii < npix; ii++){
+				for (unsigned ij = 0; ij < npix; ij++){ image2D[ii][ij] = 0.; }
+			}
 
 			int jet_ctr = 0;
 			for(const auto& i_jet : jets){
@@ -81,9 +87,7 @@ class JetImageProducer : public SonicEDProducer<Client>
 					if ( deta > 1. || deta < -1. || dphi > 1. || dphi < -1.) continue; // outside of the image, shouldn't happen for AK8 jet!
 					int eta_pixel_index =  (int) ((deta + 1.)/pixel_width);
 					int phi_pixel_index =  (int) ((dphi + 1.)/pixel_width);
-					img[3*(eta_pixel_index*npix+phi_pixel_index)+0] += i_pt/jet_pt;
-					img[3*(eta_pixel_index*npix+phi_pixel_index)+1] += i_pt/jet_pt;
-					img[3*(eta_pixel_index*npix+phi_pixel_index)+2] += i_pt/jet_pt;
+					image2D[eta_pixel_index][phi_pixel_index] += i_pt/jet_pt;
 				}
 
 				//////////////////////////////
@@ -92,10 +96,14 @@ class JetImageProducer : public SonicEDProducer<Client>
 				//////////////////////////////
 			}
 
-			iInput = Input(client_.ninput()*client_.batchSize(),0.f);
-			for(unsigned i0 = 0; i0 < client_.batchSize(); i0++ ) { 
-				for(unsigned i1 = 0; i1 < client_.ninput(); i1++) {
-					iInput[client_.ninput()*i0+i1] = img[i1];
+			// convert image to tensor
+			iInput = Input(tensorflow::DT_FLOAT, { 1, npix, npix, 3 });
+			auto input_map = iInput.template tensor<float, 4>();
+			for (unsigned itf = 0; itf < npix; itf++){
+				for (unsigned jtf = 0; jtf < npix; jtf++){
+					input_map(0,itf,jtf,0) = image2D[itf][jtf];
+					input_map(0,itf,jtf,1) = image2D[itf][jtf];
+					input_map(0,itf,jtf,2) = image2D[itf][jtf];
 				}
 			}
 		}
@@ -103,7 +111,6 @@ class JetImageProducer : public SonicEDProducer<Client>
 			//check the results
 			findTopN(iOutput);
 		}
-		~JetImageProducer() override {}
 
 		//to ensure distinct cfi names - specialized below
 		static std::string getCfiName();
@@ -117,28 +124,27 @@ class JetImageProducer : public SonicEDProducer<Client>
 		}
 
 	private:
-		using SonicEDProducer<Client>::client_;
-		void findTopN(const std::vector<float>& scores, unsigned n=5) const {
-			auto dim = client_.noutput();
-			for(unsigned i0 = 0; i0 < client_.batchSize(); i0++) {
-				//match score to type by index, then put in largest-first map
-				std::map<float,std::string,std::greater<float>> score_map;
-				for(unsigned i = 0; i < std::min((unsigned)dim,(unsigned)imageList_.size()); ++i){
-					score_map.emplace(scores[i0*dim+i],imageList_[i]);
-				}
-				//get top n
-				std::stringstream msg;
-				msg << "Scores:\n";
-				unsigned counter = 0;
-				for(const auto& item: score_map){
-					msg << item.second << " : " << item.first << "\n";
-					++counter;
-					if(counter>=topN_) break;
-				}
-				edm::LogInfo("JetImageProducer") << msg.str();
+		void findTopN(const tensorflow::Tensor& scores) const {
+			auto score_list = scores.flat<float>();
+			auto dim = score_list.dimensions()[0];
+
+			//match score to type by index, then put in largest-first map
+			std::map<float,std::string,std::greater<float>> score_map;
+			for(unsigned i = 0; i < std::min((unsigned)dim,(unsigned)imageList_.size()); ++i){
+				score_map.emplace(score_list(i),imageList_[i]);
 			}
+
+			//get top n
+			std::stringstream msg;
+			msg << "Scores:" << dim << "\n";
+			unsigned counter = 0;
+			for(const auto& item: score_map){
+				msg << item.second << " : " << item.first << "\n";
+				++counter;
+				if(counter>=topN_) break;
+			}
+			edm::LogInfo("JetImageProducer") << msg.str();
 		}
-		std::vector<float> createImage(const edm::View<pat::Jet>& jets) const;
 
 		edm::InputTag JetTag_;
 		edm::EDGetTokenT<edm::View<pat::Jet>> JetTok_;
@@ -147,15 +153,11 @@ class JetImageProducer : public SonicEDProducer<Client>
 		std::vector<std::string> imageList_;
 };
 
-typedef JetImageProducer<TRTClientSync> JetImageProducerSync;
-typedef JetImageProducer<TRTClientAsync> JetImageProducerAsync;
-typedef JetImageProducer<TRTClientPseudoAsync> JetImageProducerPseudoAsync;
+typedef JetImageProducer<TFClientRemote> JetImageProducerRemote;
+typedef JetImageProducer<TFClientLocal> JetImageProducerLocal;
 
-template<> std::string JetImageProducerSync::getCfiName() { return "JetImageProducerSync"; }
-template<> std::string JetImageProducerAsync::getCfiName() { return "JetImageProducerAsync"; }
-template<> std::string JetImageProducerPseudoAsync::getCfiName() { return "JetImageProducerPseudoAsync"; }
+template<> std::string JetImageProducerRemote::getCfiName() { return "JetImageProducerRemote"; }
+template<> std::string JetImageProducerLocal::getCfiName() { return "JetImageProducerLocal"; }
 
-DEFINE_FWK_MODULE(JetImageProducerSync);
-DEFINE_FWK_MODULE(JetImageProducerAsync);
-DEFINE_FWK_MODULE(JetImageProducerPseudoAsync);
-
+DEFINE_FWK_MODULE(JetImageProducerRemote);
+DEFINE_FWK_MODULE(JetImageProducerLocal);
