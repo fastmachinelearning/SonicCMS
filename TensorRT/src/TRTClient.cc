@@ -33,9 +33,9 @@ void TRTClient<Client>::setup()
 	if (!err.IsOk())
 		throw cms::Exception("BadGrpc") << "unable to create inference context: " << err;
 
-	nic::ServerStatusGrpcContext::Create(&server_ctx_, url_, false);
-	if (!err.IsOk())
-		throw cms::Exception("BadServer") << "unable to create server inference context: " << err;
+	// nic::ServerStatusGrpcContext::Create(&server_ctx_, url_, false);
+	// if (!err.IsOk())
+	// 	throw cms::Exception("BadServer") << "unable to create server inference context: " << err;
 
 	std::unique_ptr<nic::InferContext::Options> options;
 	nic::InferContext::Options::Create(&options);
@@ -114,7 +114,7 @@ void TRTClientAsync::predictImpl()
 
 	// Get the status of the server prior to the request being made.
 	// std::map<std::string, ni::ModelStatus> start_status;
-	GetServerSideStatus(&start_status);
+	// GetServerSideStatus(&start_status);
 
 	auto t2 = std::chrono::high_resolution_clock::now();
 	nic::Error erro0 = context_->AsyncRun(
@@ -130,7 +130,7 @@ void TRTClientAsync::predictImpl()
 			//auto t3 = std::chrono::high_resolution_clock::now();
 
 			// std::map<std::string, ni::ModelStatus> end_status;
-			GetServerSideStatus(&end_status);
+			// GetServerSideStatus(&end_status);
 
 			//edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 
@@ -138,7 +138,7 @@ void TRTClientAsync::predictImpl()
 			this->getResults(results.begin()->second);
 
 			ServerSideStats stats;
-			SummarizeServerStats(std::make_pair(modelName_, -1), start_status, end_status, &stats);
+			// SummarizeServerStats(std::make_pair(modelName_, -1), start_status, end_status, &stats);
 			//ReportServerSideState(stats);
 
 			//finish
