@@ -11,7 +11,7 @@ options.register("params", "", VarParsing.multiplicity.singleton, VarParsing.var
 options.register("threads", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("streams", 0,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("batchsize", 10,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
-options.register("modelname","resnet50", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+options.register("modelname","resnet50_netdef", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 #options.register("modelname","resnet50_ensemble", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("mode","Async", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.parseArguments()
@@ -46,8 +46,8 @@ process.GlobalTag.globaltag = cms.string('100X_upgrade2018_realistic_v10')
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents) )
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring(['file:store_mc_RunIISpring18MiniAOD_BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgr
-aph_MINIAODSIM_100X_upgrade2018_realistic_v10-v1_30000_24A0230C-B530-E811-ADE3-14187741120B.root'])
+    fileNames = cms.untracked.vstring(['file:store_mc_RunIISpring18MiniAOD_BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph_MINIAODSIM_100X_upgrade2018_realistic_v10-v1_30000_24A0230C-B530-E811-ADE3-14187741120B.root']*50),
+	duplicateCheckMode = cms.untracked.string('noDuplicateCheck')
 )
 
 if len(options.inputFiles)>0: process.source.fileNames = options.inputFiles
@@ -73,7 +73,7 @@ process.p = cms.Path(
     process.jetImageProducer
 )
 
-process.MessageLogger.cerr.FwkReport.reportEvery = 10
+process.MessageLogger.cerr.FwkReport.reportEvery = 500
 keep_msgs = ['JetImageProducer','TRTClient']
 for msg in keep_msgs:
     process.MessageLogger.categories.append(msg)
