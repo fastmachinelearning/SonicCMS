@@ -135,7 +135,7 @@ class JetImageProducer : public SonicEDProducer<Client>
 					++counter;
 					if(counter>=topN_) break;
 				}
-				edm::LogInfo("JetImageProducer") << msg.str();
+				//edm::LogInfo("JetImageProducer") << msg.str();
 			}
 		}
 		std::vector<float> createImage(const edm::View<pat::Jet>& jets) const;

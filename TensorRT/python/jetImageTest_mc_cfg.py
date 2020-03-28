@@ -11,8 +11,8 @@ options.register("params", "", VarParsing.multiplicity.singleton, VarParsing.var
 options.register("threads", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("streams", 0,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("batchsize", 10,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
-#options.register("modelname","resnet50_netdef", VarParsing.multiplicity.singleton, VarParsing.varType.string)
-options.register("modelname","resnet50_ensemble", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+options.register("modelname","resnet50", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+#options.register("modelname","resnet50_ensemble", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("mode","Async", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.parseArguments()
 
