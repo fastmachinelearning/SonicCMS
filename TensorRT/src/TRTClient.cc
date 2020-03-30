@@ -89,10 +89,15 @@ void TRTClient<Client>::predictImpl()
 	//blocking call
 	//auto t2 = std::chrono::high_resolution_clock::now();
 	std::map<std::string, std::unique_ptr<nic::InferContext::Result>> results;
-	nic::Error err0 = context_->Run(&results);
+	nic::Error err = context_->Run(&results);
+	if (!err.IsOk()) {
+		std::cout << "Could not read the result" <<  ": " << err << std::endl;
+		this->output_.resize(noutput_ * batchSize_, 0.f);
+	} else {
 	//auto t3 = std::chrono::high_resolution_clock::now();
 	//edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
-	getResults(results.begin()->second);
+		getResults(results.begin()->second);
+	}
 }
 
 //specialization for true async
@@ -123,10 +128,13 @@ void TRTClientAsync::predictImpl()
 			std::map<std::string, std::unique_ptr<nic::InferContext::Result>> results;
 			//this function interface will change in the next tensorrtis version
 			bool is_ready = false;
-			ctx->GetAsyncRunResults(&results, &is_ready, request, false);
+			nic::Error err = ctx->GetAsyncRunResults(&results, &is_ready, request, false);
 			if (is_ready == false)
 				finish(std::make_exception_ptr(cms::Exception("BadCallback") << "Callback executed before request was ready"));
-
+			if (!err.IsOk()) {
+				std::cout << "Could not read the result" <<  ": " << err << std::endl;
+				this->output_.resize(noutput_ * batchSize_, 0.f);
+			} else {
 			//auto t3 = std::chrono::high_resolution_clock::now();
 
 			// std::map<std::string, ni::ModelStatus> end_status;
@@ -135,12 +143,12 @@ void TRTClientAsync::predictImpl()
 			//edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 
 			//check result
-			this->getResults(results.begin()->second);
+				this->getResults(results.begin()->second);
 
-			ServerSideStats stats;
+			//ServerSideStats stats;
 			// SummarizeServerStats(std::make_pair(modelName_, -1), start_status, end_status, &stats);
 			//ReportServerSideState(stats);
-
+			}
 			//finish
 			this->finish();
 		});
