@@ -135,12 +135,12 @@ void TRTClientAsync::predictImpl()
 				std::cout << "Could not read the result" <<  ": " << err << std::endl;
 				this->output_.resize(noutput_ * batchSize_, 0.f);
 			} else {
-			//auto t3 = std::chrono::high_resolution_clock::now();
+			auto t3 = std::chrono::high_resolution_clock::now();
 
 			// std::map<std::string, ni::ModelStatus> end_status;
 			// GetServerSideStatus(&end_status);
 
-			//edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+			edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 
 			//check result
 				this->getResults(results.begin()->second);
