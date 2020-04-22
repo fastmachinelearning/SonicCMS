@@ -51,21 +51,21 @@ void TRTClient<Client>::setup()
 	nicinput_ = nicinputs[0];
 	nicinput_->Reset();
 
-	//auto t2 = std::chrono::high_resolution_clock::now();
+	auto t2 = std::chrono::high_resolution_clock::now();
 	std::vector<int64_t> input_shape;
 	for (unsigned i0 = 0; i0 < batchSize_; i0++)
 	{
 		float *arr = &(this->input_.data()[i0 * ninput_]);
 		nic::Error err1 = nicinput_->SetRaw(reinterpret_cast<const uint8_t *>(arr), ninput_ * sizeof(float));
 	}
-	//auto t3 = std::chrono::high_resolution_clock::now();
-	//edm::LogInfo("TRTClient") << "Image array time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+	auto t3 = std::chrono::high_resolution_clock::now();
+	edm::LogInfo("TRTClient") << "Image array time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 }
 
 template <typename Client>
 void TRTClient<Client>::getResults(const std::unique_ptr<nic::InferContext::Result> &result)
 {
-	//auto t2 = std::chrono::high_resolution_clock::now();
+	auto t2 = std::chrono::high_resolution_clock::now();
 	this->output_.resize(noutput_ * batchSize_, 0.f);
 	for (unsigned i0 = 0; i0 < batchSize_; i0++)
 	{
@@ -76,8 +76,8 @@ void TRTClient<Client>::getResults(const std::unique_ptr<nic::InferContext::Resu
 		for (unsigned i1 = 0; i1 < noutput_; i1++)
 			this->output_[i0 * noutput_ + i1] = lVal[i1]; //This should be replaced with a memcpy
 	}
-	//auto t3 = std::chrono::high_resolution_clock::now();
-	//edm::LogInfo("TRTClient") << "Output time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+	auto t3 = std::chrono::high_resolution_clock::now();
+	edm::LogInfo("TRTClient") << "Output time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 }
 
 template <typename Client>
@@ -87,15 +87,15 @@ void TRTClient<Client>::predictImpl()
 	setup();
 
 	//blocking call
-	//auto t2 = std::chrono::high_resolution_clock::now();
+	auto t2 = std::chrono::high_resolution_clock::now();
 	std::map<std::string, std::unique_ptr<nic::InferContext::Result>> results;
 	nic::Error err = context_->Run(&results);
 	if (!err.IsOk()) {
 		std::cout << "Could not read the result" <<  ": " << err << std::endl;
 		this->output_.resize(noutput_ * batchSize_, 0.f);
 	} else {
-	//auto t3 = std::chrono::high_resolution_clock::now();
-	//edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+	auto t3 = std::chrono::high_resolution_clock::now();
+	edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 		getResults(results.begin()->second);
 	}
 }
