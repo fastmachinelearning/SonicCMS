@@ -28,10 +28,11 @@ class SonicClientBase {
 		}
 
 		void finish(std::exception_ptr eptr = std::exception_ptr{}) {
+            /*unsigned int clientTime = 0;
 			if(setTime_){
 				auto t1 = std::chrono::high_resolution_clock::now();
-				edm::LogInfo(debugName_) << "Client time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0_).count();
-			}
+				clientTime = (unsigned int)std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0_).count();
+			}*/
 			holder_.doneWaiting(eptr);
 		}
 

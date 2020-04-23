@@ -6,7 +6,7 @@ For this branch, please use the following script to set up the work area:
 ```
 wget https://raw.githubusercontent.com/hls-fpga-machine-learning/SonicCMS/master/setup.sh
 chmod +x setup.sh
-./setup.sh
+./setup.sh -f jeffkrupa -j 4 -p TensorRT
 cd CMSSW_10_6_6/src
 cmsenv
 ```
