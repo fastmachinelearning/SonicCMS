@@ -49,7 +49,6 @@ class JetImageProducer : public SonicEDProducer<Client>
 		}
 		void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, Input& iInput) override {
 			//input data from event
-			// std::cout << "Acquiring" << std::endl;
 
 			edm::Handle<edm::View<pat::Jet>> h_jets;
 			iEvent.getByToken(JetTok_, h_jets);
@@ -58,8 +57,6 @@ class JetImageProducer : public SonicEDProducer<Client>
 			// create a jet image for the leading jet in the event
 			// 224 x 224 image which is centered at the jet axis and +/- 1 unit in eta and phi
 			std::vector<float> img(client_.ninput()*client_.batchSize(),0.f);
-			
-			//std::vector<float> img(client_.ninput(),0.f);
 			
 			const unsigned npix = 224;
 			float pixel_width = 2./float(npix);
@@ -96,7 +93,6 @@ class JetImageProducer : public SonicEDProducer<Client>
 				if (jet_ctr > 0) break; // just do one jet for now
 				//////////////////////////////
 			}
-			//std::cout << "Loading images...";
 			
 			iInput = Input(client_.ninput()*client_.batchSize(),0.f);
 			for(unsigned i0 = 0; i0 < client_.batchSize(); i0++ ) { 
@@ -104,11 +100,9 @@ class JetImageProducer : public SonicEDProducer<Client>
 					iInput[client_.ninput()*i0+i1] = img[i1];
 				}
 			}
-			//std::cout << " done." << std::endl;
 		}
 		void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Output const& iOutput) override {
 			//check the results
-			// std::cout << "producing" << std::endl;
 			findTopN(iOutput);
 		}
 		~JetImageProducer() override {}
@@ -135,15 +129,15 @@ class JetImageProducer : public SonicEDProducer<Client>
 					score_map.emplace(scores[i0*dim+i],imageList_[i]);
 				}
 				//get top n
-				//std::stringstream msg;
-				//msg << "Scores:\n";
+				std::stringstream msg;
+				msg << "Scores:\n";
 				unsigned counter = 0;
 				for(const auto& item: score_map){
-					//msg << item.second << " : " << item.first << "\n";
+					msg << item.second << " : " << item.first << "\n";
 					++counter;
 					if(counter>=topN_) break;
 				}
-				//edm::LogInfo("JetImageProducer") << msg.str();
+				edm::LogInfo("JetImageProducer") << msg.str();
 			}
 		}
 		std::vector<float> createImage(const edm::View<pat::Jet>& jets) const;
