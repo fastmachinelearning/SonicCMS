@@ -31,8 +31,6 @@ class DeepCaloProducer : public SonicEDProducer<Client>
 			//for debugging
 			this->setDebugName("DeepCaloProducer");
 
-			// printf("Loading data...\n");
-
 			// Load the bin data
 			std::streampos fileSize;
 			std::ifstream file(binDataPath_, std::ios::binary);
@@ -45,7 +43,6 @@ class DeepCaloProducer : public SonicEDProducer<Client>
 				fileSize = file.tellg();
 				file.seekg(0, std::ios::beg);
 
-				// std::cout << fileSize << " bytes in the file." << std::endl;
 				imageData_.reserve(fileSize/sizeof(float));
 
 				for (size_t i = 0; i < imageData_.capacity(); i++)
@@ -53,17 +50,9 @@ class DeepCaloProducer : public SonicEDProducer<Client>
 					float f;
 					file.read(reinterpret_cast<char*>(&f), sizeof(float));
 					imageData_.push_back(f);
-				}      
-				
-				// file.read(reinterpret_cast<char*>(imageData_.data()), fileSize / sizeof(float));
-				// // file.read(reinterpret_cast<char*>(test.data()), 32/4);
-				// // std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(file), {});
-
-				// // std::cout << "Segfault check" << std::endl;
+				}
 				file.close();
-			} else std::cout << "Could not read the file!" << std::endl;
-
-			// std::cout << imageData_.size() << " floats loaded!" << std::endl;
+			} else throw cms::Exception("MissingInputFile") << "Could not read the file: " << binDataPath_;
 
 			imageID_ = 0;
 			imageN_ = imageData_.size() / (56*11*4);
@@ -72,13 +61,6 @@ class DeepCaloProducer : public SonicEDProducer<Client>
 			auto ninput = client_.ninput();
 			auto batchSize = client_.batchSize();
 			iInput = Input(ninput*batchSize, 0.f);
-			//make some random channels
-			// for(unsigned ib = 0; ib < batchSize; ib++) { 
-			// 	for(unsigned i0 = 0; i0 < ninput; i0++) { 
-			// 		for(unsigned i1 = 0; i1 < ninput; i1++) iInput[ib*ninput+i1] = float(rand() % 10000)*1e-8;
-			// 	}
-			// }
-
 
 			if (imageID_ + batchSize >= imageN_)
 				imageID_ = 0;

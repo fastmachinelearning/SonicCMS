@@ -27,10 +27,10 @@ class SonicEDProducer : public edm::stream::EDProducer<edm::ExternalWork, Capabi
 		//derived classes use a dedicated acquire() interface that incorporates client_.input()
 		//(no need to interact with callback holder)
 		void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, edm::WaitingTaskWithArenaHolder holder) override final {
-			//auto t0 = std::chrono::high_resolution_clock::now();
+			auto t0 = std::chrono::high_resolution_clock::now();
 			acquire(iEvent, iSetup, client_.input());
-			//auto t1 = std::chrono::high_resolution_clock::now();
-			//if(!debugName_.empty()) edm::LogInfo(debugName_) << "Load time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
+			auto t1 = std::chrono::high_resolution_clock::now();
+			if(!debugName_.empty()) edm::LogInfo(debugName_) << "Load time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
 			client_.predict(holder);
 		}
 		virtual void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, Input& iInput) = 0;

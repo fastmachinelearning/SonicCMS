@@ -21,14 +21,6 @@ for line in content:
         client_time.append(int(this_line[-1]))
     if (this_line[0] == "Output"):
         output_time.append(int(this_line[-1]))
-   
-#print(output_time)
-#print(remote_time)
-
-#plt.figure()
-#plt.xlabel("Test number")
-#plt.ylabel("Time (usec)")
-#plt.savefig("fnal_result.png")
 
 result_dic = {}
 

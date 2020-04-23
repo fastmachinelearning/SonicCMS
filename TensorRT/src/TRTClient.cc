@@ -16,73 +16,62 @@ using ModelInfo = std::pair<std::string, int64_t>;
 //based on https://github.com/NVIDIA/tensorrt-inference-server/blob/master/src/clients/c++/examples/simple_callback_client.cc
 
 template <typename Client>
-TRTClient<Client>::TRTClient(const edm::ParameterSet &params) : Client(),
-																url_(params.getParameter<std::string>("address") + ":" + std::to_string(params.getParameter<unsigned>("port"))),
-																timeout_(params.getParameter<unsigned>("timeout")),
-																modelName_(params.getParameter<std::string>("modelName")),
-																batchSize_(params.getParameter<unsigned>("batchSize")),
-																ninput_(params.getParameter<unsigned>("ninput")),
-																noutput_(params.getParameter<unsigned>("noutput"))
+TRTClient<Client>::TRTClient(const edm::ParameterSet& params) :
+	Client(),
+	url_(params.getParameter<std::string>("address")+":"+std::to_string(params.getParameter<unsigned>("port"))),
+	timeout_(params.getParameter<unsigned>("timeout")),
+	modelName_(params.getParameter<std::string>("modelName")),
+	batchSize_(params.getParameter<unsigned>("batchSize")),
+	ninput_(params.getParameter<unsigned>("ninput")),
+	noutput_(params.getParameter<unsigned>("noutput"))
 {
 }
 
 template <typename Client>
-void TRTClient<Client>::setup()
-{
+void TRTClient<Client>::setup() {
 	auto err = nic::InferGrpcContext::Create(&context_, url_, modelName_, -1, false);
-	if (!err.IsOk())
-		throw cms::Exception("BadGrpc") << "unable to create inference context: " << err;
-
-	// nic::ServerStatusGrpcContext::Create(&server_ctx_, url_, false);
-	// if (!err.IsOk())
-	// 	throw cms::Exception("BadServer") << "unable to create server inference context: " << err;
+	if (!err.IsOk()) throw cms::Exception("BadGrpc") << "unable to create inference context: " << err;
 
 	std::unique_ptr<nic::InferContext::Options> options;
 	nic::InferContext::Options::Create(&options);
 
 	options->SetBatchSize(batchSize_);
-	for (const auto &output : context_->Outputs())
-	{
+	for (const auto& output : context_->Outputs()) {
 		options->AddRawResult(output);
 	}
 	context_->SetRunOptions(*options);
 
-	const std::vector<std::shared_ptr<nic::InferContext::Input>> &nicinputs = context_->Inputs();
+	const std::vector<std::shared_ptr<nic::InferContext::Input>>& nicinputs = context_->Inputs();
 	nicinput_ = nicinputs[0];
 	nicinput_->Reset();
 
 	auto t2 = std::chrono::high_resolution_clock::now();
 	std::vector<int64_t> input_shape;
-	for (unsigned i0 = 0; i0 < batchSize_; i0++)
-	{
+	for(unsigned i0 = 0; i0 < batchSize_; i0++) {
 		float *arr = &(this->input_.data()[i0 * ninput_]);
 		nic::Error err1 = nicinput_->SetRaw(reinterpret_cast<const uint8_t *>(arr), ninput_ * sizeof(float));
 	}
 	auto t3 = std::chrono::high_resolution_clock::now();
-	edm::LogInfo("TRTClient") << "Image array time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+	edm::LogInfo("TRTClient") << "Image array time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
 }
 
 template <typename Client>
-void TRTClient<Client>::getResults(const std::unique_ptr<nic::InferContext::Result> &result)
-{
+void TRTClient<Client>::getResults(const std::unique_ptr<nic::InferContext::Result>& result) {
 	auto t2 = std::chrono::high_resolution_clock::now();
-	this->output_.resize(noutput_ * batchSize_, 0.f);
-	for (unsigned i0 = 0; i0 < batchSize_; i0++)
-	{
+	this->output_.resize(noutput_*batchSize_,0.f);
+	for (unsigned i0 = 0; i0 < batchSize_; i0++) {
 		const uint8_t *r0;
 		size_t content_byte_size;
 		result->GetRaw(i0, &r0, &content_byte_size);
-		const float *lVal = reinterpret_cast<const float *>(r0);
-		for (unsigned i1 = 0; i1 < noutput_; i1++)
-			this->output_[i0 * noutput_ + i1] = lVal[i1]; //This should be replaced with a memcpy
+		const float *lVal = reinterpret_cast<const float*>(r0);
+		for(unsigned i1 = 0; i1 < noutput_; i1++) this->output_[i0*noutput_+i1] = lVal[i1]; //This should be replaced with a memcpy
 	}
 	auto t3 = std::chrono::high_resolution_clock::now();
-	edm::LogInfo("TRTClient") << "Output time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
+	edm::LogInfo("TRTClient") << "Output time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count();
 }
 
 template <typename Client>
-void TRTClient<Client>::predictImpl()
-{
+void TRTClient<Client>::predictImpl(){
 	//common operations first
 	setup();
 
@@ -91,7 +80,7 @@ void TRTClient<Client>::predictImpl()
 	std::map<std::string, std::unique_ptr<nic::InferContext::Result>> results;
 	nic::Error err = context_->Run(&results);
 	if (!err.IsOk()) {
-		std::cout << "Could not read the result" <<  ": " << err << std::endl;
+		edm::LogWarning("TRTClient") << "Could not read the result" <<  ": " << err;
 		this->output_.resize(noutput_ * batchSize_, 0.f);
 	} else {
 	auto t3 = std::chrono::high_resolution_clock::now();
@@ -102,28 +91,21 @@ void TRTClient<Client>::predictImpl()
 
 //specialization for true async
 template <>
-void TRTClientAsync::predictImpl()
-{
+void TRTClientAsync::predictImpl(){
 	//common operations first
-	try
-	{
+	try {
 		setup();
 	}
-	catch (...)
-	{
+	catch (...) {
 		finish(std::current_exception());
 		return;
 	}
 
 	//non-blocking call
 
-	// Get the status of the server prior to the request being made.
-	// std::map<std::string, ni::ModelStatus> start_status;
-	// GetServerSideStatus(&start_status);
-
 	auto t2 = std::chrono::high_resolution_clock::now();
 	nic::Error erro0 = context_->AsyncRun(
-		[t2, this](nic::InferContext *ctx, const std::shared_ptr<nic::InferContext::Request> &request) {
+		[t2,this](nic::InferContext* ctx, const std::shared_ptr<nic::InferContext::Request>& request) {
 			//get results
 			std::map<std::string, std::unique_ptr<nic::InferContext::Result>> results;
 			//this function interface will change in the next tensorrtis version
@@ -142,16 +124,17 @@ void TRTClientAsync::predictImpl()
 
 			edm::LogInfo("TRTClient") << "Remote time: " << std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count();
 
-			//check result
-				this->getResults(results.begin()->second);
-
 			//ServerSideStats stats;
 			// SummarizeServerStats(std::make_pair(modelName_, -1), start_status, end_status, &stats);
 			//ReportServerSideState(stats);
+
+			//check result
+			this->getResults(results.begin()->second);
 			}
 			//finish
 			this->finish();
-		});
+		}
+	);
 }
 
 template <typename Client>
@@ -162,7 +145,7 @@ TRTClient<Client>::ReportServerSideState(const ServerSideStats& stats)
 	const uint64_t cnt = stats.request_count;
 	if (cnt == 0)
 	{
-		std::cout << "  Request count: " << cnt << std::endl;
+		edm::LogInfo("TRTClient") << "  Request count: " << cnt;
 		return;
 	}
 
@@ -178,13 +161,12 @@ TRTClient<Client>::ReportServerSideState(const ServerSideStats& stats)
 	const uint64_t overhead = (cumm_avg_us > queue_avg_us + compute_avg_us)
 								  ? (cumm_avg_us - queue_avg_us - compute_avg_us)
 								  : 0;
-	std::cout << "  Request count: " << cnt << std::endl
+	edm::LogInfo("TRTClient") << "  Request count: " << cnt << std::endl
 			  << "  Avg request latency: " << cumm_avg_us << " usec";
 
-	std::cout << " (overhead " << overhead << " usec + "
+	edm::LogInfo("TRTClient") << " (overhead " << overhead << " usec + "
 				<< "queue " << queue_avg_us << " usec + "
-				<< "compute " << compute_avg_us << " usec)" << std::endl
-				<< std::endl;
+				<< "compute " << compute_avg_us << " usec)" << std::endl;
 }
 
 template <typename Client>
@@ -199,24 +181,6 @@ TRTClient<Client>::SummarizeServerStats(
       model_info.first, model_info.second,
       start_status.find(model_info.first)->second,
       end_status.find(model_info.first)->second, server_stats);
-
-//   // Summarize the composing models, if any.
-//   for (const auto& composing_model_info : composing_models_map_[model_info]) {
-//     auto it = server_stats->composing_models_stat
-//                   .emplace(composing_model_info, ServerSideStats())
-//                   .first;
-//     if (composing_models_map_.find(composing_model_info) !=
-//         composing_models_map_.end()) {
-//       RETURN_IF_ERROR(SummarizeServerStats(
-//           composing_model_info, start_status, end_status, &(it->second)));
-//     } else {
-//       RETURN_IF_ERROR(SummarizeServerModelStats(
-//           composing_model_info.first, composing_model_info.second,
-//           start_status.find(composing_model_info.first)->second,
-//           end_status.find(composing_model_info.first)->second, &(it->second)));
-//     }
-
-//   return nic::Error::Success;
 }
 
 template <typename Client>
@@ -302,25 +266,6 @@ TRTClient<Client>::GetServerSideStatus(
   } else {
     model_status->emplace(model_info.first, itr->second);
   }
-
-//   // Also get status for composing models if any
-//   for (const auto& composing_model_info : composing_models_map_[model_info]) {
-//     if (composing_models_map_.find(composing_model_info) !=
-//         composing_models_map_.end()) {
-//       GetServerSideStatus(
-//           server_status, composing_model_info, model_status);
-//     } else {
-//       const auto& itr =
-//           server_status.model_status().find(composing_model_info.first);
-//       if (itr == server_status.model_status().end()) {
-//         return nic::Error(
-//             ni::RequestStatusCode::INTERNAL,
-//             "unable to find status for composing model" +
-//                 composing_model_info.first);
-//       } else {
-//         model_status->emplace(composing_model_info.first, itr->second);
-//       }
-//     }
 }
 
 //explicit template instantiations
