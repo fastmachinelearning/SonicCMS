@@ -29,7 +29,6 @@ if len(options.params)>0:
 
 # check mode
 allowed_modes = {
-      
     "Async": "HcalPhase1Reconstructor_FACILEAsync",
     "Sync": "HcalPhase1Reconstructor_FACILESync",
     "PseudoAsync": "HcalPhase1Reconstructor_FACILEPseudoAsync",
@@ -51,10 +50,8 @@ process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 process.load('Configuration.StandardSequences.Reconstruction_cff')
 process.load('HLTrigger.Configuration.HLT_GRun_cff')
-#process.GlobalTag.globaltag = cms.string('auto:phase1_2021_realistic')#100X_upgrade2018_realistic_v10')
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase1_2021_realistic', '')
-
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents) )
 process.source = cms.Source("PoolSource",
@@ -130,13 +127,3 @@ if options.threads>0:
 
 from HLTrigger.Configuration.customizeHLTforMC import customizeHLTforMC 
 process = customizeHLTforMC(process)
-
-
-# instrument the menu with the FastTimerService
-process.load( "HLTrigger.Timer.FastTimerService_cfi" )
-
-# print a text summary at the end of the job
-process.FastTimerService.printEventSummary        = False
-process.FastTimerService.printRunSummary          = False
-process.FastTimerService.printJobSummary          = True
-

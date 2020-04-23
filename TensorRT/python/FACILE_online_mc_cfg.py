@@ -29,7 +29,6 @@ if len(options.params)>0:
 
 # check mode
 allowed_modes = {
-      
     "Async": "HcalPhase1Reconstructor_FACILEAsync",
     "Sync": "HcalPhase1Reconstructor_FACILESync",
     "PseudoAsync": "HcalPhase1Reconstructor_FACILEPseudoAsync",
@@ -38,7 +37,6 @@ allowed_modes = {
 from Configuration.StandardSequences.Eras import eras
 #process = cms.Process('HLT',eras.Run3)
 #process.load('HLTrigger.Configuration.HLT_GRun_cff')
-
 
 sys.path.insert(0,os.path.expandvars("$CMSSW_RELEASE_BASE/src/HLTrigger/Configuration/test"))
 from OnLine_HLT_GRun import process
@@ -61,7 +59,6 @@ process.hltHbhereco = cms.EDProducer(allowed_modes[options.mode],
         modelName = cms.string(options.modelname)
     )
 )
-
 
 # add specific customizations
 _customInfo = {}
@@ -102,12 +99,3 @@ if options.threads>0:
 
 #from HLTrigger.Configuration.customizeHLTforMC import customizeHLTforMC 
 #process = customizeHLTforMC(process)
-
-# instrument the menu with the FastTimerService
-process.load( "HLTrigger.Timer.FastTimerService_cfi" )
-
-# print a text summary at the end of the job
-process.FastTimerService.printEventSummary        = False
-process.FastTimerService.printRunSummary          = False
-process.FastTimerService.printJobSummary          = True
-

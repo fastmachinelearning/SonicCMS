@@ -45,58 +45,36 @@ class HcalProducer : public SonicEDProducer<Client>
 			fTokRH(this->template consumes<edm::SortedCollection<HBHERecHit,edm::StrictWeakOrdering<HBHERecHit>> >(fRHName)), 
 			fTokChanInfo(this->template consumes<edm::SortedCollection<HBHEChannelInfo,edm::StrictWeakOrdering<HBHEChannelInfo>> >(fChanInfoName))
 		{
-
-
 			this->template produces<HBHERecHitCollection>();
 			//for debugging
 			this->setDebugName("HcalProducer");
 		}
 		void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, Input& iInput) override {
-
-
 			//load RecHit and ChannelInfo collections from hbheprereco
-  			edm::Handle<edm::SortedCollection<HBHERecHit,edm::StrictWeakOrdering<HBHERecHit>>> hRecHitHCAL;
-  			iEvent.getByToken(fTokRH,hRecHitHCAL);
-  			edm::Handle<edm::SortedCollection<HBHEChannelInfo,edm::StrictWeakOrdering<HBHEChannelInfo>>> hChannelInfo;
-  			iEvent.getByToken(fTokChanInfo, hChannelInfo);
+			edm::Handle<edm::SortedCollection<HBHERecHit,edm::StrictWeakOrdering<HBHERecHit>>> hRecHitHCAL;
+			iEvent.getByToken(fTokRH,hRecHitHCAL);
+			edm::Handle<edm::SortedCollection<HBHEChannelInfo,edm::StrictWeakOrdering<HBHEChannelInfo>>> hChannelInfo;
+			iEvent.getByToken(fTokChanInfo, hChannelInfo);
 
 			auto ninput = client_.ninput();
 			auto batchSize = client_.batchSize();
-			//auto batchSize = std::distance(hRecHitHCAL->begin(), hRecHitHCAL->end());
 			iInput = Input(ninput*batchSize, 0.f);
-			/*for(unsigned ib = 0; ib < batchSize; ib++) { 
-				for(unsigned i0 = 0; i0 < ninput; i0++) { 
-					iInput[ib*ninput+0] = 1; //
-					iInput[ib*ninput+1] = 1; //
-					iInput[ib*ninput+2] = 1; //
-					iInput[ib*ninput+3] = int(rand() % 30)-15; //
-					iInput[ib*ninput+4] = int(rand() % 36)-36; //
-					iInput[ib*ninput+5] = 1;
-					for(unsigned i1 = 6; i1 < ninput; i1++) iInput[ib*ninput+i1] = float(rand() % 1000)*0.1;
-				}
-			}*/
-			//batchSize == # of RHs in evt
-			//auto batchSize = std::distance(hRecHitHCAL->begin(), hRecHitHCAL->end());
-			std::cout << "# of RHs: " << std::distance(hRecHitHCAL->begin(), hRecHitHCAL->end()) << std::endl;
 
 			//fill inputs
 			unsigned int ib = 0;
-  			for(HBHERecHitCollection::const_iterator itRH = hRecHitHCAL->begin(); itRH != hRecHitHCAL->end(); itRH++) {
+			for(HBHERecHitCollection::const_iterator itRH = hRecHitHCAL->begin(); itRH != hRecHitHCAL->end(); itRH++) {
 
 				depth = (float)itRH->id().depth();
 				ieta  = (float)itRH->id().ieta();
 				iphi  = (float)itRH->id().iphi();
 
-				//std::cout << sizeof(depth) << std::endl;
 				iInput[ib*ninput+0] = ieta;
 				iInput[ib*ninput+1] = iphi; 
 
-
-
-  				for (HBHEChannelInfoCollection::const_iterator iter = hChannelInfo->begin(); iter != hChannelInfo->end(); iter++) {
-    					const HBHEChannelInfo& pChannel(*iter);
-    					const HcalDetId        pDetId = pChannel.id();
-    					if(pDetId != itRH->id()) continue; 
+				for (HBHEChannelInfoCollection::const_iterator iter = hChannelInfo->begin(); iter != hChannelInfo->end(); iter++) {
+					const HBHEChannelInfo& pChannel(*iter);
+					const HcalDetId        pDetId = pChannel.id();
+					if(pDetId != itRH->id()) continue; 
 					iInput[ib*ninput+2] = pChannel.tsGain(0);
 					for (unsigned int iTS=0; iTS<8; ++iTS) {
 						iInput[ib*ninput+iTS+3] = (float)pChannel.tsRawCharge(iTS);
@@ -107,22 +85,17 @@ class HcalProducer : public SonicEDProducer<Client>
 					if(depth == (float)d) 	{ iInput[ib*ninput + d + 10] = 1.; }
 					else 			{ iInput[ib*ninput + d + 10] = 0.; }
 				}
-				ib++;		
-
-
+				ib++;
 			}
 		}
 		void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Output const& iOutput) override {
-
-
-  			edm::Handle<edm::SortedCollection<HBHERecHit,edm::StrictWeakOrdering<HBHERecHit>>> hRecHitHCAL_client;
-  			iEvent.getByToken(fTokRH,hRecHitHCAL_client);
+			edm::Handle<edm::SortedCollection<HBHERecHit,edm::StrictWeakOrdering<HBHERecHit>>> hRecHitHCAL_client;
+			iEvent.getByToken(fTokRH,hRecHitHCAL_client);
 
 			std::unique_ptr<edm::SortedCollection<HBHERecHit,edm::StrictWeakOrdering<HBHERecHit>>> out;
 			out = std::make_unique<edm::SortedCollection<HBHERecHit,edm::StrictWeakOrdering<HBHERecHit>>>();
 			for(HBHERecHitCollection::const_iterator itRH = hRecHitHCAL_client->begin(); itRH != hRecHitHCAL_client->end(); itRH++){
 				out->push_back(*itRH);
-
 			}
 
 			//check the results
@@ -141,14 +114,11 @@ class HcalProducer : public SonicEDProducer<Client>
 		}
 
 	private:
-
-//		edm::EDGetTokenT<QIE11DigiCollection> tok_qie11_;
-
 		unsigned topN_;
-    		edm::InputTag fRHName;
-    		edm::InputTag fChanInfoName;
-   		edm::EDGetTokenT<edm::SortedCollection<HBHERecHit,edm::StrictWeakOrdering<HBHERecHit>>> fTokRH;
-    		edm::EDGetTokenT<edm::SortedCollection<HBHEChannelInfo,edm::StrictWeakOrdering<HBHEChannelInfo>>> fTokChanInfo;
+		edm::InputTag fRHName;
+		edm::InputTag fChanInfoName;
+		edm::EDGetTokenT<edm::SortedCollection<HBHERecHit,edm::StrictWeakOrdering<HBHERecHit>>> fTokRH;
+		edm::EDGetTokenT<edm::SortedCollection<HBHEChannelInfo,edm::StrictWeakOrdering<HBHEChannelInfo>>> fTokChanInfo;
 
 		float depth, ieta, iphi; 
 
@@ -175,7 +145,6 @@ class HcalProducer : public SonicEDProducer<Client>
 				edm::LogInfo("HcalProducer") << msg.str();
 			}
 		}
-
 };
 
 typedef HcalProducer<TRTClientSync> HcalProducerSync;

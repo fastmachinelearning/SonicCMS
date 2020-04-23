@@ -132,8 +132,6 @@ class HcalPhase1Reconstructor_FACILE : public SonicEDProducer<Client>
 			fTokChanInfo(this->template consumes<edm::SortedCollection<HBHEChannelInfo,edm::StrictWeakOrdering<HBHEChannelInfo>> >(fChanInfoName)),
 			fTokDigis(this->template consumes<QIE11DigiCollection>(fDigiName))
 		{
-
-
 			this->template produces<HBHERecHitCollection>();
 			this->setDebugName("HcalPhase1Reconstructor_FACILE");
 		}
@@ -151,61 +149,54 @@ class HcalPhase1Reconstructor_FACILE : public SonicEDProducer<Client>
 
 			tmp->clear();
 
-		        processData<QIE11DataFrame>(*digis, *conditions, iInput, ninput);
-			
+			processData<QIE11DataFrame>(*digis, *conditions, iInput, ninput);
 		}
 
 		template<class DFrame, class Collection>
 		void processData(const Collection& coll,
-                                 const HcalDbService& cond,
-				 Input& iInput,
-				 auto ninput)
+				const HcalDbService& cond,
+				Input& iInput,
+				auto ninput)
 		{
-
 			const bool skipDroppedChannels = false;
 
 			unsigned int ib = 0;
 			for (typename Collection::const_iterator it = coll.begin(); it != coll.end(); it++){
-
-
-
 				unsigned int ib = std::distance(coll.begin(),it);
 
-			 	const DFrame& frame(*it);
-	        	  	const HcalDetId cell(frame.id());
+				const DFrame& frame(*it);
+				const HcalDetId cell(frame.id());
 
-        		   	const HcalSubdetector subdet = cell.subdet();
-        			if (!(subdet == HcalSubdetector::HcalBarrel ||
-	   			      subdet == HcalSubdetector::HcalEndcap ||
-    			              subdet == HcalSubdetector::HcalOuter))
-        		    	continue;
+				const HcalSubdetector subdet = cell.subdet();
+				if (!(subdet == HcalSubdetector::HcalBarrel ||
+					  subdet == HcalSubdetector::HcalEndcap ||
+					  subdet == HcalSubdetector::HcalOuter))
+					continue;
 		
 				const HcalCalibrations& calib = cond.getHcalCalibrations(cell);
-			        const HcalQIECoder* channelCoder = cond.getHcalCoder(cell);
-			        const HcalQIEShape* shape = cond.getHcalShape(channelCoder);
-			        const HcalCoderDb coder(*channelCoder, *shape);
+				const HcalQIECoder* channelCoder = cond.getHcalCoder(cell);
+				const HcalQIEShape* shape = cond.getHcalShape(channelCoder);
+				const HcalCoderDb coder(*channelCoder, *shape);
 
 				CaloSamples cs;
-        			coder.adc2fC(frame, cs);
-
+				coder.adc2fC(frame, cs);
 
 				const int nRead = cs.size();
-			        const int maxTS = std::min(nRead, static_cast<int>(HBHEChannelInfo::MAXSAMPLES));
+				const int maxTS = std::min(nRead, static_cast<int>(HBHEChannelInfo::MAXSAMPLES));
 
 				const int soi = 3;
 				const int nCycles = 8;
-			        const RawChargeFromSample<DFrame> rcfs(sipmQTSShift_, sipmQNTStoSum_, 
-                                               			       cond, cell, cs, soi, frame, maxTS);
-
+				const RawChargeFromSample<DFrame> rcfs(sipmQTSShift_, sipmQNTStoSum_, 
+													   cond, cell, cs, soi, frame, maxTS);
 
 				iInput[ib*ninput + 0] = (float)cell.iphi();
 				for (int inputTS = 0; inputTS < nCycles; ++inputTS){
 					auto s(frame[inputTS]);
 					const uint8_t adc = s.adc();
 					const int capid = s.capid();
-			        	const double gain = calib.respcorrgain(capid);	
+					const double gain = calib.respcorrgain(capid);	
 					iInput[ib*ninput + 1] = (float)gain;
-				        const double rawCharge = rcfs.getRawCharge(cs[inputTS], calib.pedestal(capid));
+					const double rawCharge = rcfs.getRawCharge(cs[inputTS], calib.pedestal(capid));
 					iInput[ib*ninput+inputTS+2] = ((float)rawCharge);
 				}
 				for(unsigned int d = 1; d < 8; d++){
@@ -222,9 +213,7 @@ class HcalPhase1Reconstructor_FACILE : public SonicEDProducer<Client>
 			}
 		}
 		void produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Output const& iOutput) override {
-
-
-  			std::unique_ptr<HBHERecHitCollection> out;
+			std::unique_ptr<HBHERecHitCollection> out;
 			out = std::make_unique<HBHERecHitCollection>();
 
 			unsigned int ib = 0;
@@ -241,54 +230,23 @@ class HcalPhase1Reconstructor_FACILE : public SonicEDProducer<Client>
 		~HcalPhase1Reconstructor_FACILE() override {}
 
 	private:
-
-
-
 		int sipmQTSShift_;
 		int sipmQNTStoSum_;
 		unsigned topN_;
-	  	edm::InputTag fDigiName;
-    		edm::InputTag fRHName;
-    		edm::InputTag fChanInfoName;
-   		edm::EDGetTokenT<edm::SortedCollection<HBHERecHit,edm::StrictWeakOrdering<HBHERecHit>>> fTokRH;
-    		edm::EDGetTokenT<edm::SortedCollection<HBHEChannelInfo,edm::StrictWeakOrdering<HBHEChannelInfo>>> fTokChanInfo;
- 		edm::EDGetTokenT<QIE11DigiCollection> fTokDigis;
+		edm::InputTag fDigiName;
+		edm::InputTag fRHName;
+		edm::InputTag fChanInfoName;
+		edm::EDGetTokenT<edm::SortedCollection<HBHERecHit,edm::StrictWeakOrdering<HBHERecHit>>> fTokRH;
+		edm::EDGetTokenT<edm::SortedCollection<HBHEChannelInfo,edm::StrictWeakOrdering<HBHEChannelInfo>>> fTokChanInfo;
+		edm::EDGetTokenT<QIE11DigiCollection> fTokDigis;
 
-                std::vector<HBHERecHit> tmprh;
+		std::vector<HBHERecHit> tmprh;
 		std::vector<HBHERecHit> *tmp = &tmprh;
 		
 		float depth, ieta, iphi; 
 
 		using SonicEDProducer<Client>::client_;
-                template<unsigned int B, unsigned int I>
-                unsigned short f_to_ui(float f) {
-                    bool isPos = f > 0.;
-                    short tmpIs = int(fabs(f));
-                    unsigned short tmpI = tmpIs;
-                    if (not isPos) {
-		      unsigned short comp = ((unsigned short)((1<<(sizeof(unsigned short)*4-I+1))-1)<<I);
-		      tmpI = -tmpIs;
-		      tmpI = tmpI-comp;
-                    }
-                    float tmpF = fabs(f) - float(tmpIs);
-                    unsigned short fracs = tmpF*float(1<<(B-I));
-                    unsigned short val = (tmpI << (B-I)) + fracs;
-                    return val;
-                }
-                template<unsigned int B, unsigned int I>
-                float ui_to_f(const unsigned short ui) {
-		  unsigned short i = ui >> (B-I);
-		  unsigned short mask = (1 << (B-I))-1;
-		  unsigned short dec = ui & mask;
-		  float lDec = float(dec)/float(1 << (B-I));
-		  return float(i)+lDec;
-		}
-                uint32_t merge(unsigned short iA,unsigned short iB) {
-		  uint32_t result = (uint32_t) iA << 16 | iB;
-		  return result;
-		}  
 };
-
 
 typedef HcalPhase1Reconstructor_FACILE<TRTClientSync> HcalPhase1Reconstructor_FACILESync;
 typedef HcalPhase1Reconstructor_FACILE<TRTClientAsync> HcalPhase1Reconstructor_FACILEAsync;
