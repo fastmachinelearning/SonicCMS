@@ -55,7 +55,8 @@ class JetImageProducer : public SonicEDProducer<Client>
 
 			// create a jet image for the leading jet in the event
 			// 224 x 224 image which is centered at the jet axis and +/- 1 unit in eta and phi
-			std::vector<float> img(client_.ninput(),0.f);
+			std::vector<float> img(client_.ninput()*client_.batchSize(),0.f);
+
 			const unsigned npix = 224;
 			float pixel_width = 2./float(npix);
 
