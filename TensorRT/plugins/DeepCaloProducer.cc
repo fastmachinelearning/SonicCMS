@@ -108,15 +108,15 @@ class DeepCaloProducer : public SonicEDProducer<Client>
 					score_map.emplace(scores[i0*dim+i],pSS.str());
 				}
 				//get top n
-				// std::stringstream msg;
-				// msg << "Scores:\n";
+				std::stringstream msg;
+				msg << "Scores:\n";
 				unsigned counter = 0;
 				for(const auto& item: score_map){
-				//	msg << item.second << " : " << item.first << "\n";
+					msg << item.second << " : " << item.first << "\n";
 					++counter;
 					if(counter>=topN_) break;
 				}
-				// edm::LogInfo("DeepCaloProducer") << msg.str();
+				edm::LogInfo("DeepCaloProducer") << msg.str();
 			}
 		}
 
