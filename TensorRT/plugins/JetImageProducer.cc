@@ -49,13 +49,15 @@ class JetImageProducer : public SonicEDProducer<Client>
 		}
 		void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, Input& iInput) override {
 			//input data from event
+
 			edm::Handle<edm::View<pat::Jet>> h_jets;
 			iEvent.getByToken(JetTok_, h_jets);
 			const auto& jets = *h_jets.product();
 
 			// create a jet image for the leading jet in the event
 			// 224 x 224 image which is centered at the jet axis and +/- 1 unit in eta and phi
-			std::vector<float> img(client_.ninput(),0.f);
+			std::vector<float> img(client_.ninput()*client_.batchSize(),0.f);
+			
 			const unsigned npix = 224;
 			float pixel_width = 2./float(npix);
 
@@ -91,7 +93,7 @@ class JetImageProducer : public SonicEDProducer<Client>
 				if (jet_ctr > 0) break; // just do one jet for now
 				//////////////////////////////
 			}
-
+			
 			iInput = Input(client_.ninput()*client_.batchSize(),0.f);
 			for(unsigned i0 = 0; i0 < client_.batchSize(); i0++ ) { 
 				for(unsigned i1 = 0; i1 < client_.ninput(); i1++) {

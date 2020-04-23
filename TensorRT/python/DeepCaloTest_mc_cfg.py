@@ -1,19 +1,19 @@
 from FWCore.ParameterSet.VarParsing import VarParsing
-# Forked from SMPJ Analysis Framework
 import FWCore.ParameterSet.Config as cms
 import os, sys, json
 
 options = VarParsing("analysis")
-options.register("address", "prp-gpu-1.t2.ucsd.edu", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+options.register("address", "ailab01.fnal.gov", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+#options.register("address", "prp-gpu-1.t2.ucsd.edu", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+#options.register("address", "18.4.112.82", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("port", 8001, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("timeout", 30, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("params", "", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("threads", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("streams", 0,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
-options.register("batchsize", 10,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
-options.register("modelname","resnet50_netdef", VarParsing.multiplicity.singleton, VarParsing.varType.string)
-#options.register("modelname","resnet50_ensemble", VarParsing.multiplicity.singleton, VarParsing.varType.string)
-options.register("mode","Async", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+options.register("batchsize", 1,    VarParsing.multiplicity.singleton, VarParsing.varType.int)
+options.register("modelname","deepcalo_e", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+options.register("mode", "Async", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.parseArguments()
 
 if len(options.params)>0:
@@ -25,9 +25,9 @@ if len(options.params)>0:
 
 # check mode
 allowed_modes = {
-    "Async": "JetImageProducerAsync",
-    "Sync": "JetImageProducerSync",
-    "PseudoAsync": "JetImageProducerPseudoAsync",
+    "Async": "DeepCaloProducerAsync",
+    "Sync": "DeepCaloProducerSync",
+    "PseudoAsync": "DeepCaloProducerPseudoAsync",
 }
 if options.mode not in allowed_modes:
     raise ValueError("Unknown mode: "+options.mode)
@@ -46,20 +46,22 @@ process.GlobalTag.globaltag = cms.string('100X_upgrade2018_realistic_v10')
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(options.maxEvents) )
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring(['file:store_mc_RunIISpring18MiniAOD_BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph_MINIAODSIM_100X_upgrade2018_realistic_v10-v1_30000_24A0230C-B530-E811-ADE3-14187741120B.root']*50),
+    #fileNames = cms.untracked.vstring('file:../../Core/data/store_mc_RunIISpring18MiniAOD_BulkGravTohhTohbbhbb_narrow_M-2000_13TeV-madgraph_MINIAODSIM_100X_upgrade2018_realistic_v10-v1_30000_24A0230C-B530-E811-ADE3-14187741120B.root')
+    	fileNames = cms.untracked.vstring(['file:../../Core/data/skim.root']*100),
 	duplicateCheckMode = cms.untracked.string('noDuplicateCheck')
 )
+
 
 if len(options.inputFiles)>0: process.source.fileNames = options.inputFiles
 
 ################### EDProducer ##############################
-process.jetImageProducer = cms.EDProducer(allowed_modes[options.mode],
-    JetTag = cms.InputTag('slimmedJetsAK8'),
+process.DeepCaloProducer = cms.EDProducer(allowed_modes[options.mode],
     topN = cms.uint32(5),
-    imageList = cms.string("../../Core/data/imagenet_classes.txt"),
+    #binDataPath = cms.string("../../Core/data/image0_1000.bin"),
+    binDataPath = cms.string("../../Core/data/deepcalo_all.bin"),
     Client = cms.PSet(
-        ninput  = cms.uint32(224*224*3),
-        noutput = cms.uint32(1000),
+        ninput  = cms.uint32(56*11*4),
+        noutput = cms.uint32(1),
         batchSize = cms.uint32(options.batchsize),
         address = cms.string(options.address),
         port = cms.uint32(options.port),
@@ -70,11 +72,11 @@ process.jetImageProducer = cms.EDProducer(allowed_modes[options.mode],
 
 # Let it run
 process.p = cms.Path(
-    process.jetImageProducer
+    process.DeepCaloProducer
 )
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 500
-keep_msgs = ['JetImageProducer','TRTClient']
+keep_msgs = ['TRTClient','DeepCaloProducer']
 for msg in keep_msgs:
     process.MessageLogger.categories.append(msg)
     setattr(process.MessageLogger.cerr,msg,
