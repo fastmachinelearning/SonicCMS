@@ -17,6 +17,8 @@ options.register("mode", "Async", VarParsing.multiplicity.singleton, VarParsing.
 options.register("hang", "", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.parseArguments()
 
+# reset args to avoid collision w/ customizeHLTforAll
+sys.argv = sys.argv[0:1]
 
 if len(options.params)>0:
     with open(options.params,'r') as pfile:
