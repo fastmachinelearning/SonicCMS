@@ -1,9 +1,8 @@
 Remote mode:
 ```
 cd python
-cmsRun jetImageTest_mc_cfg.py address=ailab01.fnal.gov port=8001 maxEvents=25
+cmsRun HcalTest_mc_cfg.py maxEvents=25 port=<port> address=<server_ip> batchsize=16000 modelname=facile maxEvents=10
 ```
-(or the same for `HcalTest_mc_cfg.py`)
 
 All the different client options can be tested with an additional argument:
 `mode=Async` (default), `mode=Sync`, `mode=PseudoAsync`.
