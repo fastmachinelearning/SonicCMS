@@ -15,6 +15,7 @@ export PATH=/cvmfs/sft.cern.ch/lcg/contrib/CMake/3.7.0/Linux-x86_64/bin/:${PATH}
 # some really bad ways to get info out of scram
 PYTHON_LIBDIR=$(scram tool info python | grep "LIBDIR=" | sed 's/LIBDIR=//')
 PYTHON_INCLUDE=$(scram tool info python | grep "INCLUDE=" | sed 's/INCLUDE=//')
+export OPENSSL_ROOT_DIR=$(scram tool info openssl | grep "OPENSSL_BASE=" | sed 's/OPENSSL_BASE=//')
 
 # download and build tensor-rt-inference server
 git clone ${ACCESS_GITHUB}NVIDIA/tensorrt-inference-server.git -b r19.10
@@ -34,7 +35,7 @@ cd opencv/
 patch -p1 < $CMSSW_BASE/src/SonicCMS/TensorRT/patch.diff
 mkdir build
 cd build
-cmake -D CMAKE_BUILD_TYPE=Release ../ -DPYTHON_LIBRARY=$PYTHON_LIBDIR -DPYTHON_INCLUDE_DIR=$PYTHON_INCLUDE
+cmake -D CMAKE_BUILD_TYPE=Release ../ -DPYTHON_LIBRARY=$PYTHON_LIBDIR -DPYTHON_INCLUDE_DIR=$PYTHON_INCLUDE -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR
 make -j $CORES
 
 cd ../../
