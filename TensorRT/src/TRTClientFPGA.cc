@@ -33,7 +33,7 @@ void TRTClientFPGA<Client>::setup() {
     std::unique_ptr<nic::InferContext::Options> options;
     nic::InferContext::Options::Create(&options);
     
-    //options->SetBatchSize(batchSize_);
+    options->SetBatchSize(batchSize_);
     for (const auto& output : context_->Outputs()) {
       options->AddRawResult(output);
     }
@@ -64,7 +64,7 @@ void TRTClientFPGA<Client>::getResults(const std::unique_ptr<nic::InferContext::
 	size_t content_byte_size;
 	result->GetRaw(0, &r0, &content_byte_size);
 	const unsigned int *lVal = reinterpret_cast<const unsigned int*>(r0);
-	memcpy(this->output_.data(),&lVal[0],content_byte_size);
+	memcpy(this->output_.data(),&lVal[0],content_byte_size*batchSize_);
 	//for(unsigned i1 = 0; i1 < noutput_; i1++) this->output_[i0*noutput_+i1] = lVal[i1]; //This should be replaced with a memcpy
 	//}
 	auto t3 = std::chrono::high_resolution_clock::now();
