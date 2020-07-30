@@ -30,7 +30,7 @@ TRTClient<Client>::TRTClient(const edm::ParameterSet& params) :
 
 template <typename Client>
 void TRTClient<Client>::setup() {
-	if(!fSetup) { 
+	if(!fSetup) {
 		auto err = nic::InferGrpcContext::Create(&context_, url_, modelName_, -1, false);
 		if(!err.IsOk()) throw cms::Exception("BadGrpc") << "unable to create inference context: " << err;
 
@@ -49,7 +49,7 @@ void TRTClient<Client>::setup() {
 	const std::vector<std::shared_ptr<nic::InferContext::Input>>& nicinputs = context_->Inputs();
 	nicinput_ = nicinputs[0];
 	nicinput_->Reset();
-	
+
 	auto t2 = std::chrono::high_resolution_clock::now();
 	std::vector<int64_t> input_shape;
 	for(unsigned i0 = 0; i0 < batchSize_; i0++) {

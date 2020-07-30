@@ -55,7 +55,7 @@ class TRTClientFPGA : public Client {
 		unsigned ninput_;
 		unsigned noutput_;
 		std::unique_ptr<nic::InferContext> context_;
-		std::shared_ptr<nic::InferContext::Input> nicinput_; 
+		std::shared_ptr<nic::InferContext::Input> nicinput_;
 };
 typedef TRTClientFPGA<SonicClientSync<std::vector<unsigned short>>> TRTClientFPGASync;
 typedef TRTClientFPGA<SonicClientPseudoAsync<std::vector<unsigned short>>> TRTClientFPGAPseudoAsync;
