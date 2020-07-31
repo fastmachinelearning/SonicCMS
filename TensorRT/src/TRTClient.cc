@@ -25,21 +25,26 @@ TRTClient<Client>::TRTClient(const edm::ParameterSet& params) :
 	ninput_(params.getParameter<unsigned>("ninput")),
 	noutput_(params.getParameter<unsigned>("noutput"))
 {
+  fSetup = false;
 }
 
 template <typename Client>
 void TRTClient<Client>::setup() {
-	auto err = nic::InferGrpcContext::Create(&context_, url_, modelName_, -1, false);
-	if (!err.IsOk()) throw cms::Exception("BadGrpc") << "unable to create inference context: " << err;
+	if(!fSetup) {
+		auto err = nic::InferGrpcContext::Create(&context_, url_, modelName_, -1, false);
+		if(!err.IsOk()) throw cms::Exception("BadGrpc") << "unable to create inference context: " << err;
 
-	std::unique_ptr<nic::InferContext::Options> options;
-	nic::InferContext::Options::Create(&options);
+		std::unique_ptr<nic::InferContext::Options> options;
+		nic::InferContext::Options::Create(&options);
 
-	options->SetBatchSize(batchSize_);
-	for (const auto& output : context_->Outputs()) {
-		options->AddRawResult(output);
+		options->SetBatchSize(batchSize_);
+		for (const auto& output : context_->Outputs()) {
+			options->AddRawResult(output);
+		}
+		context_->SetRunOptions(*options);
+
+		fSetup = true;
 	}
-	context_->SetRunOptions(*options);
 
 	const std::vector<std::shared_ptr<nic::InferContext::Input>>& nicinputs = context_->Inputs();
 	nicinput_ = nicinputs[0];

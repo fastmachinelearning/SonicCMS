@@ -55,7 +55,7 @@ class TRTClient : public Client {
 
 	protected:
 		void predictImpl() override;
-
+		bool fSetup;
 		//helper for common ops
 		void setup();
 
