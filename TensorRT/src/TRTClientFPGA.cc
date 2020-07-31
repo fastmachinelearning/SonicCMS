@@ -33,7 +33,7 @@ void TRTClientFPGA<Client>::setup() {
 		std::unique_ptr<nic::InferContext::Options> options;
 		nic::InferContext::Options::Create(&options);
 
-		options->SetBatchSize(batchSize_);
+		//do not set batch size (hardcoded in server)
 		for (const auto& output : context_->Outputs()) {
 			options->AddRawResult(output);
 		}
