@@ -1,19 +1,5 @@
-AnalysisFW/python/crab_projects*/
-crab.log
-**/LSFJOB*
-*.root
-*.pyc
-__init__.py
-*.txt
-*.log
-*.pb
-*.json
-*.zip
-*.png
-*.pdf
-/AnalysisFW/python/data/
-*.tar.gz
-*.stdout
-*.stderr
-*.condor
-
+# Ignore everything in this directory
+*
+# Except these files
+!.gitignore
+!README.md
